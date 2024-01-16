@@ -1,0 +1,25 @@
+/**
+ *	UI module: ScoresHeader common
+ */
+#Const Version		"2021-02-25"
+#Const ScriptName	"ManiaApps/Nadeo/TMNext/TrackMania/FinalTMGL/UIModules/ScoresHeader_Common.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Common.Script.txt" as UIModules_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Id "UIModule_FinalTMGL_ScoresHeader"
+#Const C_LayerType CUILayer::EUILayerType::Normal
+#Const C_UIModuleConfig UIModules_Common::ComponentModeLibsUIModules_K_ModuleConfig {
+	Id = "FinalTMGL_ScoresHeader", //< Do not modify this Id once in production. It is used by the xmlrpc protocole and would break compatibility.
+	IsCustomizable = True,
+	Properties = UIModules_Common::ComponentModeLibsUIModules_K_ModuleProperties {
+		Position = <0., 80.7>,
+		Scale = 1.,
+		Visible = True
+	}
+}

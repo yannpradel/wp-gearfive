@@ -1,0 +1,56 @@
+/**
+ *	Control the ClientUI values
+ *	Several scripts can try to modify the ClientUI values
+ *	This can lead to races conditions difficult to debug
+ *	To avoid that, any modification of a ClientUI value
+ *	must go through this library
+ */
+#Const Version		"1.1.0"
+#Const ScriptName	"Libs/Nadeo/CMGame/Modes/ClientUI.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constant
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_UISequenceMode_FinishRace 1
+#Const C_UISequenceMode_WatchRecordWithMenuNavigation 2
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+Void Private_ApplyUISequenceModes(Integer[] _Modes) {
+	if (_Modes.exists(C_UISequenceMode_FinishRace)) {
+		ClientUI.UISequence = CUIConfig::EUISequence::Finish;
+	} else if (_Modes.exists(C_UISequenceMode_WatchRecordWithMenuNavigation)) {
+		ClientUI.UISequence = CUIConfig::EUISequence::UIInteraction;
+	} else {
+		ClientUI.UISequence = CUIConfig::EUISequence::None;
+	}
+}
+
+Void SetUISequenceModeEnabled(Integer _Mode, Boolean _Enabled) {
+	declare Integer[] CMGame_ClientUI_ActiveUISequenceModes for ClientUI = [];
+	if (_Enabled) {
+		if (!CMGame_ClientUI_ActiveUISequenceModes.exists(_Mode)) {
+			CMGame_ClientUI_ActiveUISequenceModes.add(_Mode);
+		}
+	} else {
+		CMGame_ClientUI_ActiveUISequenceModes.remove(_Mode);
+	}
+
+	Private_ApplyUISequenceModes(CMGame_ClientUI_ActiveUISequenceModes);
+}
+
+Boolean IsUISequenceModeEnabled(Integer _Mode) {
+	declare Integer[] CMGame_ClientUI_ActiveUISequenceModes for ClientUI = [];
+	return CMGame_ClientUI_ActiveUISequenceModes.exists(_Mode);
+}
+
+Void Unload() {
+	declare Integer[] CMGame_ClientUI_ActiveUISequenceModes for ClientUI = [];
+	CMGame_ClientUI_ActiveUISequenceModes = [];
+	Private_ApplyUISequenceModes(CMGame_ClientUI_ActiveUISequenceModes);
+}
+
+Void Load() {
+	Unload();
+}

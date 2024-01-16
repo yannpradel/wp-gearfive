@@ -1,0 +1,564 @@
+/** 
+ * Follow Me UI Script Library
+ */
+
+#Const Version		"2022-08-05"
+#Const ScriptName	"FollowMe.Script.txt"
+
+#Include "TextLib" as TL
+#Include "MathLib" as ML
+
+#Include "Libs/Nadeo/ModeLibs/Legacy/Manialink3.Script.txt" as Manialink
+#Include "Libs/Nadeo/TMConsole/UIPadButtons.Script.txt" as Buttons
+#Include "Libs/Nadeo/TMConsole/MapEditor/Layers.Script.txt" as Layers
+#Include "Libs/Nadeo/TMConsole/MapEditor/UI/Colors.Script.txt" as Colors
+#Include "Libs/Nadeo/TMConsole/MapEditor/UI/Stylesheet.Script.txt" as Styles
+#Include "Libs/Nadeo/Show/Common/Components/GraphicMethods.Script.txt" as GraphicMethods
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+#Include "Libs/Nadeo/Show/TrackMania/Menu/Components/Gearbox.Script.txt" as Gearbox
+#Include "Libs/Nadeo/Show/Common/Constants.Script.txt" as Consts
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/ButtonsList.Script.txt" as ButtonsList
+
+#Const C_NavGroupName "navgroup-page-editorprogression"
+
+#Const C_ImagePath "file://Media/Manialinks/Nadeo/Show/Menu/"
+
+declare Boolean G_IsFollowMe;
+
+Text Private_GetFollowMeML() {
+	declare BigSize = 4.;
+	declare SmallSize = 2.;
+	declare QuadPositions = [
+		Styles::GetPosition2(<0.+BigSize*0.5, -2.-BigSize*0.5, 0.>, Styles::CircleSize_Top()),
+		Styles::GetPosition2(<4.+SmallSize*0.5, 0.-SmallSize*0.5, 1.>, Styles::CircleSize_Top()),
+		Styles::GetPosition2(<2.+SmallSize*0.5, 0.-SmallSize*0.5, 2.>, Styles::CircleSize_Top()),
+		Styles::GetPosition2(<0.+SmallSize*0.5, 0.-SmallSize*0.5, 3.>, Styles::CircleSize_Top()),
+		Styles::GetPosition2(<-2.+SmallSize*0.5, 0.-SmallSize*0.5, 4.>, Styles::CircleSize_Top())
+	];
+	
+	declare CursorPlace = Buttons::GetImage(CMapEditorPluginEvent::EInput::CursorPlace);
+	declare ButtonSize = 2.;
+
+	declare Text DataValidateButton = ButtonsList::Inject(["A"=>_("Continue")]);
+	declare Text BG_Link = C_ImagePath ^ "BG_Link_Editor.dds";
+	declare Text BG_Link_ButtonNotPressed = C_ImagePath ^ "BG_Button_Editor_Link_NotPressed.dds";
+	declare Text BG_Link_ButtonPressed = C_ImagePath ^ "BG_Button_Editor_Link_Pressed.dds";
+	declare Text Icone_Link = C_ImagePath ^ "Icone_Link.dds";
+	//L16N [FollowMe] @TODO TRAD
+	declare Text Text_LinkCopied = _("Link copied!");
+	//L16N [FollowMe] @TODO TRAD
+	declare Text Text_Create = _("Create the track of the show");
+	//L16N [FollowMe] @TODO TRAD
+	declare Text Text_Record = _("Record the ghost that player will follow");
+	//L16N [FollowMe] @TODO TRAD
+	declare Text Text_Collect = _("Collect lottery tickets, everyone can participate!");
+	//L16N [FollowMe] @TODO TRAD
+	declare Text Text_Draw = _("Draw of the lottery");
+	//L16N [FollowMe] @TODO TRAD
+	declare Text Text_LotteryPlayers = ("Lottery winners play against in HotSeat");
+	//L16N [FollowMe] @TODO TRAD
+	declare Text Text_Validate = _("Validate");
+		
+	return """
+<manialink version="3" name="MapEditor:FollowMe">
+<stylesheet>
+	{{{Styles::Get()}}}
+	<!-- COPY OF SHOWPROGRESSION -->
+	<style class="text-step-content" halign="left" valign="center2" textsize="6" textfont="{{{FontManager::C_GameFontExtraBold}}}"/>
+	<style class="image-category-activated" size="250 40" halign="left" valign="center" image="{{{GraphicMethods::C_BG_FollowMe_Steps_CategoryActivated}}}" keepratio="Fit" z-index="-1" />
+	<style class="image-category-notactivated" size="250 40" halign="left" valign="center" image="{{{GraphicMethods::C_BG_FollowMe_Steps_CategoryNotActivated}}}" keepratio="Fit" opacity=".6" z-index="-1"/>
+	<style class="image-category" pos="20 -4.5" size="25 10" halign="center" valign="center" keepratio="Fit" z-index="1"/>
+	<style class="image-category" pos="20 -4.5" size="25 10" halign="center" valign="center" keepratio="Fit" z-index="1"/>
+	<style class="image-gearbox" halign="center" valign="center" keepratio="Fit"/>
+</stylesheet>
+<frame z-index="-1" id="Frame_Global">
+	<frame hidden="-1" id="Frame_FollowMeTopUI">
+		<frame id="Frame_Link" pos="-105 68">
+			<frame id="Frame_Link">
+				<quad  id="Quad_LinkBg" pos="8 -.25" size="70 16" z-index="-2" halign="center" valign="center" bgcolor="000" opacity="0.8" image="{{{BG_Link}}}" keepratio="Fit"/>
+				<label id="Label_Link" size="60 5" z-index="-1" textsize="3" halign="center" valign="center" textfont="{{{FontManager::C_GameFontRegular}}}"/>
+			</frame>
+			<frame id="Frame_CopyLink" pos="55 -.5">
+				<quad id="Quad_CopyLinkBg" size="20 6" z-index="-2" halign="center" valign="center" bgcolor="000" scriptevents="1" image="{{{BG_Link_ButtonNotPressed}}}" keepratio="Fit"/>
+				<quad id="Quad_CopyLinkIcon" pos="-6 0" size="3 3" z-index="-1" halign="center" valign="center" image="{{{Icone_Link}}}" keepratio="Fit"/>
+				<label id="Label_CopyLink" pos="1 -.25" size="20 5" z-index="-1" textsize="2" halign="center" valign="center2" text="{{{_("Copy")}}}" textfont="{{{FontManager::C_GameFontExtraBold}}}"/>
+				<frame>
+					<label id="Label_Feedback" pos="0 5" size="18 1" z-index="1" textsize="4" halign="center" valign="center" text="{{{Text_LinkCopied}}}" textfont="{{{FontManager::C_GameFontExtraBold}}}" hidden="1"/>
+				</frame>
+			</frame>
+		</frame>
+
+		<frame id="Frame_ShowHeader" pos="-110 72">
+			<label id="label-show-name" pos="-25 9" size="70 5" textsize="5" textprefix="$t$i" textfont="{{{FontManager::C_GameFontExtraBold}}}"/>
+			<quad pos="-35 6" size="20 18" bgcolor="000" halign="center" valign="center" image="{{{GraphicMethods::C_Image_Show_Avatar}}}" keepratio="Fit"/>
+			<quad id="quad-show-card" pos="-36 6" size="17 17" bgcolor="000" halign="center" valign="center"/>
+			<quad pos="-24 -2" size="55 9" bgcolor="190" halign="center" valign="center" image="{{{GraphicMethods::C_Image_Show_Arrows}}}" keepratio="Fit"/>
+			<quad pos="0 6" size="100 15" bgcolor="AAA" halign="center" valign="center" image="{{{GraphicMethods::C_BG_Show_Header_Streamer}}}" keepratio="Fit"/>
+		</frame>
+		<quad pos="-145 0" size="30 50" id="Quad_Progression" z-index="-3" halign="center" valign="center"/>
+	</frame>
+
+	<frame id="Frame_Gearbox">
+		<quad id="quad-image-steps" image="{{{GraphicMethods::C_Image_FollowMe_Gearbox_Step1}}}" pos="-.5 25.5" class="image-gearbox"  z-index="1" size="26.6 33.6"/>
+		<quad id="quad-bg-text-title" image="{{{GraphicMethods::C_BG_FollowMe_Gearbox_Step1_2}}}" pos="-1 -17" class="image-gearbox"  z-index="1" size="26.6 54.4"/>
+		<frame id="frame-title" pos="1 -2" z-index="2">
+			<quad id="quad-bg-title-arrow" image="{{{GraphicMethods::C_Image_FollowMe_Gearbox_Title_Arrow}}}" class="image-gearbox" size="56 29.4"/>
+			<quad id="quad-image-title" pos="5 1.5" image="{{{GraphicMethods::C_Image_FollowMe_Gearbox_Title5}}}" class="image-gearbox" size="40 28"/>
+			<quad id="quad-bg-title" pos=".6 0" image="{{{GraphicMethods::C_BG_FollowMe_Gearbox_Title}}}" class="image-gearbox" size="56 29.4"/>
+		</frame>
+		<quad image="{{{GraphicMethods::C_BG_FollowMe_Gearbox_Box}}}" class="image-gearbox" size="70 98"/>
+	</frame>
+	
+	<frame hidden="-1" id="Frame_Leader">
+		<frame pos="-80 62">
+			<quad id="quad-highlight-{{{Consts::C_ShowStep_Track}}}" pos="-4 -4" class="image-category-activated" image="{{{GraphicMethods::C_BG_FollowMe_Steps_Highlight1}}}" hidden="1"/>
+			<quad id="quad-bg-{{{Consts::C_ShowStep_Track}}}" pos="-4 -4" class="image-category-notactivated" image="{{{GraphicMethods::C_BG_FollowMe_Steps_1}}}" hidden="1"/>
+			<quad id="quad-image-category-{{{Consts::C_ShowStep_Track}}}" image="{{{GraphicMethods::C_Image_FollowMe_Gearbox_Title1}}}" class="image-category"/>
+			//L16N [MapEditor] Description of a step displayed in a list of steps of a game mode. Here: Creation of a race track for an online streaming show.
+			<label id="label-step-content-{{{Consts::C_ShowStep_Track}}}" class="text-step-content" text="{{{Text_Create}}}" pos="55 -5" z-index="1"/>
+		</frame>
+		<frame pos="-80 37">
+			<quad id="quad-highlight-{{{Consts::C_ShowStep_Leader}}}" pos="-4 -4" class="image-category-activated" image="{{{GraphicMethods::C_BG_FollowMe_Steps_Highlight2}}}" hidden="1"/>
+			<quad id="quad-bg-{{{Consts::C_ShowStep_Leader}}}" pos="-4 -4" class="image-category-notactivated" image="{{{GraphicMethods::C_BG_FollowMe_Steps_2}}}" hidden="1"/>
+			<quad id="quad-image-category-{{{Consts::C_ShowStep_Leader}}}" image="{{{GraphicMethods::C_Image_FollowMe_Gearbox_Title2}}}" class="image-category"/>
+			//L16N [MapEditor] Description of a step displayed in a list of steps of a game mode. Here: Recording a leader run that every player will have to follow.
+			<label id="label-step-content-{{{Consts::C_ShowStep_Leader}}}" class="text-step-content" text="{{{Text_Record}}}" pos="55 -5" z-index="1"/>
+		</frame>
+		<frame pos="-80 12">
+			<quad id="quad-highlight-{{{Consts::C_ShowStep_Tickets}}}" pos="-4 -4" class="image-category-activated" image="{{{GraphicMethods::C_BG_FollowMe_Steps_Highlight3}}}" hidden="1"/>
+			<quad id="quad-bg-{{{Consts::C_ShowStep_Tickets}}}" pos="-4 -4" class="image-category-notactivated" image="{{{GraphicMethods::C_BG_FollowMe_Steps_3}}}" hidden="1"/>
+			<quad id="quad-image-category-{{{Consts::C_ShowStep_Tickets}}}" image="{{{GraphicMethods::C_Image_FollowMe_Gearbox_Title3}}}" class="image-category"/>
+			//L16N [MapEditor] Description of a step displayed in a list of steps of a game mode. Here: distributing tickets for people to participate in a lottery
+			<label id="label-step-content-{{{Consts::C_ShowStep_Tickets}}}" class="text-step-content" text="{{{Text_Collect}}}" pos="55 -5" z-index="1"/>
+		</frame>
+		<frame pos="-80 -13">
+			<quad id="quad-highlight-{{{Consts::C_ShowStep_Lottery}}}" pos="-4 -4" class="image-category-activated" image="{{{GraphicMethods::C_BG_FollowMe_Steps_Highlight4}}}" hidden="1"/>
+			<quad id="quad-bg-{{{Consts::C_ShowStep_Lottery}}}" pos="-4 -4" class="image-category-notactivated" image="{{{GraphicMethods::C_BG_FollowMe_Steps_4}}}" hidden="1"/>
+			<quad id="quad-image-category-{{{Consts::C_ShowStep_Lottery}}}" image="{{{GraphicMethods::C_Image_FollowMe_Gearbox_Title4}}}" class="image-category"/>
+			//L16N [MapEditor] Description of a step displayed in a list of steps of a game mode. Here: Choosing randomly from a set of lottery tickets
+			<label id="label-step-content-{{{Consts::C_ShowStep_Lottery}}}" class="text-step-content" text="{{{Text_Draw}}}" pos="55 -5" z-index="1"/>
+		</frame>
+		<frame pos="-80 -38">
+			<quad id="quad-highlight-{{{Consts::C_ShowStep_Final}}}" pos="-4 -4" class="image-category-activated" image="{{{GraphicMethods::C_BG_FollowMe_Steps_Highlight5}}}" hidden="1"/>
+			<quad id="quad-bg-{{{Consts::C_ShowStep_Final}}}" pos="-4 -4" class="image-category-notactivated" image="{{{GraphicMethods::C_BG_FollowMe_Steps_5}}}" hidden="1"/>
+			<quad id="quad-image-category-{{{Consts::C_ShowStep_Final}}}" image="{{{GraphicMethods::C_Image_FollowMe_Gearbox_Title5}}}" class="image-category"/>
+			//L16N [MapEditor] Description of a step displayed in a list of steps of a game mode. Here: the final step where people play against eachother
+			<label id="label-step-content-{{{Consts::C_ShowStep_Final}}}" class="text-step-content" text="{{{Text_LotteryPlayers}}}" pos="55 -5" z-index="1"/>
+		</frame>
+
+		<frameinstance pos="110 -80" modelid="{{{ButtonsList::C_Name}}}" id="frame-button-info" z-index="5" data-buttons="{{{DataValidateButton}}}" />
+		<frame pos="-10 -76">
+			//L16N [MapEditor] Text displayed next to a button's picture describing the action of this button. Here: Proceeding to the next screen.
+			<label text="{{{Text_Validate}}}" pos="20 -4" textprefix="$t" size="20 1" textsize="4" z-index="1" halign="center" valign="center" textfont="{{{FontManager::C_GameFontExtraBold}}}"/>
+			<quad id="quad-validate" image="{{{GraphicMethods::C_BG_FollowMe_Steps_Button_NotPressed}}}" size="35 20" class="image-category" scriptevents="1" colorize="{{{GraphicMethods::C_Color_FollowMe_Green}}}"/>
+		</frame>
+		<quad z-index="10" size="320 180" halign="center" valign="center" image="{{{GraphicMethods::C_BG_FollowMe_Steps_Screen_Reflection}}}"/>
+		<quad id="quad-bg-screen" z-index="0" size="320 180" halign="center" valign="center" image="{{{GraphicMethods::C_BG_FollowMe_Steps_Screen}}}"/>
+		<quad z-index="0" size="320 180" halign="center" valign="center" image="{{{GraphicMethods::C_BG_FollowMe_Steps_Foreground}}}"/>
+	</frame>
+</frame>
+<script><!--
+{{{Manialink::DefaultIncludes()}}}
+#Include "ColorLib" as CL
+#Const C_Enter_KeyCode 109
+
+////************ COPY OF GraphicMethods Lib ***********\\\\
+#Const C_Color_Steps_Array [
+	{{{Consts::C_ShowStep_Track}}} => "3677c1",
+	{{{Consts::C_ShowStep_Leader}}} => "e41fd8",
+	{{{Consts::C_ShowStep_Tickets}}} => "e3b323",
+	{{{Consts::C_ShowStep_Lottery}}} => "36c18f",
+	{{{Consts::C_ShowStep_Final}}} => "eb3a0a"
+]
+
+#Const C_WeakColor_Steps_Array [
+	{{{Consts::C_ShowStep_Track}}} => "798398",
+	{{{Consts::C_ShowStep_Leader}}} => "886b87",
+	{{{Consts::C_ShowStep_Tickets}}} => "565347",
+	{{{Consts::C_ShowStep_Lottery}}} => "636d6d"
+]
+
+#Const C_StrongColor_Steps_Array [
+	{{{Consts::C_ShowStep_Leader}}} => "886b87",
+	{{{Consts::C_ShowStep_Tickets}}} => "241e0c",
+	{{{Consts::C_ShowStep_Lottery}}} => "0d302f",
+	{{{Consts::C_ShowStep_Final}}} => "5b2213"
+]
+
+#Const C_Image_Screens_Array [
+	{{{Consts::C_ShowStep_Track}}} => "{{{GraphicMethods::C_BG_FollowMe_Steps_Screen_1}}}",
+	{{{Consts::C_ShowStep_Leader}}} => "{{{GraphicMethods::C_BG_FollowMe_Steps_Screen_2}}}",
+	{{{Consts::C_ShowStep_Tickets}}} => "{{{GraphicMethods::C_BG_FollowMe_Steps_Screen_3}}}",
+	{{{Consts::C_ShowStep_Lottery}}} => "{{{GraphicMethods::C_BG_FollowMe_Steps_Screen_4}}}",
+	{{{Consts::C_ShowStep_Final}}} => "{{{GraphicMethods::C_BG_FollowMe_Steps_Screen_5}}}"
+]
+
+#Struct K_Images_Gearbox{
+	Text Image_Title;
+	Text Image_Title_BG;
+	Text Image_Gears;
+}
+
+#Const C_Images_Gearbox_Array [
+	{{{Consts::C_ShowStep_Track}}} => K_Images_Gearbox{
+		Image_Title = "{{{GraphicMethods::C_Image_FollowMe_Gearbox_Title1}}}",
+		Image_Title_BG = "{{{GraphicMethods::C_BG_FollowMe_Gearbox_Step1_2}}}",
+		Image_Gears = "{{{GraphicMethods::C_Image_FollowMe_Gearbox_Step1}}}"
+	},
+	{{{Consts::C_ShowStep_Leader}}} => K_Images_Gearbox{
+		Image_Title = "{{{GraphicMethods::C_Image_FollowMe_Gearbox_Title2}}}",
+		Image_Title_BG = "{{{GraphicMethods::C_BG_FollowMe_Gearbox_Step1_2}}}",
+		Image_Gears = "{{{GraphicMethods::C_Image_FollowMe_Gearbox_Step2}}}"
+	},
+	{{{Consts::C_ShowStep_Tickets}}} => K_Images_Gearbox{
+		Image_Title = "{{{GraphicMethods::C_Image_FollowMe_Gearbox_Title3}}}",
+		Image_Title_BG = "{{{GraphicMethods::C_BG_FollowMe_Gearbox_Step3}}}",
+		Image_Gears = "{{{GraphicMethods::C_Image_FollowMe_Gearbox_Step3}}}"
+	},
+	{{{Consts::C_ShowStep_Lottery}}} => K_Images_Gearbox{
+		Image_Title = "{{{GraphicMethods::C_Image_FollowMe_Gearbox_Title4}}}",
+		Image_Title_BG = "{{{GraphicMethods::C_BG_FollowMe_Gearbox_Step4}}}",
+		Image_Gears = "{{{GraphicMethods::C_Image_FollowMe_Gearbox_Step4}}}"
+	},
+	{{{Consts::C_ShowStep_Final}}} => K_Images_Gearbox{
+		Image_Title = "{{{GraphicMethods::C_Image_FollowMe_Gearbox_Title5}}}",
+		Image_Title_BG = "{{{GraphicMethods::C_BG_FollowMe_Gearbox_Step5}}}",
+		Image_Gears = "{{{GraphicMethods::C_Image_FollowMe_Gearbox_Step5}}}"
+	}
+]
+
+////***** END OF COPY ****\\\\\\
+
+{{{Manialink::Animations(["EaseOutQuad"])}}}
+
+Void UpdateShowProgression(CMlFrame _Frame_Global, Integer _ShowProgression) {
+	for (I, 0, {{{Consts::C_ShowStep_Total}}}-1) {
+		declare CMlQuad Quad_CategoryBG <=> (_Frame_Global.GetFirstChild("quad-bg-"^I) as CMlQuad);
+		declare CMlQuad Quad_CategoryHighlight <=> (_Frame_Global.GetFirstChild("quad-highlight-"^I) as CMlQuad);
+		declare CMlQuad Quad_CategoryTitle <=> (_Frame_Global.GetFirstChild("quad-image-category-"^I) as CMlQuad);
+		declare CMlLabel Label_CategoryDescription <=> (_Frame_Global.GetFirstChild("label-step-content-"^I) as CMlLabel);
+
+		if (I == _ShowProgression) {
+			Quad_CategoryHighlight.Visible = True;
+			Quad_CategoryBG.Visible = False;
+			if (C_Image_Screens_Array.existskey(_ShowProgression)) {
+				(_Frame_Global.GetFirstChild("quad-bg-screen") as CMlQuad).ChangeImageUrl(C_Image_Screens_Array[_ShowProgression]);
+			}
+			Quad_CategoryTitle.ModulateColor = <1.,1.,1.>;
+			Label_CategoryDescription.TextColor = CL::HexToRgb("{{{GraphicMethods::C_Color_Show_White}}}");
+			Quad_CategoryBG.Opacity = 1.;
+			Quad_CategoryTitle.Opacity = 1.;
+			Label_CategoryDescription.Opacity = 1.;
+		} else {
+			if (I < _ShowProgression) {
+				if (C_Color_Steps_Array.existskey(_ShowProgression)) {
+					Quad_CategoryBG.Colorize = CL::HexToRgb(C_Color_Steps_Array[_ShowProgression]);
+					Quad_CategoryTitle.ModulateColor = CL::HexToRgb(C_StrongColor_Steps_Array[_ShowProgression]);
+					Label_CategoryDescription.TextColor = CL::HexToRgb(C_StrongColor_Steps_Array[_ShowProgression]);
+					Quad_CategoryBG.Opacity = 0.4;
+					Quad_CategoryTitle.Opacity = 0.4;
+					Label_CategoryDescription.Opacity = 0.4;
+				}
+			} else {
+				if (C_Color_Steps_Array.existskey(I)) {
+					Quad_CategoryBG.Colorize = CL::HexToRgb(C_Color_Steps_Array[I]);
+				}
+				if (C_Color_Steps_Array.existskey(_ShowProgression)) {
+					Quad_CategoryTitle.ModulateColor = CL::HexToRgb(C_WeakColor_Steps_Array[_ShowProgression]);
+					Label_CategoryDescription.TextColor = CL::HexToRgb(C_WeakColor_Steps_Array[_ShowProgression]);
+				}
+			}
+			Quad_CategoryHighlight.Visible = False;
+			Quad_CategoryBG.Visible = True;
+		}
+	}
+}
+
+
+Void UpdateGearbox(CMlFrame _FrameGlobal, Integer _ShowProgression) {
+	if (C_Images_Gearbox_Array.existskey(_ShowProgression)) {
+		(_FrameGlobal.GetFirstChild("quad-image-title") as CMlQuad).ChangeImageUrl(C_Images_Gearbox_Array[_ShowProgression].Image_Title);
+		switch(_ShowProgression) {
+			case {{{Consts::C_ShowStep_Track}}}: (_FrameGlobal.GetFirstChild("quad-image-title") as CMlQuad).RelativeScale = 1.1;
+			case {{{Consts::C_ShowStep_Leader}}}: (_FrameGlobal.GetFirstChild("quad-image-title") as CMlQuad).RelativeScale = 1.05;
+			case {{{Consts::C_ShowStep_Tickets}}}: (_FrameGlobal.GetFirstChild("quad-image-title") as CMlQuad).RelativeScale = 1.;
+			case {{{Consts::C_ShowStep_Lottery}}}: (_FrameGlobal.GetFirstChild("quad-image-title") as CMlQuad).RelativeScale = 1.;
+			case {{{Consts::C_ShowStep_Final}}}: (_FrameGlobal.GetFirstChild("quad-image-title") as CMlQuad).RelativeScale = 1.15;
+		}
+		(_FrameGlobal.GetFirstChild("quad-bg-text-title") as CMlQuad).ChangeImageUrl(C_Images_Gearbox_Array[_ShowProgression].Image_Title_BG);
+		(_FrameGlobal.GetFirstChild("quad-image-steps") as CMlQuad).ChangeImageUrl(C_Images_Gearbox_Array[_ShowProgression].Image_Gears);
+	}
+	if (C_Color_Steps_Array.existskey(_ShowProgression)) {
+		(_FrameGlobal.GetFirstChild("quad-bg-title-arrow") as CMlQuad).Colorize = CL::HexToRgb(C_Color_Steps_Array[_ShowProgression]);
+	}
+	(_FrameGlobal.GetFirstChild("frame-title") as CMlFrame).RelativePosition_V3.Y = -2 - 8.35 * _ShowProgression;
+}
+
+
+Void SetVisibility(Boolean _Visible) {
+	if (_Visible) {
+		LibManialink_Anim({{{Manialink::Inject("""<frame pos="{{{-Styles::GetSize2(<0., 0.>, Styles::CircleSize_Top()).X}}} 0" hidden="0" id="Frame_Global" />""")}}}, 250, "EaseOutQuad");
+	} else {
+		LibManialink_Anim({{{Manialink::Inject("""<frame pos="0 0" hidden="1" id="Frame_Global" />""")}}}, 250, "EaseOutQuad");
+	}
+}
+
+Void SetVisibilityTopUI(Boolean _Visible){
+	if (_Visible) {
+		LibManialink_Anim({{{Manialink::Inject("""<frame pos="{{{-Styles::GetSize2(<0., 0.>, Styles::CircleSize_Top()).X}}} 0" hidden="0" id="Frame_FollowMeTopUI" />""")}}}, 250, "EaseOutQuad");
+	} else {
+		LibManialink_Anim({{{Manialink::Inject("""<frame pos="0 0" hidden="1" id="Frame_FollowMeTopUI" />""")}}}, 1, "EaseOutQuad");
+	}
+}
+
+Void SetVisibilityLeader(Boolean _Visible){
+	SetVisibilityTopUI(!_Visible);
+	if (_Visible) {
+		LibManialink_Anim({{{Manialink::Inject("""<frame pos="{{{-Styles::GetSize2(<0., 0.>, Styles::CircleSize_Top()).X}}} 0" hidden="0" id="Frame_Leader" />""")}}}, 250, "EaseOutQuad");
+	} else {
+		LibManialink_Anim({{{Manialink::Inject("""<frame pos="0 0" hidden="1" id="Frame_Leader" />""")}}}, 250, "EaseOutQuad");
+	}
+}
+
+Void Anim_CopyLinkFeedback(CMlLabel _Label){
+	_Label.Parent.RelativePosition_V3.Y = 0.;
+	_Label.Opacity = 0.5;
+	_Label.Visible = True;
+	AnimMgr.Add(_Label.Parent, "<anim scale=\"1.05\" pos=\"0 2\" />", 300, CAnimManager::EAnimManagerEasing::QuadOut);
+	AnimMgr.Add(_Label, "<anim opacity=\"1.\" />", 50, CAnimManager::EAnimManagerEasing::QuadIn);
+	AnimMgr.Add(_Label.Parent, "<anim scale=\"1.\" pos=\"0 1\" />", Now+500, 150, CAnimManager::EAnimManagerEasing::QuadIn);
+	AnimMgr.Add(_Label, "<anim opacity=\"0.\" />", Now+500, 150, CAnimManager::EAnimManagerEasing::QuadOut);
+}
+
+main() {
+	declare L_VisibilityUI for Page = False;
+	declare PrevVisibility = False;
+	SetVisibility(False);
+	
+	
+	declare L_VisibilityLeader for Page = False;
+	declare PrevVisibilityLeader = True;
+	SetVisibilityLeader(False);
+	
+	declare L_CardURL for Page = "";
+	declare L_LinkText for Page = "";
+	declare L_ShowTitle for Page = "";	
+	
+	declare L_ProgressionImageTrack for Page = "";	
+	declare L_ProgressionImageLeader for Page = "";	
+	declare L_ProgressionStep for Page = "Track";
+
+	declare HasValidated for Page = False;
+	
+	declare PrevCard = "";
+	declare PrevLink = "";
+	declare PrevTitle = "";
+	declare PrevProgressionStep = "";
+	
+	declare CMlFrame Frame_Leader <=> (Page.GetFirstChild("Frame_Leader") as CMlFrame);
+	declare CMlFrame Frame_Gearbox <=> (Page.GetFirstChild("Frame_Gearbox") as CMlFrame);
+	declare CMlLabel Label_Link <=> (Page.GetFirstChild("Label_Link") as CMlLabel);
+	declare CMlLabel Label_ShowName <=> (Page.GetFirstChild("label-show-name") as CMlLabel);
+	declare CMlQuad Quad_ShowCard <=> (Page.GetFirstChild("quad-show-card") as CMlQuad);
+	declare CMlQuad Quad_LinkBg <=> (Page.GetFirstChild("Quad_LinkBg") as CMlQuad);
+	declare CMlQuad Quad_CopyLinkBg <=> (Page.GetFirstChild("Quad_CopyLinkBg") as CMlQuad);
+	declare CMlQuad Quad_Progression <=> (Page.GetFirstChild("Quad_Progression") as CMlQuad);
+	declare CMlLabel Label_Feedback <=> (Page.GetFirstChild("Label_Feedback") as CMlLabel);
+	
+	declare Boolean AdaptedSize = False;
+	declare Integer AnimTime_Click = 200;
+	declare Integer StartTime_Click;
+		
+	while (True) {
+		yield;
+		
+		foreach (Event in PendingEvents) {
+			if(Event.Type == CMlScriptEvent::Type::MouseClick){
+				if(Event.ControlId == "Quad_CopyLinkBg"){
+					System.ClipboardSet(Label_Link.Value);
+					StartTime_Click = Now;
+					Quad_CopyLinkBg.ChangeImageUrl("{{{BG_Link_ButtonPressed}}}");
+					Anim_CopyLinkFeedback(Label_Feedback);
+				}
+				if(Event.ControlId == "quad-validate") {
+					HasValidated = True;
+				}
+			}
+			if(Event.Type == CMlScriptEvent::Type::KeyPress){
+				if(Event.KeyCode == C_Enter_KeyCode) {
+					HasValidated = True;
+				}
+			}
+			if(Event.Type == CMlScriptEvent::Type::MouseOver){
+				if(Event.ControlId == "Quad_CopyLinkBg"){
+					AnimMgr.Add(Quad_CopyLinkBg, "<anim scale=\"1.05\" />", 100, CAnimManager::EAnimManagerEasing::QuadIn);
+				}
+			}
+			if(Event.Type == CMlScriptEvent::Type::MouseOut){
+				if(Event.ControlId == "Quad_CopyLinkBg"){
+					AnimMgr.Add(Quad_CopyLinkBg, "<anim scale=\"1.\" />", 100, CAnimManager::EAnimManagerEasing::QuadIn);
+				}
+			}
+		}
+
+		if(Now > StartTime_Click + AnimTime_Click) {
+			Quad_CopyLinkBg.ChangeImageUrl("{{{BG_Link_ButtonNotPressed}}}");
+		}
+		
+		// Only do once text has been set
+		/*
+		if(!AdaptedSize){
+			if(Label_Link.Value != ""){
+				Quad_LinkBg.Size.X = (Label_Link.ComputeWidth(Label_Link.Value)+4);
+				AdaptedSize = True;
+			}
+		}
+		*/
+		
+		LibManialink_AnimLoop();
+		
+		if (PrevVisibility != L_VisibilityUI) {
+			PrevVisibility = L_VisibilityUI;
+			SetVisibility(L_VisibilityUI);
+		}
+		
+		if (PrevVisibilityLeader != L_VisibilityLeader) {
+			PrevVisibilityLeader = L_VisibilityLeader;
+			SetVisibilityLeader(L_VisibilityLeader);
+			if(L_VisibilityLeader) {
+				Frame_Gearbox.RelativeScale = 1.;
+				Frame_Gearbox.RelativePosition_V3 = <-110., 10.>;
+			} else {
+				Frame_Gearbox.RelativeScale = 0.6;
+				Frame_Gearbox.RelativePosition_V3 = <-140., 10.>;
+			}
+		}
+		
+		if(PrevCard != L_CardURL){
+			Quad_ShowCard.ImageUrl = L_CardURL;
+			PrevCard = L_CardURL;
+		}
+		if(PrevLink != L_LinkText){
+			Label_Link.Value = L_LinkText;
+			PrevLink = L_LinkText;
+		}
+		
+		if(PrevTitle != L_ShowTitle){
+			Label_ShowName.Value = L_ShowTitle;
+			PrevTitle = L_ShowTitle;
+		}
+		
+		if(PrevProgressionStep != L_ProgressionStep){
+			if(L_ProgressionStep == "Track"){
+				UpdateShowProgression(Frame_Leader, {{{Consts::C_ShowStep_Track}}});
+				UpdateGearbox(Frame_Gearbox, {{{Consts::C_ShowStep_Track}}});
+				Quad_Progression.ImageUrl = L_ProgressionImageTrack;
+			}else if(L_ProgressionStep == "Leader"){
+				UpdateShowProgression(Frame_Leader, {{{Consts::C_ShowStep_Leader}}});
+				UpdateGearbox(Frame_Gearbox, {{{Consts::C_ShowStep_Leader}}});
+				Quad_Progression.ImageUrl = L_ProgressionImageLeader;
+			}else{
+				Quad_Progression.ImageUrl = "";
+			}
+			PrevProgressionStep = L_ProgressionStep;
+		}
+	}
+}
+--></script>
+</manialink>
+""";
+}
+
+
+Text GetScriptVersion() { return Version; }
+Text GetScriptName() { return ScriptName; }
+
+//  Set the UI visibility
+Void SetVisibility(Boolean _Visible) {
+	declare Page <=> Layers::GetPage("FollowMe");
+	declare L_VisibilityUI for Page = False;
+	L_VisibilityUI = (_Visible && G_IsFollowMe);
+}
+
+
+//  Set the leader page visibility
+Void SetVisibilityLeader(Boolean _Visible) {
+	declare Page <=> Layers::GetPage("FollowMe");
+	declare L_VisibilityLeader for Page = False;
+	L_VisibilityLeader = (_Visible && G_IsFollowMe);
+}
+
+Void Private_SetProgression(Text _Step){
+	declare Page <=> Layers::GetPage("FollowMe");
+	declare L_ProgressionStep for Page = "";
+	L_ProgressionStep = _Step;
+}
+
+Void SetProgressionTrack(){
+	Private_SetProgression("Track");
+}
+
+Void SetProgressionLeader(){
+	Private_SetProgression("Leader");
+}
+
+Void SetProgressionNone(){
+	Private_SetProgression("");
+}
+
+Void Show() {
+	SetVisibility(True);
+}
+Void Hide() {
+	SetVisibility(False);
+}
+
+Boolean HasValidatedScreen() {
+	declare Page <=> Layers::GetPage("FollowMe");
+	declare HasValidated for Page = False;
+	if(HasValidated) {
+		HasValidated = False;
+		return True;
+	}
+	return False;
+}
+
+Void Init(Text _Card, Text _Link, Text _Title, Text _ProgressionTrack, Text _ProgressionLeader){
+	declare Page <=> Layers::GetPage("FollowMe");
+	
+	declare L_CardURL for Page = _Card;
+	declare L_LinkText for Page = _Link;
+	declare L_ShowTitle for Page = _Title;
+	
+	declare L_ProgressionImageTrack for Page = _ProgressionTrack;
+	declare L_ProgressionImageLeader for Page = _ProgressionLeader;
+	
+	SetProgressionNone();
+}
+
+Void Reset(){
+	Init("","","","","");
+	Hide();
+	SetVisibilityLeader(False);
+}
+
+Void Unload() {
+	Layers::Destroy("FollowMe");
+	Reset();
+}
+
+Void Load(Boolean _IsFollowMe) {
+	Unload();
+	
+	G_IsFollowMe = _IsFollowMe; // If false, we'll never show this UI
+	
+	declare LayerFollowMe <=> Layers::Create("FollowMe");
+	LayerFollowMe.ManialinkPage = Private_GetFollowMeML();
+	
+	declare Page <=> LayerFollowMe.LocalPage;
+	declare L_VisibilityUI for Page = False;
+	L_VisibilityUI = False;
+	
+	declare L_VisibilityLeader for Page = False;
+	L_VisibilityLeader = False;
+}

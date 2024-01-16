@@ -1,0 +1,932 @@
+/** 
+ *	Buttons for Trackmania
+ *	
+ *	Available styles
+ *	----------------
+ *
+ *	- `C_Style_Stack`: a style with straight edges and no rounded corners
+ *	- `C_Style_StackTop`: a style with a rounded top left corner
+ *	- `C_Style_StackBottom`: a style with a rounded bottom right corner
+ *  - `C_Style_NoBackground`: a button style with no background and no focus, only text
+ *	- `C_Style_SizeExpendable`: a style with minimum and maximum sizes
+ *	- `C_Style_SizeMedium`: a style with defined sizes for medium buttons 
+ *	- `C_Style_SizeSmall`: a style with defined sizes for small buttons 
+ *	- `C_Style_AlignCenter`: a style to align horizontally and vertically the button at the center 
+ *	- `C_Style_PageBack`: a style that sets a "Back" text to the button
+ *	- `C_Style_PagePrevious`: a style with a left arrow before the text
+ *	- `C_Style_PageNext`: a style with a right arrow after the text
+ *	- `C_Style_PageNextAnimated`: a style with an animated right arrow after the text
+ *	- `C_Style_ColorDark`: a style with a dark blue background
+ *	- `C_Style_ButtonSecondary`: a style for pop-up buttons
+ *	- `C_Style_ButtonTertiary`: a style for pop-up buttons
+ *	- `C_Style_ButtonWarning`: a style that apply a red background on focus
+ *	- `C_Style_ButtonLoading`: a style with an animated loading spinner after the text
+ *  - `C_Style_Map`: the default style for campaign track buttons
+ *  - `C_Style_MapLive`: an additionnal style for a live track, in a room for example
+ *  - `C_Style_MapRaced`: an additionnal style for a raced track
+ *  - `C_Style_MapUnavailable`: an additionnal style for a locked track
+ *  - `C_Style_MapLocked`: an additionnal style for a locked track in a specified campaign category
+ *	- `C_Style_Tabs`: the default style for navigation tab buttons
+ *	- `C_Style_ScoresTableIcons`: a style used for icons buttons in the ingame scores table
+ *	- `C_Style_HUD`: a style used in the game HUD
+ *	- `C_Style_PlayerCard`: a style used behind a player name (in the matchmaking menu for example)
+ *	- `C_Style_VerticalBothRoundedEdges`: a style with rounded edges (vertical means the button has no skew)
+ *	- `C_Style_VerticalStartBottomRoundedEdges`: a style with bottom rounded edge only on the left side of the button (vertical means the button has no skew)
+ *	- `C_Style_VerticalEndBottomRoundedEdges`: a style with bottom rounded edge only on the right side of the button (vertical means the button has no skew)
+ *	- `C_Style_VerticalBottomRoundedEdges`: a style with bottom rounded edges (vertical means the button has no skew)
+ */
+#Const Version		"2023-05-31"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Menu/Components/ExpendableButton.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "ColorLib" as CL
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/ExpendableButton.Script.txt" as ExpendableButton
+#Include "Libs/Nadeo/TMNext/TrackMania/ColorPalette.Script.txt" as ColorPalette
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as Const
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_OverloadName "component-tmnext-expendable-button"
+#Const ExpendableButton::C_Name as C_Name
+#Const ExpendableButton::P as P
+#Const ExpendableButton::Q as Q
+#Const ExpendableButton::C_NavZone as C_NavZone
+
+#Const ExpendableButton::C_ColorMode_None as C_ColorMode_None
+#Const ExpendableButton::C_ColorMode_Colorize as C_ColorMode_Colorize
+#Const ExpendableButton::C_ColorMode_Modulate as C_ColorMode_Modulate
+#Const ExpendableButton::C_ColorMode_Background as C_ColorMode_Background
+
+#Const ExpendableButton::C_IconAlign_Left as C_IconAlign_Left
+#Const ExpendableButton::C_IconAlign_Right as C_IconAlign_Right
+#Const ExpendableButton::C_IconAlign_Center as C_IconAlign_Center
+#Const ExpendableButton::C_IconAlign_TextLeft as C_IconAlign_TextLeft
+#Const ExpendableButton::C_IconAlign_TextRight as C_IconAlign_TextRight
+
+#Const C_Style_Stack "component-tmnext-expendable-button-style-stack"
+#Const C_Style_StackTop "component-tmnext-expendable-button-style-stack-top"
+#Const C_Style_StackBottom "component-tmnext-expendable-button-style-stack-bottom"
+#Const C_Style_NoBackground "component-tmnext-expendable-button-style-no-background"
+#Const C_Style_SizeExpendable "component-tmnext-expendable-button-style-size-expendable"
+#Const C_Style_SizeMedium "component-tmnext-expendable-button-style-size-medium"
+#Const C_Style_SizeSmall "component-tmnext-expendable-button-style-size-small"
+#Const C_Style_AlignCenter "component-tmnext-expendable-button-style-align-center"
+#Const C_Style_PageBack "component-tmnext-expendable-button-style-page-back"
+#Const C_Style_PagePrevious "component-tmnext-expendable-button-style-page-previous"
+#Const C_Style_PageNext "component-tmnext-expendable-button-style-page-next"
+#Const C_Style_PageNextAnimated "component-tmnext-expendable-button-style-page-next-animated"
+#Const C_Style_ColorDark "component-tmnext-expendable-button-style-color-dark"
+#Const C_Style_ButtonSecondary "component-tmnext-expendable-button-style-secondary"
+#Const C_Style_ButtonTertiary "component-tmnext-expendable-button-style-tertiary"
+#Const C_Style_ButtonWarning "component-tmnext-expendable-button-style-warning"
+#Const C_Style_ButtonLoading "component-tmnext-expendable-button-style-loading"
+#Const C_Style_Map "component-tmnext-expendable-button-style-map"
+#Const C_Style_MapLive "component-tmnext-expendable-button-style-map-live"
+#Const C_Style_MapRaced "component-tmnext-expendable-button-style-map-raced"
+#Const C_Style_MapUnavailable "component-tmnext-expendable-button-style-map-locked"
+#Const C_Style_MapLocked "component-tmnext-expendable-button-style-category-map-locked"
+#Const C_Style_Tabs "component-tmnext-expendable-button-style-tabs"
+#Const C_Style_ScoresTableIcons "component-tmnext-expendable-button-style-scorestable-icons"
+#Const C_Style_HUD "component-tmnext-expendable-button-style-hud"
+#Const C_Style_PlayerCard "component-tmnext-expendable-button-style-player-card"
+#Const C_Style_VerticalBothRoundedEdges  "component-tmnext-expendable-button-style-vertical-both-rounded-edges"
+#Const C_Style_VerticalStartBottomRoundedEdges  "component-tmnext-expendable-button-style-vertical-start-bottom-rounded-edges"
+#Const C_Style_VerticalEndBottomRoundedEdges  "component-tmnext-expendable-button-style-vertical-end-bottom-rounded-edges"
+#Const C_Style_VerticalBottomRoundedEdges  "component-tmnext-expendable-button-style-vertical-bottom-rounded-edges"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// When two libraries are merged in the same namespance
+// only the constants from the first libraries are accessible
+// We have to proxy the constants through functions to make them accessible
+Text Style_Stack() { return C_Style_Stack; }
+Text Style_StackTop() { return C_Style_StackTop; }
+Text Style_StackBottom() { return C_Style_StackBottom; }
+Text Style_NoBackground() { return C_Style_NoBackground; }
+Text Style_SizeExpendable() { return C_Style_SizeExpendable; }
+Text Style_SizeMedium() { return C_Style_SizeMedium; }
+Text Style_SizeSmall() { return C_Style_SizeSmall; }
+Text Style_AlignCenter() { return C_Style_AlignCenter; }
+Text Style_PageBack() { return C_Style_PageBack; }
+Text Style_PagePrevious() { return C_Style_PagePrevious; }
+Text Style_PageNext() { return C_Style_PageNext; }
+Text Style_PageNextAnimated() { return C_Style_PageNextAnimated; }
+Text Style_ColorDark() { return C_Style_ColorDark; }
+Text Style_ButtonSecondary() { return C_Style_ButtonSecondary; }
+Text Style_ButtonTertiary() { return C_Style_ButtonTertiary; }
+Text Style_ButtonWarning() { return C_Style_ButtonWarning; }
+Text Style_ButtonLoading() { return C_Style_ButtonLoading; }
+Text Style_Map() { return C_Style_Map; }
+Text Style_MapLive() { return C_Style_MapLive; }
+Text Style_MapRaced() { return C_Style_MapRaced; }
+Text Style_MapUnavailable() { return C_Style_MapUnavailable; }
+Text Style_MapLocked() { return C_Style_MapLocked; }
+Text Style_Tabs() { return C_Style_Tabs; }
+Text Style_ScoresTableIcons() { return C_Style_ScoresTableIcons; }
+Text Style_HUD() { return C_Style_HUD; }
+Text Style_PlayerCard() { return C_Style_PlayerCard; }
+Text Style_VerticalBothRoundedEdges() { return C_Style_VerticalBothRoundedEdges; }
+Text Style_VerticalStartBottomRoundedEdges() { return C_Style_VerticalStartBottomRoundedEdges; }
+Text Style_VerticalEndBottomRoundedEdges() { return C_Style_VerticalEndBottomRoundedEdges; }
+Text Style_VerticalBottomRoundedEdges() { return C_Style_VerticalBottomRoundedEdges; }
+
+Void TMNext_MainInit(CMlScript _This) {
+	//L16N Return to the previous page
+	declare Text Text_Back = _("Back");
+
+	ExpendableButton::SetButtonsDefaultProperties(_This, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_Height,
+			ExpendableButton::C_Property_TextFont,
+			ExpendableButton::C_Property_TextFontSize,
+			ExpendableButton::C_Property_TextPrefix,
+			ExpendableButton::C_Property_TextOffset,
+			ExpendableButton::C_Property_TextColorFocused,
+			ExpendableButton::C_Property_TextColorUnfocused,
+			ExpendableButton::C_Property_BackgroundImages,
+			ExpendableButton::C_Property_BackgroundColorFocused,
+			ExpendableButton::C_Property_BackgroundColorUnfocused,
+			ExpendableButton::C_Property_FocusColorFocused,
+			ExpendableButton::C_Property_FocusImages,
+			ExpendableButton::C_Property_IconColorFocused,
+			ExpendableButton::C_Property_IconColorUnfocused,
+			ExpendableButton::C_Property_HitboxRot,
+			ExpendableButton::C_Property_HitboxWidthScale
+		],
+		Height = 12.,
+		TextFont = FontManager::C_GameFontExtraBold,
+		TextFontSize = 4.,
+		TextPrefix = "$t$i",
+		TextOffset = <0., -0.55>,
+		TextColorFocused = <1., 1., 1.>,
+		TextColorUnfocused = ColorPalette::C_Color_Vec3_GreenOne,
+		BackgroundImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_Start,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			},
+			ExpendableButton::C_Position_Middle => ExpendableButton::K_Image {
+				ColorMode = ExpendableButton::C_ColorMode_Background
+			},
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_End,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			}
+		],
+		BackgroundColorFocused = ColorPalette::C_Color_Vec3_GreenThree,
+		BackgroundColorUnfocused = ColorPalette::C_Color_Vec3_GreenTwo,
+		FocusImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_StartContour,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			},
+			ExpendableButton::C_Position_Middle => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_MiddleContour,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			},
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_EndContour,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			}
+		],
+		FocusColorFocused = ColorPalette::C_Color_Vec3_GreenOne,
+		IconColorFocused = <1., 1., 1.>,
+		IconColorUnfocused = ColorPalette::C_Color_Vec3_GreenOne,
+		HitboxRot = 10.,
+		HitboxWidthScale = 0.79
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_NoBackground, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_BackgroundImages,
+			ExpendableButton::C_Property_FocusImages
+		],
+		BackgroundImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {},
+			ExpendableButton::C_Position_Middle => ExpendableButton::K_Image {},
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {}
+		],
+		FocusImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {},
+			ExpendableButton::C_Position_Middle => ExpendableButton::K_Image {},
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {}
+		]
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_Stack, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_BackgroundImages,
+			ExpendableButton::C_Property_FocusImages
+		],
+		BackgroundImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonStraight_Start,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			},
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonStraight_End,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			}
+		],
+		FocusImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonStraight_StartContour,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			},
+			ExpendableButton::C_Position_Middle => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonStraight_MiddleContour,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			},
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonStraight_EndContour,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			}
+		]
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_StackTop, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_BackgroundImages,
+			ExpendableButton::C_Property_FocusImages
+		],
+		BackgroundImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_Start,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			}
+		],
+		FocusImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_StartContour,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			}
+		]
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_StackBottom, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_BackgroundImages,
+			ExpendableButton::C_Property_FocusImages
+		],
+		BackgroundImages = [
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_End,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			}
+		],
+		FocusImages = [
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_EndContour,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			}
+		]
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_SizeExpendable, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_MinWidth,
+			ExpendableButton::C_Property_MaxWidth,
+			ExpendableButton::C_Property_Height
+		],
+		MinWidth = 30.,
+		MaxWidth = 80.,
+		Height = 12.
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_SizeMedium, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_Width,
+			ExpendableButton::C_Property_Height
+		],
+		Width = 54.,
+		Height = 12.
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_SizeSmall, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_Width,
+			ExpendableButton::C_Property_Height,
+			ExpendableButton::C_Property_TextFontSize
+		],
+		Width = 25.,
+		Height = 6.,
+		TextFontSize = 2.5
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_AlignCenter, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_HAlign,
+			ExpendableButton::C_Property_VAlign
+		],
+		HAlign = CMlControl::AlignHorizontal::HCenter,
+		VAlign = CMlControl::AlignVertical::VCenter
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_PageBack, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_TextValue,
+			ExpendableButton::C_Property_HAlign
+		],
+		TextValue = Text_Back,
+		HAlign = CMlControl::AlignHorizontal::Left
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_PagePrevious, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_IconImageUrl,
+			ExpendableButton::C_Property_IconColorMode,
+			ExpendableButton::C_Property_IconColorFocused,
+			ExpendableButton::C_Property_IconOpacityUnfocused,
+			ExpendableButton::C_Property_IconAlign
+		],
+		IconImage = ExpendableButton::K_Image {
+			Url = Const::C_ImageUrl_Icon_Arrow_Left_Oblique,
+			ColorMode = ExpendableButton::C_ColorMode_Colorize
+		},
+		IconColorFocused = <1., 1., 1.>,
+		IconOpacityUnfocused = 0.6,
+		IconAlign = ExpendableButton::C_IconAlign_Left
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_PageNext, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_IconImageUrl,
+			ExpendableButton::C_Property_IconColorMode,
+			ExpendableButton::C_Property_IconColorFocused,
+			ExpendableButton::C_Property_IconOpacityUnfocused,
+			ExpendableButton::C_Property_IconAlign,
+			ExpendableButton::C_Property_HAlign
+		],
+		IconImage = ExpendableButton::K_Image {
+			Url = Const::C_ImageUrl_Icon_Arrow_Right_Oblique,
+			ColorMode = ExpendableButton::C_ColorMode_Colorize
+		},
+		IconColorFocused = <1., 1., 1.>,
+		IconOpacityUnfocused = 0.6,
+		IconAlign = ExpendableButton::C_IconAlign_Right,
+		HAlign = CMlControl::AlignHorizontal::Right
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_PageNextAnimated, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_IconImageUrl,
+			ExpendableButton::C_Property_IconColorMode,
+			ExpendableButton::C_Property_IconColorFocused,
+			ExpendableButton::C_Property_IconOpacityUnfocused,
+			ExpendableButton::C_Property_IconAlign,
+			ExpendableButton::C_Property_HAlign
+		],
+		IconImage = ExpendableButton::K_Image {
+			Url = Const::C_ImageUrl_Icon_Animated_Triple_Arrow_Right,
+			ColorMode = ExpendableButton::C_ColorMode_Colorize
+		},
+		IconColorFocused = <1., 1., 1.>,
+		IconOpacityUnfocused = 0.6,
+		IconAlign = ExpendableButton::C_IconAlign_Right,
+		HAlign = CMlControl::AlignHorizontal::Right
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_ColorDark, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_TextColorUnfocused,
+			ExpendableButton::C_Property_TextOpacityUnfocused,
+			ExpendableButton::C_Property_BackgroundOpacityUnfocused,
+			ExpendableButton::C_Property_BackgroundColorFocused,
+			ExpendableButton::C_Property_BackgroundColorUnfocused,
+			ExpendableButton::C_Property_FocusColorFocused
+		],
+		TextColorUnfocused = <1., 1., 1.>,
+		TextOpacityUnfocused = 0.6,
+		BackgroundOpacityUnfocused = 0.6,
+		BackgroundColorFocused = CL::Hex6ToRgb(ColorPalette::C_Color_DarkBlue),
+		BackgroundColorUnfocused = CL::Hex6ToRgb(ColorPalette::C_Color_DarkBlue),
+		FocusColorFocused = <1., 1., 1.>
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_ButtonSecondary, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_TextColorUnfocused,
+			ExpendableButton::C_Property_BackgroundColorFocused,
+			ExpendableButton::C_Property_BackgroundColorUnfocused,
+			ExpendableButton::C_Property_FocusColorFocused,
+			ExpendableButton::C_Property_BackgroundOpacityUnfocused,
+			ExpendableButton::C_Property_TextOpacityUnfocused,
+			ExpendableButton::C_Property_IconOpacityUnfocused
+		],
+		TextColorUnfocused = ColorPalette::C_Color_Vec3_GreenOne,
+		BackgroundColorFocused = ColorPalette::C_Color_Vec3_GreenFour,
+		BackgroundColorUnfocused = ColorPalette::C_Color_Vec3_GreenFour,
+		FocusColorFocused = ColorPalette::C_Color_Vec3_GreenOne, 
+		BackgroundOpacityUnfocused = 0.6,
+		TextOpacityUnfocused = 0.6,
+		IconOpacityUnfocused = 0.6
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_ButtonTertiary, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_TextColorUnfocused,
+			ExpendableButton::C_Property_TextOpacityUnfocused,
+			ExpendableButton::C_Property_BackgroundOpacityUnfocused,
+			ExpendableButton::C_Property_FocusOpacityFocused,
+			ExpendableButton::C_Property_BackgroundColorFocused,
+			ExpendableButton::C_Property_BackgroundColorUnfocused
+		],
+		TextColorUnfocused = <1., 1., 1.>,
+		TextOpacityUnfocused = 0.6,
+		BackgroundOpacityUnfocused = 0.6,
+		FocusOpacityFocused = 0.,
+		BackgroundColorFocused = ColorPalette::C_Color_Vec3_GreenFour,
+		BackgroundColorUnfocused = ColorPalette::C_Color_Vec3_GreenFour
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_ButtonWarning, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_BackgroundColorFocused,
+			ExpendableButton::C_Property_FocusColorFocused
+		],
+		BackgroundColorFocused = CL::Hex6ToRgb(ColorPalette::C_Color_Red),
+		FocusColorFocused = CL::Hex6ToRgb(ColorPalette::C_Color_White)
+	});
+
+	ExpendableButton::CreateStyle(_This, C_Style_ButtonLoading, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_IconImageUrl,
+			ExpendableButton::C_Property_IconSize,
+			ExpendableButton::C_Property_IconColorMode,
+			ExpendableButton::C_Property_IconColorFocused,
+			ExpendableButton::C_Property_IconOpacityFocused,
+			ExpendableButton::C_Property_IconOpacityUnfocused,
+			ExpendableButton::C_Property_IconAlign,
+			ExpendableButton::C_Property_HAlign
+		],
+		IconImage = ExpendableButton::K_Image {
+			Url = Const::C_ImageUrl_Icon_Animated_Loading_Spinner,
+			ColorMode = ExpendableButton::C_ColorMode_Colorize,
+			Size = <9. , 9.>
+		},
+		IconColorFocused = <1., 1., 1.>,
+		IconOpacityFocused = 1.,
+		IconOpacityUnfocused = 0.6,
+		IconAlign = ExpendableButton::C_IconAlign_Right,
+		HAlign = CMlControl::AlignHorizontal::Right
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_Map, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_TextHAlign,
+			ExpendableButton::C_Property_TextOffset,
+			ExpendableButton::C_Property_TextFontSize,
+			ExpendableButton::C_Property_TextColorFocused,
+			ExpendableButton::C_Property_TextColorUnfocused,
+			ExpendableButton::C_Property_TextOpacityUnfocused,
+			ExpendableButton::C_Property_TextOpacityFocused,
+			ExpendableButton::C_Property_IconSize,
+			ExpendableButton::C_Property_IconColorMode,
+			ExpendableButton::C_Property_IconColorFocused,
+			ExpendableButton::C_Property_IconColorUnfocused,
+			ExpendableButton::C_Property_IconOpacityFocused,
+			ExpendableButton::C_Property_IconOpacityUnfocused,
+			ExpendableButton::C_Property_IconAlign,
+			ExpendableButton::C_Property_IconOffset,
+			ExpendableButton::C_Property_BackgroundColorFocused,
+			ExpendableButton::C_Property_BackgroundColorUnfocused,
+			ExpendableButton::C_Property_BackgroundOpacityFocused,
+			ExpendableButton::C_Property_BackgroundOpacityUnfocused,
+			ExpendableButton::C_Property_FocusImages
+		],
+		TextHAlign = CMlControl::AlignHorizontal::Left,
+		TextOffset = <-2., -0.55>,
+		TextFontSize = 6.5,
+		TextColorFocused = <1., 1., 1.>,
+		TextColorUnfocused = ColorPalette::C_Color_Vec3_GreenTwo,
+		TextOpacityFocused = 1.,
+		TextOpacityUnfocused = 0.6,
+		BackgroundColorFocused = ColorPalette::C_Color_Vec3_GreenFour,
+		BackgroundColorUnfocused = <1., 1., 1.>,
+		BackgroundOpacityFocused = 1.,
+		BackgroundOpacityUnfocused = 0.6,
+		IconColorFocused = <1., 1., 1.>,
+		IconColorUnfocused = ColorPalette::C_Color_Vec3_GreenTwo,
+		IconOpacityFocused = 1.,
+		IconOpacityUnfocused = 0.6,
+		IconAlign = ExpendableButton::C_IconAlign_Left,
+		IconOffset = <-2.5, 0.>,
+		IconImage = ExpendableButton::K_Image {
+			ColorMode = ExpendableButton::C_ColorMode_Colorize,
+			Size = <10., 10.>
+		},
+		FocusImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {},
+			ExpendableButton::C_Position_Middle => ExpendableButton::K_Image {},
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {}
+		]
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_MapRaced, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_TextColorUnfocused,
+			ExpendableButton::C_Property_TextOpacityUnfocused,
+			ExpendableButton::C_Property_TextOpacityFocused,
+			ExpendableButton::C_Property_BackgroundOpacityFocused,
+			ExpendableButton::C_Property_BackgroundOpacityUnfocused
+		],
+		TextColorUnfocused = ColorPalette::C_Color_Vec3_GreenThree,
+		TextOpacityFocused = 1.,
+		TextOpacityUnfocused = 1.,
+		BackgroundOpacityFocused = 1.,
+		BackgroundOpacityUnfocused = 0.9
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_MapLive, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_TextColorUnfocused,
+			ExpendableButton::C_Property_TextOpacityUnfocused,
+			ExpendableButton::C_Property_BackgroundColorUnfocused,
+			ExpendableButton::C_Property_BackgroundOpacityUnfocused
+		],
+		TextColorUnfocused = ColorPalette::C_Color_Vec3_GreenFour,
+		TextOpacityUnfocused = 1.,
+		BackgroundColorUnfocused = ColorPalette::C_Color_Vec3_GreenOne,
+		BackgroundOpacityUnfocused = 1.
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_MapLocked, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_TextColorUnfocused,
+			ExpendableButton::C_Property_TextOpacityUnfocused,
+			ExpendableButton::C_Property_TextOpacityFocused,
+			ExpendableButton::C_Property_BackgroundColorUnfocused,
+			ExpendableButton::C_Property_BackgroundOpacityFocused,
+			ExpendableButton::C_Property_BackgroundOpacityUnfocused
+		],
+		TextColorUnfocused = ColorPalette::C_Color_Vec3_GreenOne,
+		TextOpacityFocused = 1.,
+		TextOpacityUnfocused = 0.6,
+		BackgroundColorUnfocused = ColorPalette::C_Color_Vec3_GreenFour,
+		BackgroundOpacityFocused = 1.,
+		BackgroundOpacityUnfocused = 0.6
+	});
+
+	ExpendableButton::CreateStyle(_This, C_Style_MapUnavailable, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_TextColorUnfocused,
+			ExpendableButton::C_Property_BackgroundOpacityUnfocused
+		],
+		TextColorUnfocused = ColorPalette::C_Color_Vec3_GreenThree,
+		BackgroundOpacityUnfocused = 0.4
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_Tabs, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_Height,
+			ExpendableButton::C_Property_TextColorFocused,
+			ExpendableButton::C_Property_TextColorUnfocused,
+			ExpendableButton::C_Property_TextOpacityFocused,
+			ExpendableButton::C_Property_TextOpacityUnfocused,
+			ExpendableButton::C_Property_BackgroundColorFocused,
+			ExpendableButton::C_Property_BackgroundColorUnfocused,
+			ExpendableButton::C_Property_BackgroundOpacityFocused,
+			ExpendableButton::C_Property_BackgroundOpacityUnfocused,
+			ExpendableButton::C_Property_FocusImages
+		],	
+		Height = 9.5,
+		TextOpacityFocused = 1.,
+		TextOpacityUnfocused = 0.6,
+		TextColorUnfocused = CL::Hex6ToRgb(ColorPalette::C_Color_White),
+		TextColorFocused = ColorPalette::C_Color_Vec3_GreenOne,
+		BackgroundColorUnfocused = CL::Hex6ToRgb(ColorPalette::C_Color_DarkBlue),
+		BackgroundColorFocused = CL::Hex6ToRgb(ColorPalette::C_Color_DarkBlue),
+		BackgroundOpacityUnfocused = 0.6,
+		BackgroundOpacityFocused = 1.,
+		FocusImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {},
+			ExpendableButton::C_Position_Middle => ExpendableButton::K_Image {},
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {}
+		]
+	});
+	
+	ExpendableButton::CreateStyle(_This, C_Style_ScoresTableIcons, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_Width,
+			ExpendableButton::C_Property_Height,
+			ExpendableButton::C_Property_FocusColorFocused,
+			ExpendableButton::C_Property_BackgroundColorFocused,
+			ExpendableButton::C_Property_BackgroundColorUnfocused,
+			ExpendableButton::C_Property_BackgroundOpacityFocused,
+			ExpendableButton::C_Property_BackgroundOpacityUnfocused,
+			ExpendableButton::C_Property_IconImageUrl,
+			ExpendableButton::C_Property_IconColorMode,
+			ExpendableButton::C_Property_IconColorFocused,
+			ExpendableButton::C_Property_IconColorUnfocused,
+			ExpendableButton::C_Property_IconOpacityFocused,
+			ExpendableButton::C_Property_IconOpacityUnfocused,
+			ExpendableButton::C_Property_IconAlign
+		],
+		Width = 9.,
+		Height = 7.,
+		FocusColorFocused = <1., 1., 1.>,
+		BackgroundColorFocused = ColorPalette::C_Color_Vec3_GreenFive,
+		BackgroundColorUnfocused = ColorPalette::C_Color_Vec3_GreenFive,
+		BackgroundOpacityFocused = 1.,
+		BackgroundOpacityUnfocused = 0.8,
+		IconImage = ExpendableButton::K_Image {
+			Url = "",
+			ColorMode = ExpendableButton::C_ColorMode_Colorize
+		},
+		IconColorFocused = <1., 1., 1.>,
+		IconColorUnfocused = <1., 1., 1.>,
+		IconOpacityFocused = 1.,
+		IconOpacityUnfocused = 0.6,
+		IconAlign = ExpendableButton::C_IconAlign_Center
+	});
+
+	ExpendableButton::CreateStyle(_This, C_Style_HUD, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_TextOpacityUnfocused,
+			ExpendableButton::C_Property_TextColorFocused,
+			ExpendableButton::C_Property_TextColorUnfocused,
+			ExpendableButton::C_Property_IconOpacityUnfocused,
+			ExpendableButton::C_Property_IconColorFocused,
+			ExpendableButton::C_Property_IconColorUnfocused,
+			ExpendableButton::C_Property_BackgroundOpacityUnfocused,
+			ExpendableButton::C_Property_BackgroundColorFocused,
+			ExpendableButton::C_Property_BackgroundColorUnfocused,
+			ExpendableButton::C_Property_BackgroundImages,
+			ExpendableButton::C_Property_FocusImages
+		],
+		TextOpacityUnfocused = 0.6,
+		TextColorFocused = <1., 1., 1.>,
+		TextColorUnfocused = <1., 1., 1.>,
+		IconOpacityUnfocused = 0.6,
+		IconColorFocused = <1., 1., 1.>,
+		IconColorUnfocused = <1., 1., 1.>,
+		BackgroundOpacityUnfocused = 0.6,
+		BackgroundColorFocused = ColorPalette::C_Color_Vec3_GreenTwo,
+		BackgroundColorUnfocused = CL::Hex6ToRgb(ColorPalette::C_Color_DarkBlue),
+		BackgroundImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {},
+			ExpendableButton::C_Position_Middle => ExpendableButton::K_Image {
+				ColorMode = ExpendableButton::C_ColorMode_Background
+			},
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {}
+		],
+		FocusImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {},
+			ExpendableButton::C_Position_Middle => ExpendableButton::K_Image {},
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {}
+		]
+	});
+
+	ExpendableButton::CreateStyle(_This, C_Style_PlayerCard, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_Height,
+			ExpendableButton::C_Property_HAlign,
+			ExpendableButton::C_Property_MinWidth,
+			ExpendableButton::C_Property_MaxWidth,
+			ExpendableButton::C_Property_BackgroundImages,
+			ExpendableButton::C_Property_FocusImages,
+			ExpendableButton::C_Property_TextHAlign,
+			ExpendableButton::C_Property_TextFontSize,
+			ExpendableButton::C_Property_TextOffset,
+			ExpendableButton::C_Property_TextColorFocused,
+			ExpendableButton::C_Property_TextColorUnfocused,
+			ExpendableButton::C_Property_FocusColorFocused
+		],
+		Height = 16.,
+		HAlign = CMlControl::AlignHorizontal::Left,
+		MinWidth = 77.5,
+		MaxWidth = 110.,
+		BackgroundImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonPlayer_Start,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Background
+			},
+			ExpendableButton::C_Position_Middle => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonPlayer_Middle,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Background
+			},
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonPlayer_End,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Background
+			}
+		],
+		FocusImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonPlayer_StartContour,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			},
+			ExpendableButton::C_Position_Middle => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonPlayer_MiddleContour,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			},
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonPlayer_EndContour,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			}
+		],
+		TextHAlign = CMlControl::AlignHorizontal::Left,
+		TextFontSize = 3.5,
+		TextOffset = <3.5, 1.75>,
+		TextColorFocused = <1., 1., 1.>,
+		TextColorUnfocused = <1., 1., 1.>,
+		FocusColorFocused = <1., 1., 1.>
+	});
+
+	ExpendableButton::CreateStyle(_This, C_Style_VerticalBothRoundedEdges, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_Width,
+			ExpendableButton::C_Property_Height,
+			ExpendableButton::C_Property_BackgroundImages,
+			ExpendableButton::C_Property_FocusImages,
+			ExpendableButton::C_Property_BackgroundColorFocused,
+			ExpendableButton::C_Property_BackgroundColorUnfocused,
+			ExpendableButton::C_Property_TextFont,
+			ExpendableButton::C_Property_TextFontSize,
+			ExpendableButton::C_Property_TextPrefix
+		],
+		Width = 60.,
+		Height = 6.,
+		BackgroundImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_Start_Vertical_Both,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			},
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_End_Vertical_Both,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			}
+		],
+		FocusImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {},
+			ExpendableButton::C_Position_Middle => ExpendableButton::K_Image {},
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {}
+		],
+		BackgroundColorFocused = ColorPalette::C_Color_Vec3_GreenThree,
+		BackgroundColorUnfocused = ColorPalette::C_Color_Vec3_GreenTwo,
+		TextFont = FontManager::C_GameFontSemiBold,
+		TextFontSize = 1.5,
+		TextPrefix = ""
+	});
+
+	ExpendableButton::CreateStyle(_This, C_Style_VerticalStartBottomRoundedEdges, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_Width,
+			ExpendableButton::C_Property_Height,
+			ExpendableButton::C_Property_BackgroundImages,
+			ExpendableButton::C_Property_FocusImages,
+			ExpendableButton::C_Property_BackgroundColorFocused,
+			ExpendableButton::C_Property_BackgroundColorUnfocused,
+			ExpendableButton::C_Property_TextFont,
+			ExpendableButton::C_Property_TextFontSize,
+			ExpendableButton::C_Property_TextPrefix,
+			ExpendableButton::C_Property_TextOffset
+		],
+		Width = 60.,
+		Height = 6.,
+		BackgroundImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_Start_Vertical_Bottom,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			},
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {}
+		],
+		FocusImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {},
+			ExpendableButton::C_Position_Middle => ExpendableButton::K_Image {},
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {}
+		],
+		BackgroundColorFocused = ColorPalette::C_Color_Vec3_GreenThree,
+		BackgroundColorUnfocused = ColorPalette::C_Color_Vec3_GreenTwo,
+		TextFont = FontManager::C_GameFontSemiBold,
+		TextFontSize = 1.5,
+		TextPrefix = "",
+		TextOffset = <-1.5, -0.25>
+	});
+
+	ExpendableButton::CreateStyle(_This, C_Style_VerticalEndBottomRoundedEdges, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_Width,
+			ExpendableButton::C_Property_Height,
+			ExpendableButton::C_Property_BackgroundImages,
+			ExpendableButton::C_Property_FocusImages,
+			ExpendableButton::C_Property_BackgroundColorFocused,
+			ExpendableButton::C_Property_BackgroundColorUnfocused,
+			ExpendableButton::C_Property_TextFont,
+			ExpendableButton::C_Property_TextFontSize,
+			ExpendableButton::C_Property_TextPrefix,
+			ExpendableButton::C_Property_TextOffset
+		],
+		Width = 60.,
+		Height = 6.,
+		BackgroundImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {},
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_End_Vertical_Bottom,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			}
+		],
+		FocusImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {},
+			ExpendableButton::C_Position_Middle => ExpendableButton::K_Image {},
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {}
+		],
+		BackgroundColorFocused = ColorPalette::C_Color_Vec3_GreenThree,
+		BackgroundColorUnfocused = ColorPalette::C_Color_Vec3_GreenTwo,
+		TextFont = FontManager::C_GameFontSemiBold,
+		TextFontSize = 1.5,
+		TextPrefix = "",
+		TextOffset = <1.5, -0.25>
+	});
+
+	ExpendableButton::CreateStyle(_This, C_Style_VerticalBottomRoundedEdges, ExpendableButton::K_Properties {
+		Enabled = [
+			ExpendableButton::C_Property_Width,
+			ExpendableButton::C_Property_Height,
+			ExpendableButton::C_Property_BackgroundImages,
+			ExpendableButton::C_Property_FocusImages,
+			ExpendableButton::C_Property_BackgroundColorFocused,
+			ExpendableButton::C_Property_BackgroundColorUnfocused,
+			ExpendableButton::C_Property_TextFont,
+			ExpendableButton::C_Property_TextFontSize,
+			ExpendableButton::C_Property_TextPrefix
+		],
+		Width = 60.,
+		Height = 6.,
+		BackgroundImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_Start_Vertical_Bottom,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			},
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_End_Vertical_Bottom,
+				Size = <128., 256.>,
+				ColorMode = ExpendableButton::C_ColorMode_Colorize
+			}
+		],
+		FocusImages = [
+			ExpendableButton::C_Position_Left => ExpendableButton::K_Image {},
+			ExpendableButton::C_Position_Middle => ExpendableButton::K_Image {},
+			ExpendableButton::C_Position_Right => ExpendableButton::K_Image {}
+		],
+		BackgroundColorFocused = ColorPalette::C_Color_Vec3_GreenThree,
+		BackgroundColorUnfocused = ColorPalette::C_Color_Vec3_GreenTwo,
+		TextFont = FontManager::C_GameFontSemiBold,
+		TextFontSize = 1.5,
+		TextPrefix = ""
+	});
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the component
+ *
+ *	@return														The component id
+ */
+Text ComponentV2() {
+	return MV::ComponentV2(
+		C_OverloadName,
+		"""
+		""",
+		"""
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/ExpendableButton.Script.txt" as {{{Q}}}
+		""",
+		"""
+***MainInit***
+***
+{{{P}}}TMNext_MainInit(This);
+***
+		""",
+		[ExpendableButton::ComponentV2()],
+		[]
+	);
+}

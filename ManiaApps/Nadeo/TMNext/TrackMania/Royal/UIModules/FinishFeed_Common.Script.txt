@@ -1,0 +1,34 @@
+/**
+ *	UI module: FinishFeed common
+ */
+#Const Version		"2021-06-24"
+#Const ScriptName	"ManiaApps/Nadeo/TMNext/TrackMania/Royal/UIModules/FinishFeed_Common.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Common.Script.txt" as UIModules_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_Notification {
+	Text AccountId;
+	Integer Segment;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Id "UIModule_Royal_FinishFeed"
+#Const C_LayerType CUILayer::EUILayerType::Normal
+#Const C_UIModuleConfig UIModules_Common::ComponentModeLibsUIModules_K_ModuleConfig {
+	Id = "Royal_FinishFeed", //< Do not modify this Id once in production. It is used by the xmlrpc protocole and would break compatibility.
+	IsCustomizable = True,
+	Properties = UIModules_Common::ComponentModeLibsUIModules_K_ModuleProperties {
+		Position = <160., 44.6>,
+		Scale = 1.,
+		Visible = True
+	}
+}
+#Const C_NotificationMaxAmount 3

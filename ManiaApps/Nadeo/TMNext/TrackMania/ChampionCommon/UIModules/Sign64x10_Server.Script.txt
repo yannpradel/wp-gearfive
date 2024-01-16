@@ -1,0 +1,75 @@
+/**
+ *	UI module: Sign64x10 server side
+ */
+#Const Version		"2021-11-02"
+#Const ScriptName	"ManiaApps/Nadeo/TMNext/TrackMania/ChampionCommon/UIModules/Sign64x10_Server.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Common.Script.txt" as UIModules_Common
+#Include "ManiaApps/Nadeo/TMNext/TrackMania/ChampionCommon/UIModules/Sign64x10_Common.Script.txt" as UIModules_Sign64x10_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const UIModules_Sign64x10_Common::C_AttachIds as C_AttachIds
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the id of the UI module
+Text GetId(Text _AttachId) {
+	return UIModules_Sign64x10_Common::GetId(_AttachId);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the configuration of the UI module
+UIModules_Common::ComponentModeLibsUIModules_K_ModuleConfig GetConfig() {
+	return UIModules_Sign64x10_Common::C_UIModuleConfig;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Show or hide the UI
+ *
+ *	@param	_Player										The player to update
+ *	@param	_Display									True to show
+ *																		False to hide
+ */
+Void SetVisibility(CPlayer _Player, Boolean _Display) {
+	if (_Player == Null) return;
+	declare CUIConfig UI <=> UIManager.GetUI(_Player);
+	if (UI == Null) return;
+
+	declare netwrite Boolean Net_ChampionCup_Sign64x10_IsVisible for UI;
+	Net_ChampionCup_Sign64x10_IsVisible = _Display;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Initialize a player
+ *
+ *	@param	_Player										The player to initialize
+ */
+Void InitializePlayer(CPlayer _Player) {
+	if (_Player == Null) return;
+	
+	SetVisibility(_Player, False);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Unload the library
+Void Unload() {
+	foreach (Player in AllPlayers) {
+		InitializePlayer(Player);
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Load the library
+Void Load() {
+	Unload();
+}

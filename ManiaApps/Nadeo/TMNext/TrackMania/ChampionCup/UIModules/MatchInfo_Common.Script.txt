@@ -1,0 +1,25 @@
+/**
+ *	UI module: MatchInfo common
+ */
+#Const Version		"2021-09-06"
+#Const ScriptName	"ManiaApps/Nadeo/TMNext/TrackMania/ChampionCup/UIModules/MatchInfo_Common.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Common.Script.txt" as UIModules_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Id "UIModule_ChampionCup_MatchInfo"
+#Const C_LayerType CUILayer::EUILayerType::Normal
+#Const C_UIModuleConfig UIModules_Common::ComponentModeLibsUIModules_K_ModuleConfig {
+	Id = "ChampionCup_MatchInfo", //< Do not modify this Id once in production. It is used by the xmlrpc protocole and would break compatibility.
+	IsCustomizable = True,
+	Properties = UIModules_Common::ComponentModeLibsUIModules_K_ModuleProperties {
+		Position = <-128.16, 85.>,
+		Scale = 1.,
+		Visible = True
+	}
+}

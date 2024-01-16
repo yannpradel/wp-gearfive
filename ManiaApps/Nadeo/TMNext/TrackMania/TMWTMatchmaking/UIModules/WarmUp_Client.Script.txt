@@ -1,0 +1,140 @@
+/**
+ *	UI module: WarmUp client side
+ */
+#Const Version		"2023-03-18"
+#Const ScriptName	"ManiaApps/Nadeo/TMNext/TrackMania/TMWTMatchmaking/UIModules/WarmUp_Client.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Client.Script.txt" as UIModules
+#Include "Libs/Nadeo/TMNext/TrackMania/Modes/TMWTCommon/Shared.Script.txt" as Shared
+#Include "Libs/Nadeo/TMNext/TrackMania/Modes/TMWTCommon/Stylesheet.Script.txt" as Stylesheet
+#Include "ManiaApps/Nadeo/TMNext/TrackMania/TMWTMatchmaking/UIModules/WarmUp_Common.Script.txt" as UIModules_WarmUp_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_ImgPath "file://Media/Manialinks/Nadeo/TMNext/Modes/TMWT/UI"
+#Const C_VisibilityAnimDuration 250
+
+#Const C_Size_WarmUp <118., 14.>
+#Const C_TextSize_LabelWarmUp 3.
+
+#Const C_Text_MatchStartSoon _("The match will start soon")
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the id of the UI module
+Text GetId() {
+	return UIModules_WarmUp_Common::C_Id;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the type of layer of the UI module
+CUILayer::EUILayerType GetLayerType() {
+	return UIModules_WarmUp_Common::C_LayerType;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the module manialink
+ *
+ *  @return                           The module manialink
+ */
+Text GetML(Integer _Style) {
+	declare Vec2 Size_WarmUpContent = C_Size_WarmUp - <0., Stylesheet::C_BorderWidth>;
+	declare Vec2 Size_WarmUpLabel = Size_WarmUpContent - <2., 2.>;
+
+	return MV::Create(
+GetId(), 3,
+"""
+{{{Stylesheet::Get(_Style)}}}
+<frame id="frame-global" z-index="{{{Shared::C_ZIndex_WarmUp}}}">
+	<frame {{{UIModules::CustomizableUIModule(UIModules_WarmUp_Common::C_UIModuleConfig)}}} size="{{{C_Size_WarmUp.X}}} {{{C_Size_WarmUp.Y}}}" halign="center" valign="top">
+		<frame id="frame-anim-visibility" pos="0 {{{C_Size_WarmUp.Y}}}" hidden="1">
+			<quad class="{{{Stylesheet::C_Class_Border_Default}}}" z-index="1" size="{{{Size_WarmUpContent.X}}} {{{Stylesheet::C_BorderWidth}}}" halign="center" />
+			<frame pos="0 {{{-Stylesheet::C_BorderWidth}}}" z-index="0">
+				<quad class="{{{Stylesheet::C_Class_BackgroundBgColor_Default}}}" z-index="0" size="{{{Size_WarmUpContent.X}}} {{{Size_WarmUpContent.Y}}}" halign="center" />
+				<quad class="{{{Stylesheet::C_Class_Gradient_WarmUp}}}" z-index="1" size="{{{Size_WarmUpContent.X}}} {{{Size_WarmUpContent.Y}}}" halign="center" image="{{{C_ImgPath}}}/TMWT_WarmUp.dds" />
+				<label id="label-warmup" class="{{{Stylesheet::C_Class_Text_SemiBold}}}" pos="0 {{{Size_WarmUpContent.Y * -0.5}}}" z-index="2" size="{{{Size_WarmUpLabel.X}}} {{{Size_WarmUpLabel.Y}}}" halign="center" valign="center2" textsize="{{{C_TextSize_LabelWarmUp}}}" maxline="2" text="{{{C_Text_MatchStartSoon}}}" />
+			</frame>
+		</frame>
+	</frame>
+</frame>
+""",
+"""
+#Include "Libs/Nadeo/MenuLibs/Common/Components/Tools.Script.txt" as Tools
+
+#Struct K_Controls {
+	CMlFrame Frame_AnimVisibility;
+}
+#Struct K_State {
+	K_Controls Controls;
+	Boolean DisplayModule;
+}
+
+#Const C_State_Null K_State {
+	Controls = K_Controls {},
+	DisplayModule = False
+}
+
+#Const C_VisibilityAnimDuration {{{dump(C_VisibilityAnimDuration)}}}
+#Const C_Size_WarmUp {{{dump(C_Size_WarmUp)}}}
+#Const C_TextSize_LabelWarmUp {{{dump(C_TextSize_LabelWarmUp)}}}
+""",
+"""
+K_State SetVisibility(K_State _State, Boolean _DisplayModule) {
+	if (_State.DisplayModule == _DisplayModule) return _State;
+
+	declare K_State State = _State;
+
+	State.DisplayModule = _DisplayModule;
+	AnimMgr.Flush(State.Controls.Frame_AnimVisibility);
+	if (State.DisplayModule) {
+		AnimMgr.Add(State.Controls.Frame_AnimVisibility, "<a pos=\"0 0\" hidden=\"0\" />", C_VisibilityAnimDuration, CAnimManager::EAnimManagerEasing::QuadOut);
+	} else {
+		AnimMgr.Add(State.Controls.Frame_AnimVisibility, "<a pos=\"0 "^C_Size_WarmUp.Y^"\" hidden=\"1\" />", C_VisibilityAnimDuration, CAnimManager::EAnimManagerEasing::QuadOut);
+	}
+
+	return State;
+}
+
+***MainInit***
+***
+declare netread Boolean Net_TMWTMatchmaking_WarmUp_IsVisible for UI;
+
+declare CMlFrame Frame_Global;
+declare CMlLabel Label_WarmUp;
+
+declare K_State State = C_State_Null;
+***
+
+***MainStart***
+***
+Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+State.Controls.Frame_AnimVisibility <=> (Frame_Global.GetFirstChild("frame-anim-visibility") as CMlFrame);
+Label_WarmUp <=> (Frame_Global.GetFirstChild("label-warmup") as CMlLabel);
+
+Tools::FitLabelValue(Label_WarmUp, C_TextSize_LabelWarmUp, 1., 0.5);
+
+State = SetVisibility(State, Net_TMWTMatchmaking_WarmUp_IsVisible);
+***
+
+***MainLoop***
+***
+if (PageIsVisible) {
+	if (State.DisplayModule != Net_TMWTMatchmaking_WarmUp_IsVisible) {
+		State = SetVisibility(State, Net_TMWTMatchmaking_WarmUp_IsVisible);
+	}
+}
+***
+""",
+[
+	UIModules::Component()
+],
+[]
+	);
+}

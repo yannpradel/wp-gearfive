@@ -1,0 +1,12 @@
+/**
+ *	Component: Shared common code
+ */
+#Const Version		"2022-01-13"
+#Const ScriptName	"ManiaApps/Nadeo/TMNext/TrackMania/ChampionCommon/Shared_Common.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_DisplayMode_ChampionCup 0
+#Const C_DisplayMode_CupShowPoints 1
+#Const C_DisplayMode_CupHidePoints 2

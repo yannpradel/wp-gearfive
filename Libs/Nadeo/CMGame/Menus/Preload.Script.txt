@@ -1,0 +1,130 @@
+/**
+ *	Preload data in mania app and manialink
+ */
+#Const Version "1.0.0"
+#Const ScriptName "Libs/Nadeo/CMGame/Menus/Preload.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/CMGame/Utils/ManiaView@3.Script.txt" as MV
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_State {
+	Ident LayerId;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_ComponentName "CMGame_MenusPreload"
+#Const C_ComponentClass "cmgame-menus-preload"
+
+#Const C_ImagesPreloadQueueMax 1000 //< Maximum number of images in the preload queue
+#Const C_ImagesPreloadPerFrame 5 //< Maximum number of images preloaded per frame
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Globales
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+declare K_State G_State;
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Preload images from the mania app
+Void PreloadImages(CManiaApp _Context, Text[] _ImageUrls) {
+	if (_Context == Null || _ImageUrls.count <= 0) return;
+	if (G_State.LayerId == NullId || !_Context.UILayers.existskey(G_State.LayerId)) {
+		log("""Warning [Preload] You must initialize the library before using it""");
+		return;
+	}
+
+	declare CUILayer PreloadLayer <=> _Context.UILayers[G_State.LayerId];
+	declare Text[] CMGame_MenusPreload_PreloadImageUrls for PreloadLayer.LocalPage = [];
+	for (ImageUrl in _ImageUrls) {
+		if (ImageUrl != "") CMGame_MenusPreload_PreloadImageUrls.add(ImageUrl);
+	}
+	if (CMGame_MenusPreload_PreloadImageUrls.count > C_ImagesPreloadQueueMax) {
+		log("""Warning [Preload] Preloading too many images at once ({{{CMGame_MenusPreload_PreloadImageUrls.count}}} > {{{C_ImagesPreloadQueueMax}}})""");
+		CMGame_MenusPreload_PreloadImageUrls = CMGame_MenusPreload_PreloadImageUrls.slice(CMGame_MenusPreload_PreloadImageUrls.count - C_ImagesPreloadQueueMax);
+	}
+}
+Void PreloadImage(CManiaApp _Context, Text _ImageUrl) {
+	if (_Context == Null || _ImageUrl == "") return;
+	PreloadImages(_Context, [_ImageUrl]);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Compatibility layer for the old store system
+Void PreloadImages(CNod _Context, Text[] _ImageUrls) {
+	if (_Context == Null) return;
+
+	switchtype (_Context as Context) {
+		case CManiaApp: {
+			PreloadImages(Context, _ImageUrls);
+		}
+		default: {
+			log("""Warning [Preload] This context is not supported by the `PreloadImages()` function""");
+		}
+	}
+}
+Void PreloadImage(CNod _Context, Text _ImageUrl) {
+	if (_Context == Null) return;
+
+	switchtype (_Context as Context) {
+		case CManiaApp: {
+			PreloadImage(Context, _ImageUrl);
+		}
+		default: {
+			log("""Warning [Preload] This context is not supported by the `PreloadImage()` function""");
+		}
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Yield in the preload manialink
+Void Private_Hook_YieldAfter(CMlScript _Context) {
+	declare Text[] CMGame_MenusPreload_PreloadImageUrls for _Context.Page = [];
+
+	// Preloading an image can take a long time, so preloading a lot of them at once can cause a noticeable freeze
+	// To avoid that we limit the number of preload per frame
+	declare Integer Count = 0;
+	while (CMGame_MenusPreload_PreloadImageUrls.count > 0 && Count < C_ImagesPreloadPerFrame) {
+		_Context.PreloadImage(CMGame_MenusPreload_PreloadImageUrls[0]);
+		CMGame_MenusPreload_PreloadImageUrls.removekey(0);
+		Count += 1;
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the manialink that will handle the preload
+Text Private_GetPreloadManialink() {
+	return MV::ManialinkPage(
+		MV::K_Component {
+			Name = C_ComponentName,
+			Path = ScriptName,
+			Class = C_ComponentClass,
+			Hooks = [
+				MV::C_Hook_YieldAfter => """{{{C_ComponentName}}}::Private_Hook_YieldAfter(This)"""
+			]
+		}
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Initialize the library
+Void Initialize(CManiaApp _Context) {
+	if (_Context == Null) return;
+
+	// Create the layer that will handle the preload
+	if (G_State.LayerId == NullId || !_Context.UILayers.existskey(G_State.LayerId)) {
+		declare CUILayer PreloadLayer <=> _Context.UILayerCreate();
+		if (PreloadLayer != Null) {
+			PreloadLayer.ManialinkPage = Private_GetPreloadManialink();
+			G_State.LayerId = PreloadLayer.Id;
+		}
+	}
+}

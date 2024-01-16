@@ -1,0 +1,454 @@
+/**
+ *	Clans management common
+ */
+#Const Version		"2.1.0"
+#Const ScriptName	"Libs/Nadeo/CMGame/Modes/Clans_Common.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "MathLib" as ML
+#Include "ColorLib" as CL
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_Team {
+	Text Name;
+	Vec3 Color;
+	Vec3 ForegroundColor;
+	Text Logo;
+	Text Skin;
+	Text SkinOptions;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constantes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+//L16N [Clans] Name of a team. %1 will be replaced by the name of the team. e.g. "Team #1", "Team Red", ...
+#Const C_Text_TeamName _("Team %1")
+
+#Const C_ClanStyle_Default 0
+#Const C_ClanStyle_Animals 1
+#Const C_ClanStyle_Fruits 2
+
+/**
+ * Constant used in `Royal` and `RoyalStars` game modes.
+ * The `SkinOptions` member must be set to "Prestige=Yes&Mode=Royal&Year=XXXX", while the `Skin` member must remain empty.
+ * This configuration allows the C++ code to dynamically update the skin.
+ * @see /trackmania-next/tmnext/-/issues/4828
+ */
+#Const C_Teams_Animals [
+	1 => K_Team {
+		Name = _("|Clan|Flamingo"),
+		Color = <1., 0.4, 1.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Animals/flamingo.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2023"
+	},
+	2 => K_Team {
+		Name = _("|Clan|Pig"),
+		Color = <1., 0.4, 0.6>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Animals/pig.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2023"
+	},
+	3 => K_Team {
+		Name = _("|Clan|Clown Fish"),
+		Color = <1., 0.4, 0.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Animals/clown_fish.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2023"
+	},
+	4 => K_Team {
+		Name = _("|Clan|Fox"),
+		Color = <1., 0.6, 0.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Animals/fox.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2023"
+	},
+	5 => K_Team {
+		Name = _("|Clan|Octopus"),
+		Color = <0.8, 0.2, 0.6>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Animals/octopus.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2023"
+	},
+	6 => K_Team {
+		Name = _("|Clan|Butterfly"),
+		Color = <0.4, 0., 0.4>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Animals/butterfly.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2023"
+	},
+	7 => K_Team {
+		Name = _("|Clan|Crocodile"),
+		Color = <0.2, 0.6, 0.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Animals/crocodile.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2023"
+	},
+	8 => K_Team {
+		Name = _("|Clan|Grasshopper"),
+		Color = <0., 0.8, 0.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Animals/grasshopper.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2023"
+	},
+	9 => K_Team {
+		Name = _("|Clan|Ladybug"),
+		Color = <0.6, 0., 0.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Animals/ladybug.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2023"
+	},
+	10 => K_Team {
+		Name = _("|Clan|Macaw Parrot"),
+		Color = <1., 0., 0.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Animals/macaw_parrot.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2023"
+	},
+	11 => K_Team {
+		Name = _("|Clan|Giraffe"),
+		Color = <0.95, 0.75, 0.3>,
+		ForegroundColor = <0., 0., 0.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Animals/giraffe.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2023"
+	},
+	12 => K_Team {
+		Name = _("|Clan|Bee"),
+		Color = <1., 1., 0.>,
+		ForegroundColor = <0., 0., 0.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Animals/bee.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2023"
+	},
+	13 => K_Team {
+		Name = _("|Clan|Dolphin"),
+		Color = <0.2, 0.6, 1.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Animals/dolphin.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2023"
+	},
+	14 => K_Team {
+		Name = _("|Clan|Peafowl"),
+		Color = <0., 0., 1.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Animals/peafowl.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2023"
+	},
+	15 => K_Team {
+		Name = _("|Clan|Kangaroo"),
+		Color = <0.65, 0.29, 0.08>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Animals/kangaroo.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2023"
+	},
+	16 => K_Team {
+		Name = _("|Clan|Monkey"),
+		Color = <0.4, 0.2, 0.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Animals/monkey.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2023"
+	},
+	17 => K_Team {
+		Name = _("|Clan|Panda"),
+		Color = <0., 0., 0.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Animals/panda.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2023"
+	},
+	18 => K_Team {
+		Name = _("|Clan|Zebra"),
+		Color = <0., 0., 0.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Animals/zebra.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2023"
+	},
+	19 => K_Team {
+		Name = _("|Clan|Rabbit"),
+		Color = <0.8, 0.8, 0.8>,
+		ForegroundColor = <0., 0., 0.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Animals/rabbit.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2023"
+	},
+	20 => K_Team {
+		Name = _("|Clan|Polar Bear"),
+		Color = <1., 1., 1.>,
+		ForegroundColor = <0., 0., 0.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Animals/polar_bear.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2023"
+	}
+]
+
+/**
+ * Constant used in `Royal` and `RoyalStars` game modes.
+ * The `SkinOptions` member must be set to "Prestige=Yes&Mode=Royal&Year=XXXX", while the `Skin` member must remain empty.
+ * This configuration allows the C++ code to dynamically update the skin.
+ * @see /trackmania-next/tmnext/-/issues/4828
+ */
+#Const C_Teams_Fruits [
+	1 => K_Team {
+		Name = _("|Clan|Apple"),
+		Color = <0.102, 0.965, 0.>,
+		ForegroundColor = <0., 0., 0.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Fruits/apple.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2024"
+	},
+	2 => K_Team {
+		Name = _("|Clan|Avocado"),
+		Color = <0.718, 1., 0.447>,
+		ForegroundColor = <0., 0., 0.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Fruits/avocado.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2024"
+	},
+	3 => K_Team {
+		Name = _("|Clan|Banana"),
+		Color = <1., 0.827, 0.192>,
+		ForegroundColor = <0., 0., 0.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Fruits/banana.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2024"
+	},
+	4 => K_Team {
+		Name = _("|Clan|Blackberry"),
+		Color = <0.192, 0.133, 0.251>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Fruits/blackberry.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2024"
+	},
+	5 => K_Team {
+		Name = _("|Clan|Blueberry"),
+		Color = <0.216, 0.255, 0.714>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Fruits/blueberry.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2024"
+	},
+	6 => K_Team {
+		Name = _("|Clan|Cherry"),
+		Color = <0.776, 0., 0.298>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Fruits/cherry.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2024"
+	},
+	7 => K_Team {
+		Name = _("|Clan|Coconut"),
+		Color = <0.808, 0.529, 0.318>,
+		ForegroundColor = <0., 0., 0.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Fruits/coconut.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2024"
+	},
+	8 => K_Team {
+		Name = _("|Clan|Date"),
+		Color = <0.78, 0.329, 0.>,
+		ForegroundColor = <0., 0., 0.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Fruits/date.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2024"
+	},
+	9 => K_Team {
+		Name = _("|Clan|Dragon Fruit"),
+		Color = <0.973, 0.18, 0.576>,
+		ForegroundColor = <0., 0., 0.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Fruits/dragon_fruit.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2024"
+	},
+	10 => K_Team {
+		Name = _("|Clan|Fig"),
+		Color = <0.486, 0.216, 0.635>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Fruits/fig.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2024"
+	},
+	11 => K_Team {
+		Name = _("|Clan|Grape"),
+		Color = <0.349, 0.129, 0.69>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Fruits/grape.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2024"
+	},
+	12 => K_Team {
+		Name = _("|Clan|Kiwi"),
+		Color = <0.69, 0.847, 0.>,
+		ForegroundColor = <0., 0., 0.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Fruits/kiwi.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2024"
+	},
+	13 => K_Team {
+		Name = _("|Clan|Litchi"),
+		Color = <0.875, 0.392, 0.522>,
+		ForegroundColor = <0., 0., 0.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Fruits/litchi.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2024"
+	},
+	14 => K_Team {
+		Name = _("|Clan|Mango"),
+		Color = <1., 0.765, 0.>,
+		ForegroundColor = <0., 0., 0.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Fruits/mango.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2024"
+	},
+	15 => K_Team {
+		Name = _("|Clan|Orange"),
+		Color = <0.941, 0.357, 0.>,
+		ForegroundColor = <0., 0., 0.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Fruits/orange.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2024"
+	},
+	16 => K_Team {
+		Name = _("|Clan|Papaya"),
+		Color = <0.957, 0.545, 0.>,
+		ForegroundColor = <0., 0., 0.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Fruits/papaya.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2024"
+	},
+	17 => K_Team {
+		Name = _("|Clan|Peach"),
+		Color = <1., 0.639, 0.549>,
+		ForegroundColor = <0., 0., 0.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Fruits/peach.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2024"
+	},
+	18 => K_Team {
+		Name = _("|Clan|Pineapple"),
+		Color = <1., 0.843, 0.290>,
+		ForegroundColor = <0., 0., 0.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Fruits/pineapple.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2024"
+	},
+	19 => K_Team {
+		Name = _("|Clan|Strawberry"),
+		Color = <0.851, 0., 0.173>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Fruits/strawberry.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2024"
+	},
+	20 => K_Team {
+		Name = _("|Clan|Watermelon"),
+		Color = <1., 0., 0.286>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/CMGame/Modes/Clans/Fruits/watermelon.dds",
+		SkinOptions = "Prestige=Yes&Mode=Royal&Year=2024"
+	}
+]
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+///	Get the teams existing in a clan style
+K_Team[Integer] GetTeamsFromClanStyle(Integer _ClanStyle) {
+	switch (_ClanStyle) {
+		case C_ClanStyle_Animals: return C_Teams_Animals;
+		case C_ClanStyle_Fruits: return C_Teams_Fruits;
+	}
+	return [];
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the team associated to a clan number
+CTeam GetTeam(CNod _Context, Integer _ClanNb) {
+	switchtype (_Context) {
+		case CMode: {
+			declare CMode Mode = (_Context as CMode);
+			if (Mode.Teams.existskey(_ClanNb - 1)) {
+				return Mode.Teams[_ClanNb - 1];
+			}
+		}
+		case CMlScriptIngame: {
+			declare CMlScriptIngame MlScriptIngame = (_Context as CMlScriptIngame);
+			if (MlScriptIngame.Teams.existskey(_ClanNb - 1)) {
+				return MlScriptIngame.Teams[_ClanNb - 1];
+			}
+		}
+		case CManiaAppPlaygroundCommon: {
+			declare CManiaAppPlaygroundCommon ManiaAppPlaygroundCommon = (_Context as CManiaAppPlaygroundCommon);
+			if (ManiaAppPlaygroundCommon.Playground.Teams.existskey(_ClanNb - 1)) {
+				return ManiaAppPlaygroundCommon.Playground.Teams[_ClanNb - 1];
+			}
+		}
+		case CServerPlugin: {
+			declare CServerPlugin ServerPlugin = (_Context as CServerPlugin);
+			if (ServerPlugin.Teams.existskey(_ClanNb - 1)) {
+				return ServerPlugin.Teams[_ClanNb - 1];
+			}
+		}
+		default: {
+			assert(False, "Unsuported context: "^_Context);
+		}
+	}
+
+	return Null;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+///	Get the color of the given clan
+Vec3 GetClanColor(Integer _ClanStyle, Integer _Clan) {
+	declare K_Team[Integer] TeamsList = GetTeamsFromClanStyle(_ClanStyle);
+	if (TeamsList.existskey(_Clan)) {
+		return TeamsList[_Clan].Color;
+	}
+
+	declare CTeam Team <=> GetTeam(This, _Clan);
+	if (Team != Null) {
+		return Team.ColorPrimary;
+	}
+
+	declare Real Seed = 0.; // Between 0. and 1.
+	declare Real G = 1.22074408460575947536;
+	declare Real A1 = 1. / ML::Pow(G, 1.);
+	declare Real A2 = 1. / ML::Pow(G, 2.);
+	declare Real A3 = 1. / ML::Pow(G, 3.);
+	declare Real Hue = ML::Mod(Seed + (A1 * _Clan), 0., 1.);  // Hue between 0. and 1.
+	declare Real Saturation = 0.6 + (ML::Mod(Seed + (A2 * _Clan), 0., 1.) * 0.4); // Saturation between 0.6 and 1.
+	declare Real Value = 0.6 + (ML::Mod(Seed + (A3 * _Clan), 0., 1.) * 0.4); // Value between 0.6 and 1.
+	return CL::HsvToRgb(<Hue, Saturation, Value>);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the foreground color of the given clan
+Vec3 GetClanForegroundColor(Integer _ClanStyle, Integer _Clan) {
+	declare K_Team[Integer] TeamsList = GetTeamsFromClanStyle(_ClanStyle);
+
+	if (TeamsList.existskey(_Clan)) {
+		return TeamsList[_Clan].ForegroundColor;
+	}
+
+	return <1., 1., 1.>;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+///	Get the name of the given clan
+Text GetClanName(Integer _ClanStyle, Integer _Clan, Boolean _UseColor) {
+	declare K_Team[Integer] TeamsList = GetTeamsFromClanStyle(_ClanStyle);
+	if (TeamsList.existskey(_Clan)) {
+		if (_UseColor) {
+			return TL::Compose("$<$"^CL::RgbToHex3(GetClanColor(_ClanStyle, _Clan))^"%1$>", TeamsList[_Clan].Name);
+		} else {
+			return TeamsList[_Clan].Name;
+		}
+	}
+
+	declare CTeam Team <=> GetTeam(This, _Clan);
+	if (Team != Null) {
+		if (_UseColor) return Team.ColorizedName;
+		else return Team.Name;
+	}
+
+	if (_UseColor) return TL::Compose(C_Text_TeamName, "$<$"^CL::RgbToHex3(GetClanColor(_ClanStyle, _Clan))^"#"^_Clan^"$>");
+	return TL::Compose(C_Text_TeamName, "#"^_Clan);
+}
+Text GetClanName(Integer _ClanStyle, Integer _Clan) {
+	return GetClanName(_ClanStyle, _Clan, False);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+///	Get the logo of the given clan
+Text GetClanLogo(Integer _ClanStyle, Integer _Clan) {
+	return GetTeamsFromClanStyle(_ClanStyle).get(_Clan, K_Team {}).Logo;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+///	Get the skin of the given clan
+Text GetClanSkin(Integer _ClanStyle, Integer _Clan) {
+	return GetTeamsFromClanStyle(_ClanStyle).get(_Clan, K_Team {}).Skin;
+}

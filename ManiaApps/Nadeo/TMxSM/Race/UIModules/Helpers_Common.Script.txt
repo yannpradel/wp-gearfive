@@ -1,0 +1,14 @@
+/** 
+ *	Component: RaceHelpers
+ */
+#Const Version		"2021-09-16"
+#Const ScriptName	"ManiaApps/Nadeo/TMxSM/Race/UIModules/Helpers_Common.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_RaceState_Waiting 0
+#Const C_RaceState_Racing 1
+#Const C_RaceState_RaceOutro 2
+#Const C_RaceState_RaceWait 3
+#Const C_RaceState_MapIntro 4

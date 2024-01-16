@@ -1,0 +1,25 @@
+/**
+ *	UI module: BestRaceViewer common
+ */
+#Const Version		"2020-12-01"
+#Const ScriptName	"ManiaApps/Nadeo/TMNext/TrackMania/TimeAttack/UIModules/BestRaceViewer_Common.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Common.Script.txt" as UIModules_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Id "UIModule_TimeAttack_BestRaceViewer"
+#Const C_LayerType CUILayer::EUILayerType::Normal
+#Const C_UIModuleConfig UIModules_Common::ComponentModeLibsUIModules_K_ModuleConfig {
+	Id = "Race_BestRaceViewer", //< Do not modify this Id once in production. It is used by the xmlrpc protocole and would break compatibility.
+	IsCustomizable = True,
+	Properties = UIModules_Common::ComponentModeLibsUIModules_K_ModuleProperties {
+		Position = <135., -10.>,
+		Scale = 1.,
+		Visible = True
+	}
+}

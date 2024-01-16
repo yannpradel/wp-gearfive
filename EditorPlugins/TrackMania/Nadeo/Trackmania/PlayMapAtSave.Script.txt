@@ -1,0 +1,118 @@
+/**
+ *	Map editor plugin to add a menu after the save
+ */
+#Const Version		"1.0.0"
+#Const ScriptName	"EditorPlugins/TrackMania/Nadeo/Trackmania/PlayMapAtSave.Script.txt"
+
+#RequireContext CMapEditorPlugin
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Settings
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Setting S_ShowMenuAfterSave True
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/CMGame/Utils/Layers.Script.txt" as Layers
+#Include "Libs/Nadeo/CMGame/Utils/Privileges.Script.txt" as Privileges
+#Include "Libs/Nadeo/CMGame/Utils/MainUser.Script.txt" as MainUser
+#Include "Libs/Nadeo/Trackmania/MapEditor/MenuAfterSave.Script.txt" as MenuAfterSave
+#Include "Libs/Nadeo/Trackmania/MapEditor/PlayMapAtSave.Script.txt" as PlayMapAtSave
+#Include "Libs/Nadeo/Trackmania/Share.Script.txt" as Share
+#Include "Libs/Nadeo/Trackmania/Stores/UserStore_ML.Script.txt" as UserStore
+#Include "Libs/Nadeo/CMGame/Components/Navigation.Script.txt" as Navigation
+#Include "Libs/Nadeo/CMGame/Menus/ShareMenuNavigation_MA.Script.txt" as ShareMenuNavigation
+
+Void SetVisibleMenuAfterSave(Boolean _IsVisible) {
+	if (_IsVisible) {
+		Layers::Show(MenuAfterSave::C_LayerName);
+		HideEditorInterface = True;
+		EnableEditorInputsCustomProcessing = True;
+		EnableCursorShowingWhenInterfaceIsFocused = True;
+		HideOtherPlugins();
+		ShareMenuNavigation::Load();
+	} else {
+		Layers::Hide(MenuAfterSave::C_LayerName);
+		HideEditorInterface = False;
+		EnableEditorInputsCustomProcessing = False;
+		EnableCursorShowingWhenInterfaceIsFocused = False;
+		ShowOtherPlugins();
+		ShareMenuNavigation::Unload();
+	}
+}
+
+main() {
+	Layers::Load();
+	MenuAfterSave::Load();
+	Navigation::Load(This);
+	Share::SetLastMapCreated(MapName, MapFileName, Map.MapInfo, False, False);
+	SetVisibleMenuAfterSave(False);
+
+	declare Privileges::K_PrivilegeCheck PlayModePrivilegeCheck;
+
+	while (True) {
+		if (Layers::CheckVisible(MenuAfterSave::C_LayerName)) {
+			ShareMenuNavigation::Yield(This);
+		}
+
+		if (ValidationStatus != CMapEditorPlugin::ValidationStatus::Validated) {
+			if (Layers::CheckVisible(MenuAfterSave::C_LayerName)) {
+				SetVisibleMenuAfterSave(False);
+			}
+		}
+
+		foreach (Event in PendingEvents) {
+			switch (Event.Type) {
+				case CMapEditorPluginEvent::Type::MapSavedOrSaveCancelled: {
+					if (Event.MapSavedOrSaveCancelled) {
+						Share::SetLastMapCreated(MapName, MapFileName, Map.MapInfo, False, False);
+						if (S_ShowMenuAfterSave && Map.MapInfo.IsPlayable && PlayMapAtSave::IsEnabled(Map)) SetVisibleMenuAfterSave(True);
+					}
+				}
+				case CMapEditorPluginEvent::Type::LayerCustomEvent: {
+					switch (Event.CustomEventType) {
+						case MenuAfterSave::C_Event_StayInEditor: {
+							SetVisibleMenuAfterSave(False);
+						}
+						case MenuAfterSave::C_Event_LiveTest: {
+							if (ValidationStatus == CMapEditorPlugin::ValidationStatus::Validated) {
+								PlayModePrivilegeCheck = Privileges::Check_DestroyAndCreate(
+									PlayModePrivilegeCheck,
+									PrivilegeMgr,
+									MainUser::GetMainUserId(),
+									CPrivilegeMgr::EPrivilege::PlayMultiplayerModeWithUGC
+								);
+							}
+						}
+						case MenuAfterSave::C_Event_PlayLocal: {
+							if (ValidationStatus == CMapEditorPlugin::ValidationStatus::Validated) {
+								Share::SetGoToHotSeat(True);
+								Quit();
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if (!Privileges::Check_IsComplete(PlayModePrivilegeCheck)) {
+			PlayModePrivilegeCheck = Privileges::Check_Update(PlayModePrivilegeCheck);
+			if (Privileges::Check_IsComplete(PlayModePrivilegeCheck)) {
+				PlayModePrivilegeCheck = Privileges::Check_Destroy(PlayModePrivilegeCheck);
+				if (Privileges::Check_HasPrivilege(PlayModePrivilegeCheck)) {
+					Share::SetGoToServerReview(True);
+					Quit();
+				}
+			}
+		}
+
+		yield;
+	}
+
+	SetVisibleMenuAfterSave(False);
+
+	Navigation::Unload(This);
+	MenuAfterSave::Unload();
+	Layers::Unload();
+}

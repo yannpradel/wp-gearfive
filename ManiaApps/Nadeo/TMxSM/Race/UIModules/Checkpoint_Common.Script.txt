@@ -1,0 +1,34 @@
+/**
+ *	UI module: Checkpoint common
+ */
+#Const Version		"2021-04-19"
+#Const ScriptName	"ManiaApps/Nadeo/TMxSM/Race/UIModules/Checkpoint_Common.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Common.Script.txt" as UIModules_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Id "UIModule_Race_Checkpoint"
+#Const C_LayerType CUILayer::EUILayerType::Normal
+#Const C_UIModuleConfig UIModules_Common::ComponentModeLibsUIModules_K_ModuleConfig {
+	Id = "Race_Checkpoint", //< Do not modify this Id once in production. It is used by the xmlrpc protocole and would break compatibility.
+	IsCustomizable = True,
+	Properties = UIModules_Common::ComponentModeLibsUIModules_K_ModuleProperties {
+		Position = <-10., 45.>,
+		Scale = 1.,
+		Visible = True
+	}
+}
+
+#Const C_RankMode_BestRace 0
+#Const C_RankMode_CurrentRace 1
+#Const C_RankMode_Self 2
+#Const C_RankMode_Ghost 3
+
+#Const C_Target_Everyone 0
+#Const C_Target_Players 1
+#Const C_Target_None 2

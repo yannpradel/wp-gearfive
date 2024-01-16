@@ -1,0 +1,659 @@
+/** 
+ *	Component: Counter
+ *	===========================
+ *
+ *	The `Counter` component was designed to be used with the `Navigation` class.
+ *	With this component, the player will be able to add and remove a certain amount to the last value, or manually set a value.
+ *	If the new value exceeds the defined limits, a correction will be applied automatically to respect these limits.
+ *	
+ *	Events
+ *	----------
+ *	- C_EventType_Update
+ *	- C_EventType_FocusUpdated
+ *
+ *	Parameters
+ *	----------
+ *	- data-halign
+ *	- data-valign
+ *	- data-opacityunfocus
+ *	- data-iconsize
+ *	- data-iconcolor
+ *	- data-value
+ *	- data-minvalue
+ *	- data-maxvalue
+ *	- data-step
+ *	- data-textfieldtextsize 
+ *	- data-textfieldcolor
+ *	- data-textfieldsize
+ */
+#Const Version		"2022-06-23"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Menu/Components/Counter.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Navigation.Script.txt" as Navigation
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/Button.Script.txt" as Button
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/TextField.Script.txt" as TextField
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as Const
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "component-counter" //< Component name
+#Const P "ComponentCounter_" //< Prefix used to differentiate functions/variables in the script
+#Const C_NavZone "ComponentCounter_quad-activation"
+#Const C_NavGroupName "ComponentCounter_NavGroup"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the component
+ *
+ *	@return														The component id
+ */
+Text Component() {
+
+	declare Vec2 Size_ButtonIcon = <6., 6.>;
+	declare Vec2 Size_TextField = <15., 6.>;
+
+	return MV::Component(
+		C_Name,
+		"""
+<frame id="{{{P}}}frame-counter-align" class="{{{P}}}frame-container-counter">
+	<frame z-index="1" id="{{{P}}}frame-navigation-container" class="{{{Navigation::C_Class_Container}}}">
+		<quad id="{{{P}}}quad-activation" class="{{{Navigation::C_Class_ActivationZone}}}" halign="center" valign="center" z-index="10" opacity="0" scriptevents="1"/>
+		<frameinstance
+			modelid="{{{Button::C_Name}}}" id="{{{P}}}button-less" z-index="2"
+			class="{{{Navigation::C_Class}}} {{{P}}}leave-counter"
+			data-image="{{{Const::C_ImageUrl_Icon_Minus_Oblique}}}"
+			data-size="{{{Size_ButtonIcon.X}}} {{{Size_ButtonIcon.Y}}}"
+			data-bgcolor="fff"
+			data-opacity="1."
+			data-imagefocus="{{{Const::C_ImageUrl_Icon_Minus_Oblique}}}"
+			data-focuscolor="fff"
+			data-opacityunfocus="0.5"
+			data-halign="left" data-valign="center"
+			data-nav-inputs="select;cancel;right"
+			data-nav-targets="_;_;{{{P}}}textfield-counter"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+		<frameinstance 
+			modelid="{{{TextField::C_Name}}}" id="{{{P}}}textfield-counter"
+			class="{{{Navigation::C_Class}}} {{{P}}}leave-counter"
+			data-size="{{{Size_TextField.X}}} {{{Size_TextField.Y}}}"
+			data-bgempty="1"
+			data-textsize="3."
+			data-textvaluetype="Ml_Integer"
+			data-halign="center" data-valign="center"
+			data-nav-inputs="select;cancel;left;right"
+			data-nav-targets="_;_;{{{P}}}button-less;{{{P}}}button-more"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{TextField::C_NavZone}}}"
+		/>
+		<frameinstance
+			modelid="{{{Button::C_Name}}}" id="{{{P}}}button-more" z-index="2"
+			class="{{{Navigation::C_Class}}} {{{P}}}leave-counter"
+			data-image="{{{Const::C_ImageUrl_Icon_Plus_Oblique}}}"
+			data-size="{{{Size_ButtonIcon.X}}} {{{Size_ButtonIcon.Y}}}"
+			data-bgcolor="fff"
+			data-opacity="1."
+			data-imagefocus="{{{Const::C_ImageUrl_Icon_Plus_Oblique}}}"
+			data-focuscolor="fff"
+			data-opacityunfocus="0.5"
+			data-halign="right" data-valign="center"
+			data-nav-inputs="select;cancel;left"
+			data-nav-targets="_;_;{{{P}}}textfield-counter"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+	</frame>
+</frame>
+		""",
+		"""
+#Include "TextLib" as {{{P}}}TL
+#Include "ColorLib" as {{{P}}}CL
+#Include "MathLib" as {{{P}}}ML
+#Include "Libs/Nadeo/MenuLibs/Common/Components/Tools.Script.txt" as {{{P}}}Tools
+
+#Const {{{P}}}C_EventType_Update 0
+#Const {{{P}}}C_EventType_FocusUpdated 1
+
+#Struct {{{P}}}K_TextFieldProperties {
+	Integer Value;
+	Real TextSize;
+	Vec3 Color;
+	Vec2 Size;
+	Integer MinValue;
+	Integer MaxValue;
+	Integer Step;
+}
+
+#Struct {{{P}}}K_ImageProperties {
+	Vec2 Size;
+	Vec3 Color;
+}
+
+#Struct {{{P}}}K_Properties {
+	Text HAlign;
+	Text VAlign;
+	Boolean IsCounter;
+	Boolean IsLocked;
+	Boolean IsFocused;
+	Boolean IsEntryFocused;
+	Real OpacityUnfocus;
+	CMlControl LastControlFocused;
+	{{{P}}}K_TextFieldProperties TextField;
+	{{{P}}}K_ImageProperties Icon;
+}
+
+#Struct {{{P}}}K_Event {
+	Integer Type;
+	CMlFrame Counter;
+}
+		""",
+		"""
+declare {{{P}}}K_Event[] {{{P}}}PendingEvents;
+declare CMlFrame[] {{{P}}}G_Counters;
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+///	Handle the focus inside the component
+Void {{{P}}}InnerFocus(CMlFrame _Frame_Counter, CMlControl _From, CMlControl _To) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	assert({{{P}}}Properties.IsCounter, "Control '"^_Frame_Counter.ControlId^"' is not a counter");
+	if ({{{P}}}Properties.IsLocked) return;
+
+	if (_From != Null) {
+		{{{Navigation::P}}}Unfocus(This, _From);
+		if ({{{Button::P}}}IsButton(_From)) {
+			{{{Button::P}}}Unfocus(This, _From as CMlFrame);
+		} else if ({{{TextField::P}}}IsTextField(_From)) {
+			{{{TextField::P}}}Unfocus(This, (_From as CMlFrame));
+		}
+	}
+	
+	if (_To != Null) {
+		{{{Navigation::P}}}Focus(This, _To);
+		if ({{{Button::P}}}IsButton(_To)) {
+			{{{Button::P}}}Focus(This, _To as CMlFrame);
+		} else if ({{{TextField::P}}}IsTextField(_To)) {
+			{{{TextField::P}}}Focus(This, (_To as CMlFrame));
+		}
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+///	The component is focused by the Navigation component
+Void {{{P}}}Focus(CMlFrame _Frame_Counter) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	assert({{{P}}}Properties.IsCounter, "Control '"^_Frame_Counter.ControlId^"' is not a counter");
+	if ({{{P}}}Properties.IsLocked) return;
+	
+	if ({{{P}}}Properties.IsFocused == False) {
+		declare CMlQuad Quad_Activation <=> (_Frame_Counter.GetFirstChild("{{{P}}}quad-activation") as CMlQuad);
+		declare CMlFrame Button_Less <=> (_Frame_Counter.GetFirstChild("{{{P}}}button-less") as CMlFrame);
+		declare CMlFrame Button_More <=> (_Frame_Counter.GetFirstChild("{{{P}}}button-more") as CMlFrame);
+		declare CMlFrame TextField_Counter <=> (_Frame_Counter.GetFirstChild("{{{P}}}textfield-counter") as CMlFrame);
+		declare CMlFrame Frame_NavigationContainer <=> (_Frame_Counter.GetFirstChild("{{{P}}}frame-navigation-container") as CMlFrame);
+
+		// Enable navigation
+		{{{P}}}Properties.IsFocused = True;
+		Quad_Activation.Visible = !{{{P}}}Properties.IsFocused;
+		{{{Navigation::P}}}EnableContainer(This, Frame_NavigationContainer, {{{P}}}Properties.IsFocused);
+
+		// Entering counter component - focus the default button if possible
+		if ({{{P}}}Properties.LastControlFocused != Null && !{{{Navigation::P}}}IsLocked({{{P}}}Properties.LastControlFocused)) {
+			{{{P}}}InnerFocus(_Frame_Counter, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), {{{P}}}Properties.LastControlFocused);
+		} else if (!{{{Navigation::P}}}IsLocked(TextField_Counter)) {
+			{{{P}}}InnerFocus(_Frame_Counter, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), TextField_Counter);
+		} else if (!{{{Navigation::P}}}IsLocked(Button_Less)) {
+			{{{P}}}InnerFocus(_Frame_Counter, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), Button_Less);
+		} else if (!{{{Navigation::P}}}IsLocked(Button_More)) {
+			{{{P}}}InnerFocus(_Frame_Counter, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), Button_More);
+		}
+
+		// Send Focus event
+		{{{P}}}PendingEvents.add({{{P}}}K_Event {
+			Type = {{{P}}}C_EventType_FocusUpdated,
+			Counter = _Frame_Counter
+		});
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+///	The component is unfocused by the Navigation component
+Void {{{P}}}Unfocus(CMlFrame _Frame_Counter) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	assert({{{P}}}Properties.IsCounter, "Control '"^_Frame_Counter.ControlId^"' is not a counter");
+	if ({{{P}}}Properties.IsLocked) return;
+	
+	if ({{{P}}}Properties.IsFocused == True) {
+		declare CMlQuad Quad_Activation <=> (_Frame_Counter.GetFirstChild("{{{P}}}quad-activation") as CMlQuad);
+		declare CMlFrame Frame_NavigationContainer <=> (_Frame_Counter.GetFirstChild("{{{P}}}frame-navigation-container") as CMlFrame);
+
+		// Disable navigation
+		{{{P}}}Properties.IsFocused = False;
+		{{{P}}}Properties.LastControlFocused = {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}");
+		Quad_Activation.Visible = !{{{P}}}Properties.IsFocused;
+		{{{Navigation::P}}}EnableContainer(This, Frame_NavigationContainer, {{{P}}}Properties.IsFocused);
+
+		// Leaving counter component - unfocus buttons
+		{{{P}}}InnerFocus(_Frame_Counter, 	{{{P}}}Properties.LastControlFocused, Null);
+
+		// Send Focus event
+		{{{P}}}PendingEvents.add({{{P}}}K_Event {
+			Type = {{{P}}}C_EventType_FocusUpdated,
+			Counter = _Frame_Counter
+		});
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+///	Update the component with the 
+Void {{{P}}}UpdateCounter(CMlFrame _Frame_Counter) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	declare CMlFrame Button_Less <=> (_Frame_Counter.GetFirstChild("{{{P}}}button-less") as CMlFrame);
+	declare CMlFrame Button_More <=> (_Frame_Counter.GetFirstChild("{{{P}}}button-more") as CMlFrame);
+	declare CMlFrame Frame_NavigationContainer <=> (_Frame_Counter.GetFirstChild("{{{P}}}frame-navigation-container") as CMlFrame);
+	declare CMlFrame TextField_Counter <=> (_Frame_Counter.GetFirstChild("{{{P}}}textfield-counter") as CMlFrame);
+
+	/* Out of bound correction */
+	{{{P}}}Properties.TextField.Value = {{{P}}}ML::Clamp({{{P}}}Properties.TextField.Value, {{{P}}}Properties.TextField.MinValue, {{{P}}}Properties.TextField.MaxValue);
+
+	/* TextField settings */
+	{{{TextField::P}}}SetValue(This, TextField_Counter, {{{P}}}TL::ToText({{{P}}}Properties.TextField.Value));
+	{{{TextField::P}}}SetTextColorFocus(This, TextField_Counter, {{{P}}}Properties.TextField.Color);
+	{{{TextField::P}}}SetTextSize(This, TextField_Counter, {{{P}}}Properties.TextField.TextSize);
+
+	/* Button visibility */
+	{{{Button::P}}}SetVisibilityAndNavigation(Button_Less, {{{P}}}Properties.TextField.Value > {{{P}}}Properties.TextField.MinValue);
+	{{{Button::P}}}SetVisibilityAndNavigation(Button_More, {{{P}}}Properties.TextField.Value < {{{P}}}Properties.TextField.MaxValue);
+	if ({{{P}}}Properties.IsFocused) {
+		if (!Button_Less.Visible) {{{P}}}InnerFocus(_Frame_Counter, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), Button_More);
+		if (!Button_More.Visible) {{{P}}}InnerFocus(_Frame_Counter, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), Button_Less);
+	}
+
+	/* Navigation*/
+	if ({{{Navigation::P}}}IsLocked(Button_Less)) {{{Navigation::P}}}ChangeControlTarget(This, Frame_NavigationContainer, TextField_Counter, "left", "_");
+	else {{{Navigation::P}}}ChangeControlTarget(This, Frame_NavigationContainer, TextField_Counter, "left", Button_Less.ControlId);
+	if ({{{Navigation::P}}}IsLocked(Button_More)) {{{Navigation::P}}}ChangeControlTarget(This, Frame_NavigationContainer, TextField_Counter, "right", "_");
+	else {{{Navigation::P}}}ChangeControlTarget(This, Frame_NavigationContainer, TextField_Counter, "right", Button_More.ControlId);
+
+	/* Send Update event*/
+	{{{P}}}PendingEvents.add({{{P}}}K_Event {
+		Type = {{{P}}}C_EventType_Update,
+		Counter = _Frame_Counter
+	});
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+///	Apply all the properties to the component
+Void {{{P}}}ApplyProperties(CMlFrame _Frame_Counter, {{{P}}}K_Properties _Properties) {
+	declare CMlFrame Button_Less <=> (_Frame_Counter.GetFirstChild("{{{P}}}button-less") as CMlFrame);
+	declare CMlFrame Button_More <=> (_Frame_Counter.GetFirstChild("{{{P}}}button-more") as CMlFrame);
+	declare CMlFrame Frame_Align <=> (_Frame_Counter.GetFirstChild("{{{P}}}frame-counter-align") as CMlFrame);
+	declare CMlFrame TextField_Counter <=> (_Frame_Counter.GetFirstChild("{{{P}}}textfield-counter") as CMlFrame);
+	declare CMlQuad Quad_Activation <=> (_Frame_Counter.GetFirstChild("{{{P}}}quad-activation") as CMlQuad);
+	declare CMlFrame Frame_NavigationContainer <=> (_Frame_Counter.GetFirstChild("{{{P}}}frame-navigation-container") as CMlFrame);
+	
+	{{{TextField::P}}}SetSize(This, TextField_Counter, _Properties.TextField.Size);
+	{{{TextField::P}}}SetTextOpacityUnfocus(This, TextField_Counter, _Properties.OpacityUnfocus);
+	{{{Button::P}}}SetIconColor(This, Button_Less, _Properties.Icon.Color);
+	{{{Button::P}}}SetIconColor(This, Button_More, _Properties.Icon.Color);
+	{{{Button::P}}}SetOpacityUnfocus(This, Button_Less, _Properties.OpacityUnfocus);
+	{{{Button::P}}}SetOpacityUnfocus(This, Button_More, _Properties.OpacityUnfocus);
+	{{{Button::P}}}SetIconSize(This, Button_Less, _Properties.Icon.Size);
+	{{{Button::P}}}SetIconSize(This, Button_More, _Properties.Icon.Size);
+
+	{{{P}}}UpdateCounter(_Frame_Counter);
+	{{{Navigation::P}}}EnableContainer(This, Frame_NavigationContainer, _Properties.IsFocused);
+
+	/* Activation zone */
+	Quad_Activation.Size = {{{TextField::P}}}GetSize(TextField_Counter) + <2 * {{{Button::P}}}GetIconSize(Button_Less).X, 0.>;
+	if (Quad_Activation.Size.Y < {{{Button::P}}}GetIconSize(Button_Less).Y) {
+		Quad_Activation.Size.Y = {{{Button::P}}}GetIconSize(Button_Less).Y;
+	}
+
+	/* Position */
+	TextField_Counter.RelativePosition_V3 = <0., 0.>;
+	Quad_Activation.RelativePosition_V3 = <0., 0.>;
+	Button_Less.RelativePosition_V3 = <-Quad_Activation.Size.X/2., 0.>;
+	Button_More.RelativePosition_V3 = <Quad_Activation.Size.X/2., 0.>;
+
+	/* Align */
+	{{{P}}}Tools::Align(Frame_Align, Quad_Activation.Size, _Properties.HAlign, _Properties.VAlign);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Special component actions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+Void {{{P}}}Add(CMlFrame _Frame_Counter, Integer _ShiftNb) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	if (!{{{P}}}Properties.IsCounter || {{{P}}}Properties.IsLocked) return;
+
+	{{{P}}}Properties.TextField.Value += _ShiftNb;
+	{{{P}}}UpdateCounter(_Frame_Counter);
+}
+Void {{{P}}}Add(CMlFrame _Frame_Counter) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	{{{P}}}Add(_Frame_Counter, {{{P}}}Properties.TextField.Step);
+}
+
+Void {{{P}}}Remove(CMlFrame _Frame_Counter, Integer _ShiftNb) {
+	{{{P}}}Add(_Frame_Counter, -_ShiftNb);
+}
+Void {{{P}}}Remove(CMlFrame _Frame_Counter) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	{{{P}}}Remove(_Frame_Counter, {{{P}}}Properties.TextField.Step);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Setters
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+Void {{{P}}}SetValue(CMlFrame _Frame_Counter, Integer _Value) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	{{{P}}}Properties.TextField.Value = _Value;
+	{{{P}}}ApplyProperties(_Frame_Counter, {{{P}}}Properties);
+}
+Void {{{P}}}SetMinValue(CMlFrame _Frame_Counter, Integer _MinValue) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	{{{P}}}Properties.TextField.MinValue = _MinValue;
+	{{{P}}}ApplyProperties(_Frame_Counter, {{{P}}}Properties);
+}
+Void {{{P}}}SetMaxValue(CMlFrame _Frame_Counter, Integer _MaxValue) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	{{{P}}}Properties.TextField.MaxValue = _MaxValue;
+	{{{P}}}ApplyProperties(_Frame_Counter, {{{P}}}Properties);
+}
+Void {{{P}}}SetStep(CMlFrame _Frame_Counter, Integer _Step) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	{{{P}}}Properties.TextField.Step = _Step;
+	{{{P}}}ApplyProperties(_Frame_Counter, {{{P}}}Properties);
+}
+Void {{{P}}}SetTextSize(CMlFrame _Frame_Counter, Real _TextSize) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	{{{P}}}Properties.TextField.TextSize = _TextSize;
+	{{{P}}}ApplyProperties(_Frame_Counter, {{{P}}}Properties);
+}
+Void {{{P}}}SetTextColor(CMlFrame _Frame_Counter, Vec3 _TextColor) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	{{{P}}}Properties.TextField.Color = _TextColor;
+	{{{P}}}ApplyProperties(_Frame_Counter, {{{P}}}Properties);
+}
+Void {{{P}}}SetLabelSize(CMlFrame _Frame_Counter, Vec2 _LabelSize) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	{{{P}}}Properties.TextField.Size = _LabelSize;
+	{{{P}}}ApplyProperties(_Frame_Counter, {{{P}}}Properties);
+}
+Void {{{P}}}SetIconSize(CMlFrame _Frame_Counter, Vec2 _Size) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	{{{P}}}Properties.Icon.Size = _Size;
+	{{{P}}}ApplyProperties(_Frame_Counter, {{{P}}}Properties);
+}
+Void {{{P}}}SetIconColor(CMlFrame _Frame_Counter, Vec3 _Color) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	{{{P}}}Properties.Icon.Color = _Color;
+	{{{P}}}ApplyProperties(_Frame_Counter, {{{P}}}Properties);
+}
+Void {{{P}}}SetHAlign(CMlFrame _Frame_Counter, Text _HAlign) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	{{{P}}}Properties.HAlign = _HAlign;
+	{{{P}}}ApplyProperties(_Frame_Counter, {{{P}}}Properties);
+}
+Void {{{P}}}SetVAlign(CMlFrame _Frame_Counter, Text _VAlign) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	{{{P}}}Properties.VAlign = _VAlign;
+	{{{P}}}ApplyProperties(_Frame_Counter, {{{P}}}Properties);
+}
+Void {{{P}}}SetOpacityUnfocus(CMlFrame _Frame_Counter, Real _Opacity) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	{{{P}}}Properties.OpacityUnfocus = _Opacity;
+	{{{P}}}ApplyProperties(_Frame_Counter, {{{P}}}Properties);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Getters
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+Boolean {{{P}}}IsCounter(CMlControl _Frame_Counter) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	return {{{P}}}Properties.IsCounter;
+}
+
+Boolean {{{P}}}IsFocused(CMlControl _Frame_Counter) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	return {{{P}}}Properties.IsFocused;
+}
+
+Integer {{{P}}}GetValue(CMlControl _Frame_Counter) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	return {{{P}}}Properties.TextField.Value;
+}
+Integer {{{P}}}GetMinValue(CMlControl _Frame_Counter) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	return {{{P}}}Properties.TextField.MinValue;
+}
+Integer {{{P}}}GetMaxValue(CMlControl _Frame_Counter) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	return {{{P}}}Properties.TextField.MaxValue;
+}
+Integer {{{P}}}GetStep(CMlControl _Frame_Counter) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	return {{{P}}}Properties.TextField.Step;
+}
+Real {{{P}}}GetTextSize(CMlControl _Frame_Counter) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	return {{{P}}}Properties.TextField.TextSize;
+}
+Vec3 {{{P}}}GetTextColor(CMlControl _Frame_Counter) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	return {{{P}}}Properties.TextField.Color;
+}
+Vec2 {{{P}}}GetLabelSize(CMlControl _Frame_Counter) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	return {{{P}}}Properties.TextField.Size;
+}
+Vec2 {{{P}}}GetIconSize(CMlFrame _Frame_Counter) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	return {{{P}}}Properties.Icon.Size;
+}
+Vec3 {{{P}}}GetIconColor(CMlFrame _Frame_Counter) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	return {{{P}}}Properties.Icon.Color;
+}
+Text {{{P}}}GetHAlign(CMlControl _Frame_Counter) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	return {{{P}}}Properties.HAlign;
+}
+Text {{{P}}}GetVAlign(CMlControl _Frame_Counter) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	return {{{P}}}Properties.VAlign;
+}
+Real {{{P}}}GetOpacityUnfocus(CMlControl _Frame_Counter) {
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	return {{{P}}}Properties.OpacityUnfocus;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+///	Initialize the component
+Void {{{P}}}InitCounter(CMlFrame _Frame_Counter)	{
+	if (_Frame_Counter == Null) return;
+
+	declare CMlFrame TextField_Counter <=> (_Frame_Counter.GetFirstChild("{{{P}}}textfield-counter") as CMlFrame);
+	declare CMlFrame Button_Less <=> (_Frame_Counter.GetFirstChild("{{{P}}}button-less") as CMlFrame);
+	declare CMlFrame Button_More <=> (_Frame_Counter.GetFirstChild("{{{P}}}button-more") as CMlFrame);
+
+	declare {{{P}}}K_Properties {{{P}}}Properties for _Frame_Counter;
+	{{{P}}}Properties = {{{P}}}K_Properties {
+		IsCounter = True,
+		IsLocked = False,
+		IsFocused = False,
+		IsEntryFocused = False,
+		OpacityUnfocus = 1.,
+		LastControlFocused = Button_Less,
+		HAlign = {{{P}}}Tools::C_HAlign_Center,
+		VAlign = {{{P}}}Tools::C_VAlign_Center,
+		TextField = {{{P}}}K_TextFieldProperties {
+			Value = 0,
+			MinValue = -32768,
+			MaxValue = 32767,
+			Step = 1,
+			TextSize = {{{TextField::P}}}GetTextSize(TextField_Counter),
+			Color = {{{TextField::P}}}GetTextColorFocus(TextField_Counter),
+			Size = {{{TextField::P}}}GetSize(TextField_Counter)
+		},
+		Icon = {{{P}}}K_ImageProperties {
+			Size = {{{Button::P}}}GetSize(Button_Less),
+			Color = {{{Button::P}}}GetIconColor(Button_Less)
+		}
+	};
+
+	/* Nav inputs */
+	declare CMlFrame Frame_NavigationContainer <=> (_Frame_Counter.GetFirstChild("{{{P}}}frame-navigation-container") as CMlFrame);
+	if ({{{Navigation::P}}}GetControlTarget(_Frame_Counter, CMlScriptEvent::EMenuNavAction::Left) != Null) {
+		{{{Navigation::P}}}ChangeControlTarget(This, Frame_NavigationContainer, Button_Less, "left", "_");
+	}
+	if ({{{Navigation::P}}}GetControlTarget(_Frame_Counter, CMlScriptEvent::EMenuNavAction::Right) != Null) {
+		{{{Navigation::P}}}ChangeControlTarget(This, Frame_NavigationContainer, Button_More, "right", "_");
+	}
+	if ({{{Navigation::P}}}GetControlTarget(_Frame_Counter, CMlScriptEvent::EMenuNavAction::Up) != Null) {
+		{{{Navigation::P}}}ChangeControlTarget(This, Frame_NavigationContainer, Button_Less, "up", "_");
+		{{{Navigation::P}}}ChangeControlTarget(This, Frame_NavigationContainer, TextField_Counter, "up", "_");
+		{{{Navigation::P}}}ChangeControlTarget(This, Frame_NavigationContainer, Button_More, "up", "_");
+	}
+	if ({{{Navigation::P}}}GetControlTarget(_Frame_Counter, CMlScriptEvent::EMenuNavAction::Down) != Null) {
+		{{{Navigation::P}}}ChangeControlTarget(This, Frame_NavigationContainer, Button_Less, "down", "_");
+		{{{Navigation::P}}}ChangeControlTarget(This, Frame_NavigationContainer, TextField_Counter, "down", "_");
+		{{{Navigation::P}}}ChangeControlTarget(This, Frame_NavigationContainer, Button_More, "down", "_");
+	}
+	{{{Navigation::P}}}EnableInputs(_Frame_Counter, False);
+
+	// Initialize the Counter state
+	if (_Frame_Counter.DataAttributeExists("halign")) {
+		{{{P}}}Properties.HAlign = _Frame_Counter.DataAttributeGet("halign");
+	}
+	if (_Frame_Counter.DataAttributeExists("valign")) {
+		{{{P}}}Properties.VAlign = _Frame_Counter.DataAttributeGet("valign");
+	}
+	if (_Frame_Counter.DataAttributeExists("opacityunfocus")) {
+		{{{P}}}Properties.OpacityUnfocus = {{{P}}}TL::ToReal(_Frame_Counter.DataAttributeGet("opacityunfocus"));
+	}
+	if (_Frame_Counter.DataAttributeExists("value")) {
+		{{{P}}}Properties.TextField.Value = {{{P}}}TL::ToInteger(_Frame_Counter.DataAttributeGet("value"));
+	}
+	if (_Frame_Counter.DataAttributeExists("minvalue")) {
+		{{{P}}}Properties.TextField.MinValue = {{{P}}}TL::ToInteger(_Frame_Counter.DataAttributeGet("minvalue"));
+	}
+	if (_Frame_Counter.DataAttributeExists("maxvalue")) {
+		{{{P}}}Properties.TextField.MaxValue = {{{P}}}TL::ToInteger(_Frame_Counter.DataAttributeGet("maxvalue"));
+	}
+	if (_Frame_Counter.DataAttributeExists("step")) {
+		{{{P}}}Properties.TextField.Step = {{{P}}}TL::ToInteger(_Frame_Counter.DataAttributeGet("step"));
+	}
+	if (_Frame_Counter.DataAttributeExists("textfieldtextsize ")) {
+		{{{P}}}Properties.TextField.TextSize = {{{P}}}TL::ToReal(_Frame_Counter.DataAttributeGet("textfieldtextsize "));
+	}
+	if (_Frame_Counter.DataAttributeExists("textfieldcolor")) {
+		{{{P}}}Properties.TextField.Color = {{{P}}}CL::HexToRgb(_Frame_Counter.DataAttributeGet("textfieldcolor"));
+	}
+	if (_Frame_Counter.DataAttributeExists("textfieldsize")) {
+		{{{P}}}Properties.TextField.Size = {{{P}}}Tools::TextToVec2(_Frame_Counter.DataAttributeGet("textfieldsize"));
+	}
+	if (_Frame_Counter.DataAttributeExists("iconcolor")) {
+		{{{P}}}Properties.Icon.Color = {{{P}}}CL::HexToRgb(_Frame_Counter.DataAttributeGet("iconcolor"));
+	}
+	if (_Frame_Counter.DataAttributeExists("iconsize")) {
+		{{{P}}}Properties.Icon.Size = {{{P}}}Tools::TextToVec2(_Frame_Counter.DataAttributeGet("iconsize"));
+	}
+
+	{{{P}}}ApplyProperties(_Frame_Counter, {{{P}}}Properties);
+}
+
+***MainStart***
+***
+Page.GetClassChildren("{{{P}}}frame-container-counter", Page.MainFrame, True);
+foreach (Control in Page.GetClassChildren_Result) {
+	declare CMlFrame Frame_CounterContainer = (Control as CMlFrame);
+	{{{P}}}InitCounter(Frame_CounterContainer.Parent);
+	{{{P}}}G_Counters.add(Frame_CounterContainer.Parent);
+}
+***
+
+***MainLoop***
+***
+{{{P}}}PendingEvents = [];
+
+/* TextField events */
+foreach (Event in {{{TextField::P}}}GetPendingEvents(This)) {
+	switch (Event.Type) {
+		case {{{TextField::P}}}C_EventType_Update: {
+			if (Event.Control != Null && Event.Control.ControlId == "{{{P}}}textfield-counter") {
+				assert(Event.Control.Parent.Parent.Parent != Null && {{{P}}}IsCounter(Event.Control.Parent.Parent.Parent), "The manialink has been modified, we do not point to the right frame anymore");
+				declare {{{P}}}K_Properties {{{P}}}Properties for Event.Control.Parent.Parent.Parent;
+				{{{P}}}Properties.TextField.Value = {{{P}}}TL::ToInteger(Event.Value);
+				{{{P}}}UpdateCounter(Event.Control.Parent.Parent.Parent);
+			}
+		}
+	}
+}
+
+/* Navigation events */
+foreach (Event in {{{Navigation::P}}}GetPendingEvents(This)) {
+	switch (Event.Type) {
+		case {{{Navigation::P}}}C_EventType_NavigateInput: {
+			if ({{{Navigation::P}}}IsEventFromNestedContainer(This, Event.Container) && Event.Container.ControlId == "{{{P}}}frame-navigation-container") {
+				assert({{{P}}}IsCounter(Event.Container.Parent.Parent), "The manialink has been modified, we do not point to the right frame anymore");
+				declare CMlFrame Frame_Counter = Event.Container.Parent.Parent;
+				if ({{{P}}}IsFocused(Frame_Counter)) {
+					if (Event.Input == CMlScriptEvent::EMenuNavAction::Select) {
+						switch (Event.To.ControlId) {
+							case "{{{P}}}button-less": {{{P}}}Remove(Frame_Counter);
+							case "{{{P}}}button-more": {{{P}}}Add(Frame_Counter);
+						}
+					} else if (
+							Event.From != Null &&
+							Event.From == Event.To &&
+							Event.From.HasClass("{{{P}}}leave-counter")
+						) {
+							{{{Navigation::P}}}EnableInputs(Frame_Counter, True);
+							{{{Navigation::P}}}ApplyInput(This, Frame_Counter, Event.Input, Event.UserIndex, []);
+							{{{Navigation::P}}}EnableInputs(Frame_Counter, False);
+					} else {
+						{{{P}}}InnerFocus(Frame_Counter, Event.From, Event.To);
+					}
+				}
+			}
+		}
+		case {{{Navigation::P}}}C_EventType_NavigateMouse: {
+			if ({{{Navigation::P}}}IsEventFromNestedContainer(This, Event.Container) && Event.Container.ControlId == "{{{P}}}frame-navigation-container") {
+				assert({{{P}}}IsCounter(Event.Container.Parent.Parent), "The manialink has been modified, we do not point to the right frame anymore");
+				declare CMlFrame Frame_Counter = Event.Container.Parent.Parent;
+				if ({{{P}}}IsFocused(Frame_Counter)) {
+					if (Event.Mouse == CMlScriptEvent::Type::MouseClick) {
+						switch (Event.To.ControlId) {
+							case "{{{P}}}button-less": {{{P}}}Remove(Frame_Counter);
+							case "{{{P}}}button-more": {{{P}}}Add(Frame_Counter);
+						}
+					} else if (Event.Mouse == CMlScriptEvent::Type::MouseOver) {
+						{{{P}}}InnerFocus(Frame_Counter, Event.From, Event.To);
+					}
+				}
+			}
+		}
+	}
+}
+***
+		""",
+		[
+			Button::ComponentV2(),
+			Navigation::ComponentV2(),
+			TextField::ComponentV2()
+		],
+		[]
+	);
+}

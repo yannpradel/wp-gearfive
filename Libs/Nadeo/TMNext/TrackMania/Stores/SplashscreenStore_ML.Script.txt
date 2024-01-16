@@ -1,0 +1,121 @@
+/**
+ *	Store for Splashscreens
+ */
+#Const Version		"2022-11-04"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Stores/SplashscreenStore_ML.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/CommonLibs/Common/Store_ML.Script.txt" as Store
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/SplashscreenStruct.Script.txt" as SplashscreenStruct
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_SplashscreensPager {
+	SplashscreenStruct::LibSplashscreenStruct_K_Splashscreen[Integer] Splashscreens;
+	Integer CursorMin;
+	Integer CursorMax;
+	Integer Total;
+	Text ErrorMessage;
+}
+#Struct K_State {
+	K_SplashscreensPager Pager;
+	Integer AutoDisplaySplashscreenId; //< Id of the splashcreen to display at the start of the game
+	Integer UnreadNb;
+	Integer[] MarkSplashscreenAsViewedQueue;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_State_Null K_State {
+	Pager = K_SplashscreensPager {
+		Splashscreens = [],
+		CursorMin = 0,
+		CursorMax = 0,
+		Total = 0,
+		ErrorMessage = ""
+	},
+	UnreadNb = 0,
+	MarkSplashscreenAsViewedQueue = []
+}
+
+#Const C_ComponentName "lib-store-splashscreen"
+#Const P "TMNext_SplashscreenStore::"
+#Const Q "TMNext_SplashscreenStore"
+#Const C_StoreId "splashscreen"
+
+#Const C_Action_PreloadSplashscreens "TMNext_SplashscreenStore_Action_PreloadSplashscreens"
+#Const C_Action_ResetAutoDisplaySplashscreenId "TMNext_SplashscreenStore_Action_ResetAutoDisplaySplashscreenId"
+#Const C_Action_PagerSetCursor "TMNext_SplashscreenStore_Action_PagerSetCursor"
+#Const C_Action_MarkSplashscreenAsViewed "TMNext_SplashscreenStore_Action_MarkSplashscreenAsViewed"
+
+#Const C_Event_PreloadComplete "TMNext_SplashscreenStore_Event_PreloadComplete"
+#Const C_Event_AutoDisplaySplashscreen "TMNext_SplashscreenStore_Event_AutoDisplaySplashscreen"
+#Const C_Event_PagerError "TMNext_SplashscreenStore_Event_PagerError"
+#Const C_Event_PagerUpdate "TMNext_SplashscreenStore_Event_PagerUpdate"
+#Const C_Event_UnreadNbUpdate "TMNext_SplashscreenStore_Event_UnreadNbUpdate"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+Void Action_PreloadSplashscreens(CMlScript _This, Text _Lang) {
+	_This.SendCustomEvent(C_Action_PreloadSplashscreens, [_Lang]);
+}
+
+Void Action_PagerSetCursor(CMlScript _This, Text _Lang, Integer _Cursor) {
+	_This.SendCustomEvent(C_Action_PagerSetCursor, [_Lang, ""^_Cursor]);
+}
+
+Void Action_MarkSplashscreenAsViewed(CMlScript _This, SplashscreenStruct::LibSplashscreenStruct_K_Splashscreen _Splashscreen) {
+	_This.SendCustomEvent(C_Action_MarkSplashscreenAsViewed, [_Splashscreen.tojson()]);
+}
+
+Void Action_ResetAutoDisplaySplashscreenId(CMlScript _This) {
+	_This.SendCustomEvent(C_Action_ResetAutoDisplaySplashscreenId, []);
+}
+
+Integer GetAutoDisplaySplashscreenId() {
+	declare K_State TMNext_SplashscreenStore_State for System = C_State_Null;
+	return TMNext_SplashscreenStore_State.AutoDisplaySplashscreenId;
+}
+
+K_SplashscreensPager GetSplashscreensPager() {
+	declare K_State TMNext_SplashscreenStore_State for System = C_State_Null;
+	return TMNext_SplashscreenStore_State.Pager;
+}
+
+Integer GetUnreadNb() {
+	declare K_State TMNext_SplashscreenStore_State for System = C_State_Null;
+	return TMNext_SplashscreenStore_State.UnreadNb;
+}
+
+Void MainInit(CMlScript _This) {
+	Store::Subscribe(_This, C_StoreId);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the store manialink component
+Text ComponentV2() {
+	return MV::ComponentV2(
+		C_ComponentName,
+		"""
+		""",
+		"""
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/SplashscreenStore_ML.Script.txt" as {{{Q}}}
+		""",
+		"""
+***MainInit***
+***
+{{{P}}}MainInit(This);
+***
+		""",
+		[
+			SplashscreenStruct::Component()
+		],
+		[]
+	);
+}

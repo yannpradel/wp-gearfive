@@ -1,0 +1,345 @@
+/**
+ *	UI module: MatchIntro client side
+ */
+#Const Version		"1.0.0"
+#Const ScriptName	"Libs/Nadeo/Trackmania/Modes/TMWTMatchmaking/UIModules/MatchIntro_Client.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/CMGame/Utils/MLHelpers.Script.txt" as MLHelpers
+#Include "Libs/Nadeo/CMGame/Utils/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/CMGame/Modes/UIModules_Client.Script.txt" as UIModules
+#Include "Libs/Nadeo/Trackmania/Modes/TMWTCommon/Shared.Script.txt" as Shared
+#Include "Libs/Nadeo/Trackmania/Modes/TMWTCommon/Stylesheet.Script.txt" as TMWTStylesheet
+#Include "Libs/Nadeo/Trackmania/Modes/TMWTMatchmaking/UIModules/MatchIntro_Common.Script.txt" as UIModules_MatchIntro_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_ImgPath "file://Media/Manialinks/Nadeo/Trackmania/Modes/TMWT/UI"
+
+//L16N [MatchIntro] Text displayed between the players of the two teams that will compete in the match. "VS" is the contraction of "versus". If "VS" is commonly seen in your language you can keep it as is. Try to keep it short because there won't be a lot of space to display this string.
+#Const C_Text_VS _("|Versus|VS")
+
+#Const C_TextSize_LabelTrackName 3.
+#Const C_TextSize_LabelClanName 7.
+#Const C_TextSize_LabelPlayerName 7.
+
+#Const C_Size_PlayerCard <106., 16.83>
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the id of the UI module
+Text GetId() {
+	return UIModules_MatchIntro_Common::C_Id;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the type of layer of the UI module
+CUILayer::EUILayerType GetLayerType() {
+	return UIModules_MatchIntro_Common::C_LayerType;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the module manialink
+ *
+ *  @return                           The module manialink
+ */
+Text GetML(Integer _Theme) {
+	return MV::Create(
+GetId(), 3,
+"""
+{{{TMWTStylesheet::Get(_Theme)}}}
+<framemodel id="framemodel-player">
+	<quad class="{{{TMWTStylesheet::C_Class_BackgroundBgColor_Default}}}" z-index="0" {{{MLHelpers::Size(C_Size_PlayerCard)}}} halign="center" />
+	<quad id="quad-player-bg" class="{{{TMWTStylesheet::C_Class_Gradient_BlueTeam}}}" z-index="1" {{{MLHelpers::Size(C_Size_PlayerCard)}}} halign="center" image="{{{C_ImgPath}}}/TMWT_PlayerName.dds" />
+	<quad class="{{{TMWTStylesheet::C_Class_Border_Default}}}" pos="0 {{{-C_Size_PlayerCard.Y}}}" z-index="2" size="{{{C_Size_PlayerCard.X}}} {{{TMWTStylesheet::C_BorderWidth}}}" halign="center" />
+	<frame pos="{{{C_Size_PlayerCard.X * -0.5}}} {{{C_Size_PlayerCard.Y * -0.5}}}" z-index="3">
+		<quad id="quad-player-flag" pos="11 0" size="{{{C_Size_PlayerCard.Y - 3}}} {{{C_Size_PlayerCard.Y - 3}}}" halign="center" valign="center" keepratio="fit" />
+		<label id="label-player-name" class="{{{TMWTStylesheet::C_Class_Text_ExtraBold}}}" pos="23 0" size="{{{C_Size_PlayerCard.X - 28}}} 20" valign="center2" textsize="{{{C_TextSize_LabelPlayerName}}}" />
+	</frame>
+</framemodel>
+<framemodel id="framemodel-clan">
+	<quad id="quad-clan-logo" size="30 30" halign="center" keepratio="fit" />
+	<label id="label-clan-name" class="{{{TMWTStylesheet::C_Class_Text_ExtraBold}}}" pos="0 -37" size="130 20" halign="center" valign="center2" textsize="{{{C_TextSize_LabelClanName}}}" />
+	<frame id="frame-players" pos="0 -46">
+		<frameinstance modelid="framemodel-player" hidden="1" />
+		<frameinstance modelid="framemodel-player" pos="0 -23" hidden="1" />
+	</frame>
+</framemodel>
+<frame id="frame-global" z-index="{{{Shared::C_ZIndex_MatchIntro}}}" hidden="1">
+	<frame {{{UIModules::CustomizableUIModule(UIModules_MatchIntro_Common::C_UIModuleConfig)}}}>
+		<quad class="{{{TMWTStylesheet::C_Class_BackgroundBgColor_Default}}}" z-index="0" size="320 180" halign="center" valign="center" opacity="0.6" fullscreen="1" />
+		<quad id="quad-clan-1-bg" class="{{{TMWTStylesheet::C_Class_Gradient_BlueTeam}}}" z-index="1" size="320 180" halign="center" valign="center" opacity="0.6" image="{{{C_ImgPath}}}/TMWT_MatchIntroGradient.dds" fullscreen="1" />
+		<quad id="quad-clan-2-bg" class="{{{TMWTStylesheet::C_Class_Gradient_RedTeam}}}" z-index="2" size="320 180" rot="180" halign="center" valign="center" opacity="0.6" image="{{{C_ImgPath}}}/TMWT_MatchIntroGradient.dds" fullscreen="1" />
+		<frame z-index="3">
+			<label class="{{{TMWTStylesheet::C_Class_Text_ExtraBold}}}" z-index="0" size="38 38" halign="center" valign="center2" textsize="8" text="{{{C_Text_VS}}}" />
+			<label id="label-track-name" class="{{{TMWTStylesheet::C_Class_Text_SemiBold}}}" pos="0 -84" z-index="1" size="310 10" halign="center" valign="center2" textsize="{{{C_TextSize_LabelTrackName}}}" />
+			<frame id="frame-clans" pos="0 65" z-index="2">
+				<frameinstance modelid="framemodel-clan" pos="-74 0" />
+				<frameinstance modelid="framemodel-clan" pos="74 0" />
+			</frame>
+		</frame>
+	</frame>
+</frame>
+""",
+"""
+#Include "Libs/Nadeo/CMGame/Utils/Tools.Script.txt" as Tools
+#Include "Libs/Nadeo/CMGame/Utils/Stylesheet.Script.txt" as CMStylesheet
+#Include "Libs/Nadeo/Trackmania/Modes/TMWTCommon/Stylesheet.Script.txt" as TMWTStylesheet
+#Include "Libs/Nadeo/Trackmania/Modes/TMWTCommon/Teams.Script.txt" as Teams
+
+#Struct K_ControlsPlayer {
+	CMlFrame Frame_Player;
+	CMlQuad Quad_PlayerBg;
+	CMlQuad Quad_PlayerFlag;
+	CMlLabel Label_PlayerName;
+}
+#Struct K_ControlsClan {
+	CMlQuad Quad_ClanBg;
+	CMlQuad Quad_ClanLogo;
+	CMlLabel Label_ClanName;
+	K_ControlsPlayer[] Players;
+}
+#Struct K_Controls {
+	CMlFrame Frame_Global;
+	CMlLabel Label_TrackName;
+	K_ControlsClan[Integer] Clans;
+}
+#Struct K_State {
+	K_Controls Controls;
+	Boolean DisplayModule;
+	Integer TeamsUpdate;
+	Text TrackName;
+	Teams::K_Player[Text] PlayersInfo;
+	Boolean RequestPlayersUpdate;
+}
+
+#Const C_State_Null K_State {
+	Controls = K_Controls {},
+	DisplayModule = False,
+	TeamsUpdate = -1,
+	TrackName = "",
+	PlayersInfo = [],
+	RequestPlayersUpdate = False
+}
+
+#Const C_Theme {{{dump(_Theme)}}}
+#Const C_PlayerClanCheckInterval 500
+
+#Const C_TextSize_LabelTrackName {{{dump(C_TextSize_LabelTrackName)}}}
+#Const C_TextSize_LabelClanName {{{dump(C_TextSize_LabelClanName)}}}
+#Const C_TextSize_LabelPlayerName {{{dump(C_TextSize_LabelPlayerName)}}}
+
+#Const C_Clan_Blue 1
+#Const C_Clan_Red 2
+""",
+"""
+K_State SetVisibility(K_State _State, Boolean _DisplayModule) {
+	declare K_State State = _State;
+
+	State.DisplayModule = _DisplayModule;
+
+	State.Controls.Frame_Global.Visible = State.DisplayModule;
+
+	return State;
+}
+
+Void UpdateClansColors(K_State _State) {
+	foreach (Clan => ControlsClan in _State.Controls.Clans) {
+		foreach (Player in ControlsClan.Players) {
+			if (Clan == C_Clan_Red) {
+				Player.Quad_PlayerBg.Colorize = TMWTStylesheet::GetVec3Color(TMWTStylesheet::C_Class_Gradient_RedTeam, C_Theme);
+			} else {
+				Player.Quad_PlayerBg.Colorize = TMWTStylesheet::GetVec3Color(TMWTStylesheet::C_Class_Gradient_BlueTeam, C_Theme);
+			}
+		}
+	}
+}
+
+K_State SetTeamsInfo(K_State _State, Integer _TeamsUpdate, Teams::K_Team[Integer] _TeamsInfo, Teams::K_Player[Text] _PlayersInfo) {
+	declare K_State State = _State;
+
+	State.TeamsUpdate = _TeamsUpdate;
+	State.PlayersInfo = _PlayersInfo;
+	State.RequestPlayersUpdate = True;
+
+	foreach (Clan => ControlsClan in State.Controls.Clans) {
+		declare Text ClanLogo = Teams::GetClanLogoUrl(This, _TeamsInfo, Clan);
+		if (ClanLogo != "" && Http.IsValidUrl(ClanLogo)) {
+			ControlsClan.Quad_ClanLogo.ImageUrl = ClanLogo;
+			ControlsClan.Quad_ClanLogo.Visible = True;
+		} else {
+			ControlsClan.Quad_ClanLogo.Visible = False;
+		}
+		ControlsClan.Label_ClanName.Value = Teams::GetClanName(This, _TeamsInfo, Clan);
+		Tools::FitLabelValue(ControlsClan.Label_ClanName, C_TextSize_LabelClanName, 1., 1.);
+		if (Clan == C_Clan_Red) {
+			ControlsClan.Quad_ClanBg.Colorize = TMWTStylesheet::GetVec3Color(TMWTStylesheet::C_Class_Gradient_RedTeam, C_Theme);
+		} else {
+			ControlsClan.Quad_ClanBg.Colorize = TMWTStylesheet::GetVec3Color(TMWTStylesheet::C_Class_Gradient_BlueTeam, C_Theme);
+		}
+	}
+
+	return State;
+}
+
+K_State SetTrackName(K_State _State, CMap _Map) {
+	declare K_State State = _State;
+
+	if (_Map == Null) {
+		State.TrackName = "";
+	} else {
+		State.TrackName = _Map.MapName;
+	}
+
+	State.Controls.Label_TrackName.Value = State.TrackName;
+	Tools::FitLabelValue(State.Controls.Label_TrackName, C_TextSize_LabelTrackName, 1., 0.25);
+
+	return State;
+}
+
+Void UpdatePlayers(K_State _State, CSmPlayer[][Integer] _ClansPlayers, CSmPlayer _InputPlayer) {
+	foreach (Clan => ControlsClan in _State.Controls.Clans) {
+		foreach (Key => ControlsPlayer in ControlsClan.Players) {
+			if (_ClansPlayers[Clan].existskey(Key)) {
+				declare CSmPlayer Player <=> _ClansPlayers[Clan][Key];
+				if (Player.User != Null) {
+					ControlsPlayer.Quad_PlayerFlag.ImageUrl = "file://ZoneFlags/Login/"^Player.User.Login^"/country";
+					ControlsPlayer.Label_PlayerName.Value = Teams::GetPlayerName(_State.PlayersInfo, Player.User);
+					if (Player == _InputPlayer) {
+						ControlsPlayer.Label_PlayerName.TextColor = CMStylesheet::GetColorRGB(CMStylesheet::C_Color_AccentOne);
+					} else {
+						ControlsPlayer.Label_PlayerName.TextColor = CMStylesheet::GetColorRGB(CMStylesheet::C_Color_TextLight);
+					}
+					Tools::FitLabelValue(ControlsPlayer.Label_PlayerName, {{{C_TextSize_LabelPlayerName}}}, 1., 1.);
+					Tools::FirstPartyLogoMatchLuminance(ControlsPlayer.Label_PlayerName);
+					ControlsPlayer.Quad_PlayerFlag.Visible = True;
+					ControlsPlayer.Label_PlayerName.Visible = True;
+				} else {
+					ControlsPlayer.Quad_PlayerFlag.Visible = False;
+					ControlsPlayer.Label_PlayerName.Visible = False;
+				}
+				ControlsPlayer.Frame_Player.Visible = True;
+			} else {
+				ControlsPlayer.Frame_Player.Visible = False;
+			}
+		}
+	}
+}
+
+***MainInit***
+***
+declare CMlFrame Frame_Clans;
+declare CMlFrame Frame_Players;
+
+declare netread Boolean Net_TMWTMatchmaking_MatchIntro_IsVisible for UI;
+
+declare K_State State = C_State_Null;
+declare Integer PlayerClanCheckTime;
+***
+
+***MainStart***
+***
+State.Controls.Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+State.Controls.Label_TrackName <=> (State.Controls.Frame_Global.GetFirstChild("label-track-name") as CMlLabel);
+Frame_Clans <=> (State.Controls.Frame_Global.GetFirstChild("frame-clans") as CMlFrame);
+State.Controls.Clans = [C_Clan_Blue => K_ControlsClan {}, C_Clan_Red => K_ControlsClan {}];
+foreach (Key => ClanControl in Frame_Clans.Controls) {
+	declare CMlFrame Frame_Clan <=> (ClanControl as CMlFrame);
+	declare CMlFrame Frame_Players <=> (Frame_Clan.GetFirstChild("frame-players") as CMlFrame);
+	declare K_ControlsPlayer[] PlayersControls;
+	foreach (PlayerControl in Frame_Players.Controls) {
+		declare CMlFrame Frame_Player <=> (PlayerControl as CMlFrame);
+		PlayersControls.add(K_ControlsPlayer {
+			Frame_Player = Frame_Player,
+			Quad_PlayerBg = (Frame_Player.GetFirstChild("quad-player-bg") as CMlQuad),
+			Quad_PlayerFlag = (Frame_Player.GetFirstChild("quad-player-flag") as CMlQuad),
+			Label_PlayerName = (Frame_Player.GetFirstChild("label-player-name") as CMlLabel)
+		});
+	}
+	State.Controls.Clans[Key + 1] = K_ControlsClan {
+		Quad_ClanBg = (State.Controls.Frame_Global.GetFirstChild("quad-clan-"^(Key + 1)^"-bg") as CMlQuad),
+		Quad_ClanLogo = (Frame_Clan.GetFirstChild("quad-clan-logo") as CMlQuad),
+		Label_ClanName = (Frame_Clan.GetFirstChild("label-clan-name") as CMlLabel),
+		Players = PlayersControls
+	};
+}
+
+PlayerClanCheckTime = Now;
+foreach (Player in Players) {
+	declare Integer TMWTMatchmaking_MatchIntro_CurrentClan for Player = 0;
+	declare Boolean TMWTMatchmaking_MatchIntro_RequestsSpectate for Player = False;
+	TMWTMatchmaking_MatchIntro_CurrentClan = 0;
+	TMWTMatchmaking_MatchIntro_RequestsSpectate = False;
+}
+
+UpdateClansColors(State);
+State = SetVisibility(State, State.Controls.Frame_Global.Visible);
+State = SetTeamsInfo(State, Teams::GetTeamsUpdate(This), Teams::GetTeamsInfo(This), Teams::GetPlayersInfo(This));
+State = SetTrackName(State, Map);
+***
+
+***MainLoop***
+***
+if (PageIsVisible) {
+	if (State.DisplayModule != Net_TMWTMatchmaking_MatchIntro_IsVisible) {
+		State = SetVisibility(State, Net_TMWTMatchmaking_MatchIntro_IsVisible);
+	}
+	if (State.DisplayModule) {
+		if (State.TeamsUpdate != Teams::GetTeamsUpdate(This)) {
+			State = SetTeamsInfo(State, Teams::GetTeamsUpdate(This), Teams::GetTeamsInfo(This), Teams::GetPlayersInfo(This));
+		}
+		if (
+			(Map == Null && State.TrackName != "") ||
+			(Map != Null && State.TrackName != Map.MapName)
+		) {
+			State = SetTrackName(State, Map);
+		}
+
+		if (Now >= PlayerClanCheckTime) {
+			PlayerClanCheckTime = Now + C_PlayerClanCheckInterval;
+
+			foreach (Player in Players) {
+				declare Integer TMWTMatchmaking_MatchIntro_CurrentClan for Player = 0;
+				declare Boolean TMWTMatchmaking_MatchIntro_RequestsSpectate for Player = False;
+				if (
+					TMWTMatchmaking_MatchIntro_CurrentClan != Player.CurrentClan ||
+					TMWTMatchmaking_MatchIntro_RequestsSpectate != Player.RequestsSpectate
+				) {
+					TMWTMatchmaking_MatchIntro_CurrentClan = Player.CurrentClan;
+					TMWTMatchmaking_MatchIntro_RequestsSpectate = Player.RequestsSpectate;
+					State.RequestPlayersUpdate = True;
+				}
+			}
+		}
+
+		if (State.RequestPlayersUpdate) {
+			State.RequestPlayersUpdate = False;
+			declare CSmPlayer[][Integer] ClansPlayers = [C_Clan_Blue => [], C_Clan_Red => []];
+			foreach (Player in Players) {
+				if (!Player.RequestsSpectate && (Player.CurrentClan == C_Clan_Blue || Player.CurrentClan == C_Clan_Red)) {
+					ClansPlayers[Player.CurrentClan].add(Player);
+				}
+				if (
+					ClansPlayers[C_Clan_Blue].count >= State.Controls.Clans[C_Clan_Blue].Players.count &&
+					ClansPlayers[C_Clan_Red].count >= State.Controls.Clans[C_Clan_Red].Players.count
+				) {
+					break;
+				}
+			}
+			UpdatePlayers(State, ClansPlayers, InputPlayer);
+		}
+	}
+}
+***
+""",
+[
+	UIModules::Component()
+],
+[]
+	);
+}

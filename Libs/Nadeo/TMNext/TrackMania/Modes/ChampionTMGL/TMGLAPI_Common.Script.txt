@@ -1,0 +1,29 @@
+/**
+ *	TMGL API related data
+ */
+#Const Version		"2021-10-12"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Modes/ChampionTMGL/TMGLAPI_Common.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct LibChampionTMGLAPI_K_HttpLeaderboardPlayer {
+	Text participant;
+	Integer score;
+	Integer rank;
+	Text zone;
+}
+
+#Struct LibChampionTMGLAPI_K_LeaderboardPlayer {
+	Text AccountId;
+	Integer Score;
+	Integer Rank;
+	Integer RankDiff;
+	Text Zone;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const P "LibChampionTMGLAPI_"
+#Const C_MaxHearts 8

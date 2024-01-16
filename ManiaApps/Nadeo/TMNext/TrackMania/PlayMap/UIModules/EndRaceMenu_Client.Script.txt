@@ -1,0 +1,503 @@
+/**
+ *  UI module: EndRaceMenu client side
+ */
+#Const Version		"2022-01-19"
+#Const ScriptName "ManiaApps/Nadeo/TMNext/TrackMania/PlayMap/UIModules/EndRaceMenu_Client.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/Helpers.Script.txt" as MLHelpers
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Navigation.Script.txt" as Navigation
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/MenuButtonList.Script.txt" as MenuButtonList
+#Include "Libs/Nadeo/TMNext/TrackMania/Modes/PlayMap/Constants.Script.txt" as Const
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as MenuConst
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/Button.Script.txt" as Button
+#Include "Libs/Nadeo/TMNext/TrackMania/ColorPalette.Script.txt" as ColorPalette
+#Include "ManiaApps/Nadeo/TMNext/TrackMania/UIModules/RaceMapInfos.Script.txt" as RaceMapInfos
+#Include "Libs/Nadeo/MenuLibs/Common/Components/Grid.Script.txt" as Grid
+#Include "Libs/Nadeo/CommonLibs/Common/Platform.Script.txt" as Platform
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Id "UIModule_PlayMap_EndRaceMenu"
+#Const C_Type CUILayer::EUILayerType::Normal
+#Const C_NavGroupName "navgroup-playmap-endracemenu"
+
+#Const C_SoundFadeTime_EnterMenu 150
+
+#Const C_ReplaySaveStatus_Null 0
+#Const C_ReplaySaveStatus_Success 1
+#Const C_ReplaySaveStatus_Fail 2
+
+#Const C_Row_Improve 0
+#Const C_Row_Replay 1
+#Const C_Row_Margin 2
+#Const C_Row_Footer 3
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the module manialink
+ *
+ *  @return                           The module manialink
+ */
+Text GetML() {
+	//L16N [EndRaceMenu] Improve previous time
+	declare Text Text_Improve = _("Improve");
+	//L16N [EndRaceMenu] Save the last race replay
+	declare Text Text_SaveReplay =_("Save replay");
+	//L16N [EndRaceMenu] Text displayed when the replay of the last race has been saved
+	declare Text Text_ReplaySaved = _("Replay saved!");
+	//L16N [EndRaceMenu] Leave the game mode
+	declare Text Text_Exit = _("Exit");
+	//L16N [EndRaceMenu] Press a button to hide the UI and display the race replay in fullscreen
+	declare Text Text_ViewReplay = _("View replay");
+	//L16N [EndRaceMenu] Text displayed when the UI is hidden and the player must do an input to show the UI again
+	declare Text Text_PressKey = _("Press a button");
+	//L16N [EndRaceMenu] Display the time driven by the ghost in the replay
+	declare Text Text_Replay = _("|Ghost|Replay");
+
+	declare Real Margin = 1.;
+	declare Vec2 RaceMenuSize = Const::C_RaceMenu_Size;
+	declare Vec2 Size_ListButton = <RaceMenuSize.X-3., (RaceMenuSize.X-3.)*64/748>;
+	declare Vec2 Size_FooterButton = <Size_ListButton.X/2 + 1.5, (Size_ListButton.X/2 + 1.5)*88/388>;
+	declare Real SizeY_AdjustedListButton = Size_ListButton.Y - (4*Size_ListButton.Y/64); //< Remove the outer pixel of the asset
+	declare Real PosX_MenuHidden = -150. - RaceMenuSize.X;
+	declare Real PosX_MenuVisible = 0.;
+	declare Real PosX_PressKeyHidden = 253.;
+	declare Real PosX_PressKeyVisible = 153.;
+
+	// Automatic rearranging list of button depending on buttons visibility
+	// To add a new button, simply add a new row in the grid and its frameinstance in the ML
+	// After buttons visibility update, the grid needs to be updated !
+	declare GridConfig = Grid::Create(0., 0., 0., Grid::C_Direction_Bottom);
+	GridConfig = Grid::AddRow(GridConfig, C_Row_Improve, SizeY_AdjustedListButton, Grid::C_Align_Center);
+	GridConfig = Grid::AddRow(GridConfig, C_Row_Replay, SizeY_AdjustedListButton, Grid::C_Align_Center);
+	GridConfig = Grid::AddRow(GridConfig, C_Row_Margin, Margin, Grid::C_Align_Center);
+	GridConfig = Grid::AddRow(GridConfig, C_Row_Footer, Size_FooterButton.Y, Grid::C_Align_Center);
+	GridConfig = Grid::SetSize(GridConfig, SizeY_AdjustedListButton * (GridConfig.Columns.count-2) + Margin + Size_FooterButton.Y);
+	declare Grid = Grid::Compile(GridConfig);
+	declare Text GridConfigJson = GridConfig.tojson();
+	
+	declare Boolean PlaformIsFromFirstParty = Platform::IsFromFirstParty(System);
+
+	return MV::Create(
+C_Id, 3,
+"""
+<stylesheet>
+	<style class="text-default" halign="center" valign="center2" textsize="4.5" textprefix="$t$i" textcolor="FFF" textfont="{{{FontManager::C_GameFontExtraBold}}}" />
+	<style class="quad-default" halign="center" valign="center" />
+</stylesheet>
+
+<frame hidden="1" id="frame-global">
+	<label pos="{{{PosX_PressKeyHidden}}} -81" hidden="1" size="100 10" halign="right" textsize="6" text="{{{Text_PressKey}}}" class="text-default" id="label-press-key" />
+	
+	<frame hidden="1" id="frame-auto-hide" pos="{{{PosX_MenuVisible}}} 0" >
+		<frameinstance modelid="{{{RaceMapInfos::C_Name}}}" pos="{{{MLHelpers::Skew(0.5, 32., 10.)}}}" z-index="-2"/>
+		<frameinstance modelid="{{{MenuButtonList::C_Name}}}" id="frame-button-list-end-race-play-map" z-index="1" />
+
+		<frame id="frame-timediff" pos="{{{MLHelpers::Skew(RaceMenuSize.X/2 - 5., 21., 10.)}}}" hidden="1">
+			<quad id="quad-timediff" pos="0 0.5" image="{{{MenuConst::C_ImageUrl_Campaign_Mode_Background_TimeDiff}}}" z-index="-1" halign="right" size="{{{7.*216/40}}} 7." class="quad-default" opacity=".4"/>
+			<label id="label-timediff" halign="right" pos="-2 0" size="{{{RaceMenuSize.X/4}}} 10" textsize="4" class="text-default" textfont="{{{FontManager::C_GameFontExtraBold}}}" textprefix="$t$i" italicslope="0.2"/>
+		</frame>
+		
+		<frame id="frame-buttons-container" class="{{{Grid::C_Class_Container}}}" pos="{{{MLHelpers::Skew(0., 5., 10.)}}}">
+			<frameinstance
+				modelid="{{{Button::C_Name}}}" id="button-improve"
+				class="{{{Navigation::C_Class}}} {{{Grid::C_Class_Element}}}"
+				data-grid-row="{{{C_Row_Improve}}}"
+				data-text="{{{Text_Improve}}}"
+				data-size="{{{Size_ListButton.X}}} {{{Size_ListButton.Y}}}"
+				data-textcolor="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-textfocuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
+				data-image="{{{MenuConst::C_ImageUrl_Campaign_Mode_Button_Obtuse_Corner}}}"
+				data-imagefocus="{{{MenuConst::C_ImageUrl_Campaign_Mode_Button_Obtuse_Corner_Focus}}}"
+				data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+				data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+				data-opacityunfocus=".9"
+				data-textitalicslope=".2"
+				data-textypos="-0.55"
+				data-textsize="4.5"
+				data-textopacityunfocus=".4"
+				data-halign="center" data-valign="top"
+				data-nav-inputs="down;up;select;cancel;action2"
+				data-nav-targets="button-save-replay;button-quit;_;_;_"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+			/>
+			<frameinstance
+				modelid="{{{Button::C_Name}}}" id="button-save-replay"
+				class="{{{Navigation::C_Class}}} {{{Grid::C_Class_Element}}}"
+				data-grid-row="{{{C_Row_Replay}}}"
+				data-text="{{{Text_SaveReplay}}}"
+				data-size="{{{Size_ListButton.X}}} {{{Size_ListButton.Y}}}"
+				data-textcolor="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-textfocuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
+				data-image="{{{MenuConst::C_ImageUrl_Campaign_Mode_Button_Round_Corner}}}"
+				data-imagefocus="{{{MenuConst::C_ImageUrl_Campaign_Mode_Button_Round_Corner_Focus}}}"
+				data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+				data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+				data-opacityunfocus=".9"
+				data-textypos="-0.55"
+				data-textsize="4.5"
+				data-textopacityunfocus=".4"
+				data-textitalicslope=".2"
+				data-halign="center" data-valign="top"
+				data-nav-inputs="down;up;select;cancel;action2"
+				data-nav-targets="button-quit;button-improve;_;_;_"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+				data-nav-locked="{{{PlaformIsFromFirstParty}}}"
+				hidden="{{{PlaformIsFromFirstParty}}}"
+			/>
+
+			<frame id="frame-footer" class="{{{Grid::C_Class_Element}}}" data-grid-row="{{{C_Row_Footer}}}">
+				<frameinstance
+					modelid="{{{Button::C_Name}}}" id="button-quit"
+					pos="{{{MLHelpers::Skew(-Size_FooterButton.X/2 + 1., 2., 10.)}}}"
+					class="{{{Navigation::C_Class}}}"
+					data-text="{{{Text_Exit}}}"
+					data-size="{{{Size_FooterButton.X}}} {{{Size_FooterButton.Y}}}"
+					data-labelsize="{{{Size_FooterButton.X}}} {{{Size_FooterButton.Y}}}"
+					data-textxpos="0.55"
+					data-opacityunfocus=".9"
+					data-image="{{{MenuConst::C_ImageUrl_Campaign_Mode_Button_Exit_Round}}}"
+					data-imagefocus="{{{MenuConst::C_ImageUrl_Campaign_Mode_Button_Exit_Round}}}"
+					data-bgcolor="{{{ColorPalette::C_Color_GreenFour}}}"
+					data-focuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
+					data-textcolor="{{{ColorPalette::C_Color_GreenOne}}}"
+					data-textfocuscolor="{{{ColorPalette::C_Color_GreenOne}}}"
+					data-iconcolortype="{{{Button::C_ColorType_Colorize}}}"
+					data-iconcolor="{{{ColorPalette::C_Color_GreenOne}}}"
+					data-iconfocuscolor="{{{ColorPalette::C_Color_GreenOne}}}"
+					data-icon="{{{MenuConst::C_ImageUrl_Icon_Arrow_Left_Oblique}}}"
+					data-iconfocus="{{{MenuConst::C_ImageUrl_Icon_Arrow_Left_Oblique}}}"
+					data-iconxpos=".2"
+					data-iconypos="-.49"
+					data-textsize="4.5"
+					data-textopacityunfocus=".25"
+					data-iconopacityunfocus=".25"
+					data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+					data-textitalicslope=".2"
+					data-halign="center" data-valign="top"
+					data-nav-inputs="down;up;select;cancel;action2"
+					data-nav-targets="button-improve;button-save-replay;_;_;_"
+					data-nav-group="{{{C_NavGroupName}}}"
+					data-nav-zone="{{{Button::C_NavZone}}}"
+				/>
+			</frame>
+		</frame>
+	</frame>
+</frame>
+""",
+"""
+#Include "TextLib" as TL
+#Include "MathLib" as ML
+#Include "ColorLib" as CL
+#Include "Libs/Nadeo/MenuLibs/Common/Components/Grid.Script.txt" as Grid
+#Include "Libs/Nadeo/MenuLibs/Common/Components/Tools.Script.txt" as Tools
+#Include "Libs/Nadeo/ModeLibs/TrackMania/MV_Utils.Script.txt" as MV_Utils
+
+#Const C_DelayBeforeAutoHide 9000
+#Const C_Buttons_CannotViewReplay ["A" => _("Select"), "B" => {{{dump(Text_Exit)}}}]
+#Const C_Buttons_CanViewReplay ["A" => _("Select"), "B" => {{{dump(Text_Exit)}}}, "Y" => {{{dump(Text_ViewReplay)}}}]
+
+#Const C_ReplaySaveStatus_Null {{{dump(C_ReplaySaveStatus_Null)}}}
+#Const C_ReplaySaveStatus_Success {{{dump(C_ReplaySaveStatus_Success)}}}
+#Const C_ReplaySaveStatus_Fail {{{dump(C_ReplaySaveStatus_Fail)}}}
+""",
+"""
+Void SetButtonsList(CMlFrame _Frame_ButtonList, Boolean _CanViewReplay) {
+	if (_CanViewReplay) {
+		{{{MenuButtonList::P}}}SetButtons(_Frame_ButtonList, C_Buttons_CanViewReplay);
+	} else {
+		{{{MenuButtonList::P}}}SetButtons(_Frame_ButtonList, C_Buttons_CannotViewReplay);
+	}
+}
+
+Void Focus(CMlControl _From, CMlControl _To) {
+	if (_From != Null) {
+		{{{Navigation::P}}}Unfocus(This, _From);
+		if ({{{Button::P}}}IsButton(_From)) {
+			{{{Button::P}}}Unfocus(This, (_From as CMlFrame));
+		}
+	}
+	
+	if (_To != Null) {
+		{{{Navigation::P}}}Focus(This, _To);
+		if ({{{Button::P}}}IsButton(_To)) {
+			{{{Button::P}}}Focus(This, (_To as CMlFrame));
+		}
+	}
+}
+
+Void Select(CMlControl _Control) {
+	if (_Control == Null) return;
+	
+	if (_Control.ControlId == "button-save-replay") {
+		SendCustomEvent("{{{Const::C_Event_SaveReplay}}}", []);
+	} else if (_Control.ControlId == "button-improve") {
+		SendCustomEvent("{{{Const::C_Event_Improve}}}", []);
+	} else if (_Control.ControlId == "button-quit") {
+		SendCustomEvent("{{{Const::C_Event_Quit}}}", []);
+	}
+}
+
+Boolean DisplayMenu(CMlFrame _Frame_AutoHide, CMlLabel _Label_PressKey, Boolean _Visible) {
+	if (_Visible) {
+		AnimMgr.Add(_Frame_AutoHide, "<a pos=\"{{{PosX_MenuVisible}}} "^_Frame_AutoHide.RelativePosition_V3.Y^"\" hidden=\"0\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+		AnimMgr.Add(_Label_PressKey, "<a pos=\"{{{PosX_PressKeyHidden}}} "^_Label_PressKey.RelativePosition_V3.Y^"\" hidden=\"1\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+	} else {
+		AnimMgr.Add(_Frame_AutoHide, "<a pos=\"{{{PosX_MenuHidden}}} "^_Frame_AutoHide.RelativePosition_V3.Y^"\" hidden=\"1\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+		AnimMgr.Add(_Label_PressKey, "<a pos=\"{{{PosX_PressKeyVisible}}} "^_Label_PressKey.RelativePosition_V3.Y^"\" hidden=\"0\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+	}
+	return _Visible;
+}
+
+Void Lock(CMlFrame _Frame, Boolean _Lock) {
+	{{{Navigation::P}}}Lock(_Frame, _Lock);
+	{{{Button::P}}}Lock(This, _Frame, _Lock);
+}
+
+Void UpdateImproveButton(CMlFrame _Button_Improve, CMlFrame _Button_Replay) {
+	if (_Button_Replay.Visible) {
+		{{{Button::P}}}SetImage(This, _Button_Improve, "{{{MenuConst::C_ImageUrl_Campaign_Mode_Button_Obtuse_Corner}}}");
+		{{{Button::P}}}SetImageFocus(This, _Button_Improve, "{{{MenuConst::C_ImageUrl_Campaign_Mode_Button_Obtuse_Corner_Focus}}}");
+	} else {
+		{{{Button::P}}}SetImage(This, _Button_Improve, "{{{MenuConst::C_ImageUrl_Campaign_Mode_Button_Round_Corner}}}");
+		{{{Button::P}}}SetImageFocus(This, _Button_Improve, "{{{MenuConst::C_ImageUrl_Campaign_Mode_Button_Round_Corner_Focus}}}");
+	}
+}
+
+***MainInit***
+***
+declare CMlFrame Frame_Global;
+declare CMlFrame Frame_ButtonsContainer;
+declare CMlFrame Frame_AutoHide;
+declare CMlLabel Label_PressKey;
+declare CMlFrame Button_Improve;
+declare CMlFrame Button_SaveReplay;
+declare CMlFrame Frame_TimeDiff;
+declare CMlLabel Label_TimeDiff;
+declare CMlQuad Quad_TimeDiff;
+declare CMlFrame Frame_ButtonList;
+
+declare netread Integer Net_PlayMap_EndRaceMenu_ReplaySaveStatus for Teams[0];
+declare netread Boolean Net_PlayMap_EndRaceMenu_CanViewReplay for Teams[0];
+declare netwrite Boolean Net_PlayMap_EndRaceMenu_TimeDiffEnabled for Teams[0];
+declare netwrite Integer Net_PlayMap_EndRaceMenu_TimeDiff for Teams[0];
+declare netwrite Boolean Net_PlayMap_EndRaceMenu_IsAgainstReplay for Teams[0];
+
+declare Boolean DisplayModule;
+declare Integer ActivityTimeShift;
+declare Boolean MenuIsVisible;
+declare Integer ReplaySaveStatus;
+declare Boolean CanViewReplay;
+declare Vec2 MousePos;
+declare Boolean TimeDiffEnabled;
+declare Integer TimeDiff;
+declare Boolean IsAgainstReplay;
+declare Grid::K_GridConfig GridConfig;
+***
+
+***MainStart***
+***
+Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+Frame_ButtonsContainer <=> (Frame_Global.GetFirstChild("frame-buttons-container") as CMlFrame);
+Frame_AutoHide <=> (Frame_Global.GetFirstChild("frame-auto-hide") as CMlFrame);
+Label_PressKey <=> (Frame_Global.GetFirstChild("label-press-key") as CMlLabel);
+Button_Improve <=> (Frame_Global.GetFirstChild("button-improve") as CMlFrame);
+Button_SaveReplay <=> (Frame_Global.GetFirstChild("button-save-replay") as CMlFrame);
+Frame_TimeDiff <=> (Frame_Global.GetFirstChild("frame-timediff") as CMlFrame);
+Label_TimeDiff <=> (Frame_TimeDiff.GetFirstChild("label-timediff") as CMlLabel);
+Quad_TimeDiff <=> (Frame_Global.GetFirstChild("quad-timediff") as CMlQuad);
+Frame_ButtonList <=> (Frame_Global.GetFirstChild("frame-button-list-end-race-play-map") as CMlFrame);
+
+DisplayModule = Frame_Global.Visible;
+ActivityTimeShift = Input.TimeSinceLatestActivity;
+MenuIsVisible = DisplayMenu(Frame_AutoHide, Label_PressKey, True);
+ReplaySaveStatus = C_ReplaySaveStatus_Null;
+CanViewReplay = False;
+MousePos = Input.MousePos;
+TimeDiffEnabled = False;
+TimeDiff = 0;
+
+SetButtonsList(Frame_ButtonList, CanViewReplay);
+
+{{{Navigation::P}}}UseLocalEvents(This, True);
+{{{RaceMapInfos::P}}}SetDisplayed(Frame_Global.Visible);
+GridConfig.fromjson({{{"\"\"\""^GridConfigJson^"\"\"\""}}});
+Grid::Update(GridConfig, AnimMgr, Frame_ButtonsContainer, 10., False, True);
+UpdateImproveButton(Button_Improve, Button_SaveReplay);
+***
+
+***MainLoop***
+***
+if (DisplayModule && !EnableMenuNavigationInputs) {
+	EnableMenuNavigation(True, False, False, Null, {{{Const::C_InputPriority_EndRaceMenu}}});
+} else if (!DisplayModule  && EnableMenuNavigationInputs) {
+	EnableMenuNavigation(False, False, False, Null, {{{Const::C_InputPriority_EndRaceMenu}}});
+}
+
+if (PageIsVisible) {
+	declare Owner <=> MV_Utils::GetOwner(This);
+	if (Owner != Null) {
+		declare netread Boolean Net_PlayMap_EndRaceMenu_IsVisible for Owner;
+		if (DisplayModule != Net_PlayMap_EndRaceMenu_IsVisible) {
+			DisplayModule = Net_PlayMap_EndRaceMenu_IsVisible;
+			Frame_Global.Visible = Net_PlayMap_EndRaceMenu_IsVisible;
+			{{{RaceMapInfos::P}}}SetDisplayed(Frame_Global.Visible);
+			if (DisplayModule) {
+				if (IsInGameMenuDisplayed) {
+					CloseInGameMenu(CMlScriptIngame::EInGameMenuResult::Resume);
+				}
+				Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), Button_Improve);
+				MenuIsVisible = DisplayMenu(Frame_AutoHide, Label_PressKey, True);
+				ActivityTimeShift = Input.TimeSinceLatestActivity;
+			}
+		}
+	}
+
+	if (Owner == Null && DisplayModule) {
+		DisplayModule = False;
+		Frame_Global.Visible = DisplayModule;
+		{{{RaceMapInfos::P}}}SetDisplayed(Frame_Global.Visible);
+	}
+
+	if (ReplaySaveStatus != Net_PlayMap_EndRaceMenu_ReplaySaveStatus) {
+		ReplaySaveStatus = Net_PlayMap_EndRaceMenu_ReplaySaveStatus;
+		if (ReplaySaveStatus == C_ReplaySaveStatus_Success) {
+			{{{Button::P}}}SetValue(This, Button_SaveReplay, "{{{Text_ReplaySaved}}}");
+		} else {
+			{{{Button::P}}}SetValue(This, Button_SaveReplay, "{{{Text_SaveReplay}}}");
+		}
+		Lock(Button_SaveReplay, ReplaySaveStatus == C_ReplaySaveStatus_Success);
+		declare CMlControl FocusedControl = {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}");
+		if (FocusedControl == Button_SaveReplay && {{{Navigation::P}}}IsLocked(Button_SaveReplay)) {
+			Focus(FocusedControl, Button_Improve);
+		}
+	}
+
+	if (CanViewReplay != Net_PlayMap_EndRaceMenu_CanViewReplay) {
+		CanViewReplay = Net_PlayMap_EndRaceMenu_CanViewReplay;
+		SetButtonsList(Frame_ButtonList, CanViewReplay);
+	}
+
+	if (
+		TimeDiffEnabled != Net_PlayMap_EndRaceMenu_TimeDiffEnabled ||
+		TimeDiff != Net_PlayMap_EndRaceMenu_TimeDiff
+	) {
+		TimeDiffEnabled = Net_PlayMap_EndRaceMenu_TimeDiffEnabled;
+		TimeDiff = Net_PlayMap_EndRaceMenu_TimeDiff;
+		
+		Frame_TimeDiff.Visible = TimeDiffEnabled;
+		if (Frame_TimeDiff.Visible) {
+			declare Text TimeDiffText = TL::TimeToText(TimeDiff, True, True);
+			if (TimeDiff >= 0) {
+				TimeDiffText = "+"^TimeDiffText;
+				Quad_TimeDiff.Colorize = CL::Hex3ToRgb("F00");
+			} else {
+				Quad_TimeDiff.Colorize = CL::Hex6ToRgb("{{{ColorPalette::C_Color_GreenOne}}}");
+			}
+			Label_TimeDiff.Value = TimeDiffText;
+		}
+	}
+
+	if (IsAgainstReplay != Net_PlayMap_EndRaceMenu_IsAgainstReplay) {
+		IsAgainstReplay = Net_PlayMap_EndRaceMenu_IsAgainstReplay;
+		if (IsAgainstReplay) {
+			{{{RaceMapInfos::P}}}SetTimeLegend("{{{Text_Replay}}}");
+		} else {
+			{{{RaceMapInfos::P}}}SetTimeLegend("");
+		}
+	}
+
+	declare Boolean IgnoreInput = False;
+	if (MenuIsVisible && Input.TimeSinceLatestActivity - ActivityTimeShift > C_DelayBeforeAutoHide) {
+		MenuIsVisible = DisplayMenu(Frame_AutoHide, Label_PressKey, False);
+		MousePos = Input.MousePos;
+		ActivityTimeShift = 0;
+	}
+
+	if (!MenuIsVisible) {
+		Label_PressKey.Opacity = (ML::Cos(Now / 300.) * 0.4) + 0.6;
+
+		if (Tools::ControllerWasUsed(This, Input, MousePos)) {
+			MenuIsVisible = DisplayMenu(Frame_AutoHide, Label_PressKey, True);
+			ActivityTimeShift = Input.TimeSinceLatestActivity;
+			IgnoreInput = True;
+		}
+	}
+
+	if (MenuIsVisible && !IgnoreInput) {
+		foreach (Event in {{{Navigation::P}}}GetPendingEvents(This)) {
+			switch (Event.Type) {
+				case {{{Navigation::P}}}C_EventType_NavigateInput: {
+					if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName}}}")) {
+						if (Event.Input == CMlScriptEvent::EMenuNavAction::Select) {
+							Select(Event.To);
+						} else if (Event.Input == CMlScriptEvent::EMenuNavAction::Cancel){
+							SendCustomEvent("{{{Const::C_Event_Quit}}}", []);
+						} else if (Event.Input == CMlScriptEvent::EMenuNavAction::Action2) {
+							if (CanViewReplay) {
+								MenuIsVisible = DisplayMenu(Frame_AutoHide, Label_PressKey, False);
+								MousePos = Input.MousePos;
+								ActivityTimeShift = 0;
+							}
+						} else {
+							Focus(Event.From, Event.To);
+						}
+					}
+				}
+				case {{{Navigation::P}}}C_EventType_NavigateMouse: {
+					if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName}}}")) {
+						if (Event.Mouse == CMlScriptEvent::Type::MouseClick) {
+							Select(Event.To);
+						} else if (Event.Mouse == CMlScriptEvent::Type::MouseOver) {
+							Focus(Event.From, Event.To);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+***
+""",
+[
+	Navigation::ComponentV2(),
+	Button::ComponentV2(),
+	MenuButtonList::Component(),
+	RaceMapInfos::Component()
+],
+[]
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update module
+Void Yield() {
+	foreach (Event in PendingEvents) {
+		switch (Event.Type) {
+			case CManiaAppEvent::EType::LayerCustomEvent: {
+				if (
+					Event.CustomEventType == Const::C_Event_SaveReplay ||
+					Event.CustomEventType == Const::C_Event_Improve ||
+					Event.CustomEventType == Const::C_Event_Quit
+				) {
+					declare Text[] EventData;
+					foreach (Value in Event.CustomEventData) EventData.add(Value);
+					SendCustomEvent(Event.CustomEventType, EventData);
+				}
+			}
+		}
+	}
+}

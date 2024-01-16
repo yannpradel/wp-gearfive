@@ -1,0 +1,29 @@
+/** 
+ *	League ranking structures
+ */
+#Const Version		"2020-01-30"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Modes/ChampionTMGL/LeagueRanking.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_LeagueRankingPlayer {
+	Text participant;
+	Integer rank;
+	Integer old_rank;
+	Integer score;
+}
+
+#Struct K_LeagueRankingFromAPI {
+	K_LeagueRankingPlayer[] ranking;
+}
+
+#Struct K_LeagueRanking {
+	K_LeagueRankingPlayer[Text] ranking;
+}
+
+#Struct K_Cheers {
+	Integer[Text] hearts;
+	Integer total_cheers;
+	Integer[Text] cheers;
+}

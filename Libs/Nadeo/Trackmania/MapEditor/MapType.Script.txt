@@ -1,0 +1,85 @@
+/**
+ *	Common functions for Trackmania map types
+ */
+#Const Version "1.0.0"
+#Const ScriptName "Libs/Nadeo/Trackmania/MapEditor/MapType.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/CMGame/Modes/Legacy/MapType.Script.txt" as MapType
+#Include "Libs/Nadeo/Trackmania/Stores/ClubStore_MA.Script.txt" as ClubStore
+#Include "Libs/Nadeo/CMGame/Structures/ClubStruct.Script.txt" as ClubStruct
+#Include "Modes/TrackMania/TM_RaceTest_Local.Script.txt" as RaceTest
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Apply the deco images from the user club
+Void ApplyDecoImages() {
+	declare Club = ClubStore::GetUserPinnedClub();
+	if (Club.Id != ClubStruct::C_ClubNullId) {
+		Mode.SetClubLogoUrl(Club.DecalUrl);
+		Mode.SetDecoImageUrl_DecalSponsor4x1(Club.DecoImageUrl_DecalSponsor4x1);
+		Mode.SetDecoImageUrl_Screen16x9(Club.DecoImageUrl_Screen16x9);
+		Mode.SetDecoImageUrl_Screen8x1(Club.DecoImageUrl_Screen8x1);
+		Mode.SetDecoImageUrl_Screen16x1(Club.DecoImageUrl_Screen16x1);
+	} else {
+		Mode.SetClubLogoUrl("");
+		Mode.SetDecoImageUrl_DecalSponsor4x1("");
+		Mode.SetDecoImageUrl_Screen16x9("");
+		Mode.SetDecoImageUrl_Screen8x1("");
+		Mode.SetDecoImageUrl_Screen16x1("");
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start playing from a start or checkpoint
+ *	with no validation
+ */
+Void PlayTestRun_Yield() {
+	RaceTest::StartServer();
+	MapType::EnterPlayground(1);
+	// Wait map load
+	while (Mode.Map == Null) yield;
+	RaceTest::StartMap();
+
+	while (!ValidationEndRequested) {
+		yield; // playing
+		RaceTest::PlayLoop();
+	}
+
+	RaceTest::EndMap();
+	MapType::LeavePlayground();
+	// Wait map unload
+	while (Mode.Map != Null) yield;
+	RaceTest::EndServer();
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Do a full run of the race to validate
+Void PlayValidationRun_Yield(Text _Mode) {
+	declare Text Settings = "";
+	declare Club = ClubStore::GetUserPinnedClub();
+	if (Club.Id != ClubStruct::C_ClubNullId) {
+		Settings = """
+<root>
+	<setting name="S_DecoImageUrl_Checkpoint" value="{{{TL::MLEncode(Club.DecalUrl)}}}" type="text" />
+	<setting name="S_DecoImageUrl_DecalSponsor4x1" value="{{{TL::MLEncode(Club.DecoImageUrl_DecalSponsor4x1)}}}" type="text" />",
+	<setting name="S_DecoImageUrl_Screen16x9" value="{{{TL::MLEncode(Club.DecoImageUrl_Screen16x9)}}}" type="text" />",
+	<setting name="S_DecoImageUrl_Screen8x1" value="{{{TL::MLEncode(Club.DecoImageUrl_Screen8x1)}}}" type="text" />",
+	<setting name="S_DecoImageUrl_Screen16x1" value="{{{TL::MLEncode(Club.DecoImageUrl_Screen16x1)}}}" type="text" />",
+</root>
+	""";
+	}
+	TestMapWithMode(_Mode, Settings);
+	sleep(100); //< Sleep to update the editor status
+	while (!IsEditorReadyForRequest) {
+		yield;
+	}
+	// Apply the deco images again because the validation mode
+	// may have overwritten them.
+	ApplyDecoImages();
+}

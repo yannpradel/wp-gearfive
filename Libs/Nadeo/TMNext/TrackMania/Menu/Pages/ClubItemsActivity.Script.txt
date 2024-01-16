@@ -1,0 +1,842 @@
+/** 
+ *	Page: ClubItemsActivity
+ */
+#Const Version		"2023-04-03"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Menu/Pages/ClubItemsActivity.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Transition.Script.txt" as Transition
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Navigation.Script.txt" as Navigation
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/MenuSounds.Script.txt" as MenuSounds
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/PopUpBackground.Script.txt" as PopUpBackground
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as Const
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Router_ML.Script.txt" as Router
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/RoutePaths.Script.txt" as RoutePaths
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/Button.Script.txt" as Button
+#Include "Libs/Nadeo/TMNext/TrackMania/ColorPalette.Script.txt" as ColorPalette
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/ClubStruct.Script.txt" as ClubStruct
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/LoadingSpinner.Script.txt" as LoadingSpinner
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/UserStore_ML.Script.txt" as UserStore
+#Include "Libs/Nadeo/CommonLibs/Common/Error.Script.txt" as Error
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "Page_ClubItemsActivity"
+#Const C_NavGroupName "navgroup-page-clubitemsactivity"
+#Const C_NavGroupName_Content "navgroup-page-clubitemsactivity-content"
+#Const C_NavGroup_Pager "navgroup-page-clubitemsactivity-pager"
+
+#Const C_Privileges [
+	CPrivilegeMgr::EPrivilege::UseUserCreatedContentRequired
+]
+
+#Const C_Class_Media "class-page-club-items-activity-media"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the page manialink
+ *
+ *	@return														The page manialink
+ */
+Text GetManialink() {
+	//L16N [Item Collection activity page] Text displayed while retrieving the items collection
+	declare Text Text_RetrievingActivity = _("Retrieving items collection");
+	//L16N [Item Collection activity page] Information on the club
+	declare Text Text_Club = _("Club");
+	//L16N [Item Collection activity page] Text to indicate the current image position, e.g "2/10"
+	declare Text Text_Pager = _("%1/%2");
+	//L16N [Item Collection activity page] When there is no description or medias int the collection
+	declare Text Text_NoInfo = _("No info about this collection");
+	//L16N [Item Collection activity page] Button allowing the user to add a collection to their favorites
+	declare Text Text_Add = _("Add collection");
+	//L16N [Item Collection activity page] Button allowing the user to remove a collection from their favorites
+	declare Text Text_Remove = _("Remove collection");
+
+	//L16N [Item Collection activity page] Message displayed when there is an error while adding an Item Collection to the user's favorites. %1 will be replaced by an error code. e.g. "Failed to add the Item Collection to your favorites. (Error: 123456)"
+	declare Text Text_ErrorAddFavorite = _("Failed to add the Item Collection to your favorites. (Error: %1)");
+	//L16N [Item Collection activity page] Message displayed when there is an error while removing an Item Collection from the user's favorites. %1 will be replaced by an error code. e.g. "Failed to remove the Item Collection from your favorites. (Error: 123456)"
+	declare Text Text_ErrorRemoveFavorite = _("Failed to remove the Item Collection from your favorites. (Error: %1)");
+	//L16N [Item Collection activity page] Message displayed when there is an error while getting the user's favorite Item Collections. %1 will be replaced with an error code. e.g. "Failed to retrieve your favorite Item Collections. (Error: 123456)"
+	declare Text Text_ErrorGetFavorite = _("Failed to retrieve your favorite Item Collections. (Error: %1)");
+	//L16N [Item Collection activity page] Message displayed on console to warn the user that item collections are not usable on the console, but only on PC
+	declare Text Text_WarnConsole = _("Item collections are not usable on this platform's track editor, but you can add them for other platforms.");
+
+	declare Boolean HasMedia = True;
+	declare Boolean HasDescription = True;
+	declare Real PosMediaX = 48.;
+	declare Real PosDescriptionX = -83.;
+
+	return MV::Create(
+C_Name, 3,
+"""
+<stylesheet>
+	<style class="text-default" halign="center" valign="center2" textfont="{{{FontManager::C_GameFontRegular}}}" textprefix="$i" textsize="3" textcolor="FFFFFF"/>
+	<style class="text-title" halign="center" valign="center2" textfont="{{{FontManager::C_GameFontExtraBold}}}" textsize="6" textcolor="FFF" textprefix="$i$t"/>
+	<style class="image-default" halign="center" valign="center"/>
+</stylesheet>
+
+<frame id="frame-global" z-index="{{{Const::C_ZIndex_PopUpDisplay}}}">
+
+	<frameinstance modelid="{{{PopUpBackground::C_Name}}}" id="frame-popup-background" z-index="-1"
+		data-pop-up-name="{{{C_Name}}}" 
+		data-background-size="{{{PopUpBackground::C_PopUp_BigSizeX+3.}}} {{{PopUpBackground::C_PopUp_BigSizeY+3.}}}" 
+		data-background-opacity="0.95" 
+		data-background-url="{{{Const::C_ImageUrl_PopUp_Activity_Background_Body}}}"
+		data-use-hitbox="1"
+	/>
+
+	<label id="label-title" pos="-116 56.5" size="280 10" halign="left" class="text-title" textsize="13" filter-profanities="OnlyIfNotTranslated"/>
+	
+	<frame id="frame-content" z-index="1">
+
+		<frame id="frame-club-infos" pos="-95 50">
+			<label id="label-club" pos="-1 0" text="{{{Text_Club}}}" textfont="{{{FontManager::C_GameFontRegular}}}" textcolor="FFF" halign="right" valign="top" textsize="6" textprefix="$t$i" size="25 25" />
+			<label id="label-club-name" class="text-base" textfont="{{{FontManager::C_GameFontExtraBold}}}" textcolor="FFF" halign="left" valign="top" textprefix="$t$i" textsize="6" size="110 25" filter-profanities="OnlyIfNotTranslated" />
+		</frame>
+
+		<frameinstance modelid="{{{Button::C_Name}}}" id="button-club"
+			pos="0 46.5"
+			data-size="10.5 10.5"
+			data-image="{{{Const::C_ImageUrl_Icon_Link}}}"
+			data-imagefocus="{{{Const::C_ImageUrl_Icon_Link}}}"
+			data-opacityunfocus=".5"
+			data-bgcolor="FFF"
+			data-focuscolor="FFF"
+			data-halign="center" data-valign="center"
+			class="{{{Navigation::C_Class}}} {{{MenuSounds::C_Class}}}"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-inputs="select;cancel;down"
+			data-nav-targets="_;_;button-bucket-media"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+			data-menusounds-selectsound="ArrowSelect"
+			data-nav-locked="1"
+			hidden="1"
+		/>
+
+		<frame id="frame-description" pos="{{{PosDescriptionX}}} -7.5">
+			<label id="label-desc" size="74 75" class="text-default" halign="left" valign="top" pos="-36 36" textsize="3.5" autonewline="1" translate="1" filter-profanities="Always"/>
+			<quad id="quad-bg-entry-desc" class="image-default" size="76 77" image="{{{Const::C_ImageUrl_PopUp_Activity_TextBloc}}}" colorize="{{{ColorPalette::C_Color_GreenFour}}}" opacity=".5" z-index="-1"/>
+		</frame>
+
+		<frame id="frame-media" pos="{{{PosMediaX}}} -7.5">
+			
+			<frame id="frame-previous-media"
+				data-nav-inputs="select" 
+				data-nav-targets="_"
+				data-nav-zone="quad-image-pager"
+				data-nav-group="{{{C_NavGroup_Pager}}}"
+				class="{{{Navigation::C_Class}}} pager-arrow-media {{{MenuSounds::C_Class}}}"
+				pos="-82 10"
+				data-menusounds-selectsound="ArrowSelect"
+			>
+				<quad id="quad-focus-pager" class="image-base" z-index="2" size="15 15" keepratio="fit" image="{{{Const::C_ImageUrl_Icon_Arrow_Left_Oblique}}}" colorize="FFF" opacity="0."/>
+				<quad id="quad-image-pager" class="{{{Navigation::C_Class_ActivationZone}}} image-base" scriptevents="1" z-index="1" size="15 15" keepratio="fit" image="{{{Const::C_ImageUrl_Icon_Arrow_Left_Oblique}}}" colorize="FFF" opacity="0.5"/>
+			</frame>
+			
+			<frameinstance 
+				modelid="{{{Button::C_Name}}}" id="button-bucket-media"
+				class="{{{Navigation::C_Class}}} {{{C_Class_Media}}}"
+				data-size="133 75"
+				data-bgkeepratio="Clip"
+				data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+				data-contourimage="{{{Const::C_ImageUrl_PopUp_Activity_ItemCollection_Media_Contour}}}"
+				data-contourimagecolor="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-contouropacityunfocus=".0"
+				data-textsize="5"
+				data-textitalicslope=".2"
+				data-textypos="0.05"
+				data-textopacityunfocus=".5"
+				data-texthalign="left" data-textvalign="center"
+				data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+				data-valign="center" data-halign="center"
+				data-nav-inputs="select;cancel;up;down;left;right"
+				data-nav-targets="_;_;button-club;button-add-or-remove;frame-previous-media;frame-next-media"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+			/>
+
+			<frame id="frame-next-media"
+				data-nav-inputs="select"
+				data-nav-targets="_"
+				data-nav-zone="quad-image-pager"
+				data-nav-group="{{{C_NavGroup_Pager}}}"
+				class="{{{Navigation::C_Class}}} pager-arrow-media {{{MenuSounds::C_Class}}}"
+				pos="67 10"
+				data-menusounds-selectsound="ArrowSelect"
+			>
+				<quad id="quad-focus-pager" class="image-base" z-index="2" keepratio="fit" size="15 15" image="{{{Const::C_ImageUrl_Icon_Arrow_Right_Oblique}}}" colorize="FFF" opacity="0."/>
+				<quad id="quad-image-pager" class="{{{Navigation::C_Class_ActivationZone}}} image-base" scriptevents="1" z-index="1" size="15 15" keepratio="fit" image="{{{Const::C_ImageUrl_Icon_Arrow_Right_Oblique}}}" colorize="FFF" opacity="0.5"/>
+			</frame>
+
+			<label id="label-media-pager" class="text-default" textfont="{{{FontManager::C_GameFontSemiBold}}}" pos="0 -43"/>
+		</frame>
+
+		<label id="label-no-info" pos="0 -5" size="180 10" text="{{{Text_NoInfo}}}" textsize="4" textfont="{{{FontManager::C_GameFontSemiBold}}}" hidden="1" class="text-default"/>
+	</frame>
+
+	<frameinstance
+		modelid="{{{Button::C_Name}}}" id="button-back"
+		pos="-108 -73"
+		class="{{{Navigation::C_Class}}} {{{MenuSounds::C_Class}}}"
+		data-text="{{{_("Back")}}}"
+		data-size="60 12"
+		data-labelsize="50 12"
+		data-textxpos="0.55"
+		data-opacityunfocus=".5"
+		data-image="{{{Const::C_ImageUrl_ButtonBG_LocalMulti_Play}}}"
+		data-imagefocus="{{{Const::C_ImageUrl_ButtonBG_LocalMulti_Play}}}"
+		data-bgcolor="{{{ColorPalette::C_Color_GreenFour}}}"
+		data-focuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
+		data-textcolor="FFF"
+		data-textfocuscolor="FFF"
+		data-iconcolortype="{{{Button::C_ColorType_Colorize}}}"
+		data-iconcolor="FFF"
+		data-iconfocuscolor="FFF"
+		data-icon="{{{Const::C_ImageUrl_Icon_Arrow_Left_Oblique}}}"
+		data-iconfocus="{{{Const::C_ImageUrl_Icon_Arrow_Left_Oblique}}}"
+		data-iconxpos=".15"
+		data-iconypos="-.49"
+		data-textsize="5"
+		data-textopacityunfocus=".5"
+		data-iconopacityunfocus=".5"
+		data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+		data-textitalicslope=".2"
+		data-halign="center"
+		data-valign="bottom"
+		data-nav-inputs="select;cancel;right;up"
+		data-nav-targets="_;_;button-add-or-remove;button-bucket-media"
+		data-nav-group="{{{C_NavGroupName}}}"
+		data-nav-zone="{{{Button::C_NavZone}}}"
+		data-menusounds-selectsound="BackButtonSelect"
+	/>
+
+	<frameinstance
+		modelid="{{{Button::C_Name}}}" id="button-add-or-remove"
+		pos="72 -74" z-index="2"
+		class="{{{Navigation::C_Class}}}"
+		data-text="{{{Text_Add}}}"
+		data-size="85 14"
+		data-labelsize="75 12"
+		data-opacityunfocus=".5"
+		data-image="{{{Const::C_ImageUrl_PopUp_Activity_AddCollection}}}"
+		data-imagefocus="{{{Const::C_ImageUrl_PopUp_Activity_AddCollection}}}"
+		data-bgcolor="{{{ColorPalette::C_Color_GreenFour}}}"
+		data-focuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
+		data-textcolor="FFF"
+		data-textfocuscolor="FFF"
+		data-textsize="5"
+		data-textopacityunfocus=".5"
+		data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+		data-textitalicslope=".2"
+		data-halign="center"
+		data-valign="bottom"
+		data-nav-inputs="select;cancel;left;up"
+		data-nav-targets="_;_;button-back;button-bucket-media"
+		data-nav-group="{{{C_NavGroupName_Content}}}"
+		data-nav-zone="{{{Button::C_NavZone}}}"
+	/>
+
+	<label id="label-error" pos="0 -57" size="180 10" textfont="{{{FontManager::C_GameFontSemiBold}}}" textcolor="{{{ColorPalette::C_Color_ErrorRed}}}" class="text-default"/>
+	<frameinstance id="frame-loading-spinner" modelid="{{{LoadingSpinner::C_Name}}}" data-label="{{{Text_RetrievingActivity}}}" scale="1." />
+</frame>
+""",
+"""
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/CommonLibs/Common/Http.Script.txt" as Http
+#Include "Libs/Nadeo/CommonLibs/Common/MainUser.Script.txt" as MainUser
+#Include "Libs/Nadeo/TMNext/TrackMania/RBAC.Script.txt" as RBAC
+#Include "Libs/Nadeo/TMNext/TrackMania/API/ClubAPI.Script.txt" as ClubAPI
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Overlays/ControllerInfo_ML.Script.txt" as ControllerInfo
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Overlays/ReportSystem.Script.txt" as ReportSystem
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/ReportStruct.Script.txt" as ReportStruct
+#Include "Libs/Nadeo/CommonLibs/Common/Platform.Script.txt" as Platform
+
+#Const PosDescriptionX {{{dump(PosDescriptionX)}}}
+#Const PosMediaX {{{dump(PosMediaX)}}}
+
+#Struct K_Controls {
+	CMlFrame Frame_Content;
+	CMlFrame Frame_LoadingSpinner;
+	CMlLabel Label_Title;
+	CMlFrame Frame_Media;
+	CMlFrame Button_BucketMedia;
+	CMlFrame Frame_Description;
+	CMlLabel Label_Description;
+	CMlLabel Label_MediaPager;
+	CMlFrame Frame_PreviousMedia;
+	CMlFrame Frame_NextMedia;
+	CMlLabel Label_Error;
+	CMlLabel Label_NoInfo;
+	CMlFrame Button_AddOrRemoveCollection;
+	CMlFrame Button_Back;
+}
+
+#Struct K_State {
+	K_Controls Controls;
+	{{{ClubStruct::P}}}K_Activity Activity;
+	{{{ClubStruct::P}}}K_Club Club;
+	{{{ClubStruct::P}}}K_BucketItem ItemCollection;
+	Http::K_Request GetBucketActivityRequest;
+	Http::K_Request GetClubDetailRequest;
+	Integer CurrentMediaIndex;
+	Text[] FavoriteListIds;
+	Ident Task_ItemCollection_GetFavoriteListId;
+	Ident Task_ItemCollection_AddFavoriteId;
+	Ident Task_ItemCollection_RemoveFavoriteId;
+	Boolean AddCollection;
+}
+
+""",
+"""
+Void AnimSelectionFocus(CMlFrame _Frame_Select, Boolean _IsFocused) {
+	if (_Frame_Select == Null) return;
+
+	declare CMlFrame[] Frames_Pager = [
+		(_Frame_Select.Parent.GetFirstChild("frame-previous-media") as CMlFrame),
+		(_Frame_Select.Parent.GetFirstChild("frame-next-media") as CMlFrame)
+	];	
+
+	foreach (Frame_Pager in Frames_Pager) {
+		declare CMlQuad Quad_ImagePager <=> (Frame_Pager.GetFirstChild("quad-image-pager") as CMlQuad);
+		if (_IsFocused) {
+			AnimMgr.Add(Quad_ImagePager, "<anim opacity=\"0.75\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+		} else {
+			AnimMgr.Add(Quad_ImagePager, "<anim opacity=\".5\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+		}
+	}
+}
+
+Void FocusPager(CMlFrame _Frame_Pager, Boolean _Focused) {
+	declare Quad_Focus <=> (_Frame_Pager.GetFirstChild("quad-focus-pager") as CMlQuad);
+	if (_Focused) {
+		AnimMgr.Add(Quad_Focus, "<anim opacity=\"1.\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+	} else {
+		AnimMgr.Add(Quad_Focus, "<anim opacity=\"0.\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+	}
+}
+
+Void Focus(CMlControl _From, CMlControl _To) {
+	if ({{{Transition::P}}}IsInTransition(This)) return;
+	
+	if (_From != Null) {
+		{{{Navigation::P}}}Unfocus(This, _From);
+		if (_From.HasClass("pager-arrow-media")) {
+			FocusPager((_From as CMlFrame), False);
+		} else if ({{{Button::P}}}IsButton(_From)) {
+			{{{Button::P}}}Unfocus(This, _From as CMlFrame);
+		}
+		if (_From.HasClass("{{{C_Class_Media}}}")) {
+			AnimSelectionFocus((_From as CMlFrame), False);
+		}
+	}
+	
+	if (_To != Null) {
+		{{{Navigation::P}}}Focus(This, _To);
+		if (_To.HasClass("pager-arrow-media")) {
+			FocusPager((_To as CMlFrame), True);
+		} else if ({{{Button::P}}}IsButton(_To)) {
+			{{{Button::P}}}Focus(This, _To as CMlFrame);
+		}
+		if (_To.HasClass("{{{C_Class_Media}}}")) {
+			AnimSelectionFocus((_To as CMlFrame), True);
+		}
+	}
+}
+
+Void DisplayContent(K_State _State, Boolean _IsVisible) {
+	{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName_Content}}}", _IsVisible);
+	_State.Controls.Frame_Content.Visible = _IsVisible;
+	{{{LoadingSpinner::P}}}SetIsLoading(This, _State.Controls.Frame_LoadingSpinner, !_IsVisible);
+	if (_IsVisible) {
+		{{{Navigation::P}}}Lock(_State.Controls.Button_AddOrRemoveCollection, False);
+	} else {
+		Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), _State.Controls.Button_Back);
+		{{{Navigation::P}}}Lock(_State.Controls.Button_BucketMedia, True);
+		{{{Navigation::P}}}Lock(_State.Controls.Button_AddOrRemoveCollection, True);
+	}
+}
+
+Void UpdateActivityInfo(K_State _State) {
+	// Activity title
+	if (_State.Controls.Label_Title.Value != _State.Activity.Name) _State.Controls.Label_Title.Value = _State.Activity.Name;
+
+	// Item Collection medias
+	declare Boolean HasImages = _State.ItemCollection.MediaUrls.count > 0;
+	_State.Controls.Frame_Media.Visible = HasImages;
+	{{{Navigation::P}}}Lock(_State.Controls.Button_BucketMedia, !HasImages);
+	_State.Controls.Frame_PreviousMedia.Visible = _State.ItemCollection.MediaUrls.count > 1;
+	_State.Controls.Frame_NextMedia.Visible = _State.ItemCollection.MediaUrls.count > 1;
+	_State.Controls.Label_MediaPager.Value = TL::Compose("{{{Text_Pager}}}", TL::ToText(_State.CurrentMediaIndex+1), TL::ToText(_State.ItemCollection.MediaUrls.count));
+	if (HasImages) {
+		if (_State.ItemCollection.MediaUrls.existskey(_State.CurrentMediaIndex)) {
+			if (Http.IsValidUrl(_State.ItemCollection.MediaUrls[_State.CurrentMediaIndex])) {
+				{{{Button::P}}}SetImage(This, _State.Controls.Button_BucketMedia, _State.ItemCollection.MediaUrls[_State.CurrentMediaIndex]);
+				{{{Button::P}}}SetImageFocus(This, _State.Controls.Button_BucketMedia, _State.ItemCollection.MediaUrls[_State.CurrentMediaIndex]);
+			}
+		}
+	}
+	
+	// Item Collection description
+	declare Boolean HasDescription = _State.ItemCollection.Description != "";
+	_State.Controls.Frame_Description.Visible = HasDescription;
+	if (_State.Controls.Label_Description.Value != _State.ItemCollection.Description) _State.Controls.Label_Description.Value = _State.ItemCollection.Description;
+
+	// Adapt frames positions
+	_State.Controls.Label_NoInfo.Visible = !HasImages && !HasDescription;
+	if (!HasImages && HasDescription) _State.Controls.Frame_Description.RelativePosition_V3.X = 0.;
+	if (HasImages && !HasDescription) _State.Controls.Frame_Media.RelativePosition_V3.X = 0.;
+	if (HasImages && HasDescription) {
+		_State.Controls.Frame_Description.RelativePosition_V3.X = PosDescriptionX;
+		_State.Controls.Frame_Media.RelativePosition_V3.X = PosMediaX;
+	}
+}
+
+K_State MediaPager(K_State _State, Integer _MediaIndex) {
+	declare K_State State = _State;
+
+	if (_MediaIndex >= State.ItemCollection.MediaUrls.count) {
+		State.CurrentMediaIndex = 0;
+	}	else if (_MediaIndex < 0) {
+		State.CurrentMediaIndex = State.ItemCollection.MediaUrls.count - 1;
+	} else {
+		State.CurrentMediaIndex = _MediaIndex;
+	}
+
+	UpdateActivityInfo(State);	
+	return State;
+}
+
+K_State GetFavoriteList(K_State _State) {
+	declare K_State State = _State;
+	if (State.Task_ItemCollection_GetFavoriteListId != NullId) {
+		DataFileMgr.TaskResult_Release(State.Task_ItemCollection_GetFavoriteListId);
+		State.Task_ItemCollection_GetFavoriteListId = NullId;
+	}
+	declare CTaskResult Task = DataFileMgr.ItemCollection_GetFavoriteList(MainUser::GetMainUserId());
+	if (Task != Null)	State.Task_ItemCollection_GetFavoriteListId = Task.Id;
+	return State;
+}
+
+K_State CanAddCollection(K_State _State, Boolean _CanAdd) {
+	declare K_State State = _State;
+	if (_CanAdd) {{{Button::P}}}SetValue(This, State.Controls.Button_AddOrRemoveCollection, "{{{Text_Add}}}");
+	else {{{Button::P}}}SetValue(This, State.Controls.Button_AddOrRemoveCollection, "{{{Text_Remove}}}");
+	{{{Button::P}}}ShowAndUnlock(State.Controls.Button_AddOrRemoveCollection);
+	State.AddCollection = _CanAdd;
+	return State;
+}
+
+Boolean IsCollectionInFavorite(K_State _State) {
+	return _State.FavoriteListIds.exists(_State.ItemCollection.ItemId);
+}
+
+K_State AddToFavorite(K_State _State) {
+	declare K_State State = _State;
+	if (!IsCollectionInFavorite(State)) {
+		if (State.Task_ItemCollection_AddFavoriteId != NullId) {
+			DataFileMgr.TaskResult_Release(State.Task_ItemCollection_AddFavoriteId);
+			State.Task_ItemCollection_AddFavoriteId = NullId;
+		}
+		declare CTaskResult Task = DataFileMgr.ItemCollection_AddFavorite(
+			MainUser::GetMainUserId(),
+			State.ItemCollection.ItemId
+		);
+		if (Task != Null) {
+			State.Task_ItemCollection_AddFavoriteId = Task.Id;
+		} else {
+			State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorAddFavorite}}}", {{{dump(Error::C_Code_ClubItemsActivity_TaskCreationAddItemCollectionToFavorite)}}});
+		}
+	} else {
+		//L16N [Item Collection activity page] Message displayed when the Item Collection is already in the favorite list
+		State.Controls.Label_Error.Value = _("Item Collection already in your favorites list");
+	}
+	return State;
+}
+
+K_State RemoveFromFavorite(K_State _State) {
+	declare K_State State = _State;
+	if (IsCollectionInFavorite(State)) {
+		if (State.Task_ItemCollection_RemoveFavoriteId != NullId) {
+			DataFileMgr.TaskResult_Release(State.Task_ItemCollection_RemoveFavoriteId);
+			State.Task_ItemCollection_RemoveFavoriteId = NullId;
+		}
+		declare CTaskResult Task = DataFileMgr.ItemCollection_RemoveFavorite(
+			MainUser::GetMainUserId(),
+			State.ItemCollection.ItemId
+		);
+		if (Task != Null) {
+			State.Task_ItemCollection_RemoveFavoriteId = Task.Id;
+		} else {
+			State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorRemoveFavorite}}}", {{{dump(Error::C_Code_ClubItemsActivity_TaskCreationRemoveItemCollectionFromFavorite)}}});
+		}
+	} else {
+		//L16N [Item Collection activity page] Message displayed when the Item Collection is not in the user's favorites list
+		State.Controls.Label_Error.Value = _("This Item Collection is not in your favorites list. Cannot remove it.");
+	}
+	return State;
+}
+
+K_State Select(K_State _State,	CMlControl _Control) {
+	if (_Control == Null || {{{Transition::P}}}IsInTransition(This)) return _State;
+	declare K_State State = _State;
+
+	switch (_Control.ControlId) {
+		case "button-club": {
+			if (State.Club.Id != {{{ClubStruct::P}}}C_ClubNullId) {
+				{{{Router::P}}}SetParentPath(This, "{{{RoutePaths::C_Path_ClubDetails}}}", {{{Router::P}}}GetCurrentParentPath(This));
+				{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_ClubDetails}}}", ["{{{RoutePaths::C_Query_Club}}}" => State.Club.tojson()]);
+			}
+		}
+		case "frame-previous-media": State = MediaPager(State, State.CurrentMediaIndex-1);
+		case "frame-next-media": State = MediaPager(State, State.CurrentMediaIndex+1);
+		case "button-add-or-remove": {
+			if ({{{UserStore::P}}}HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_UseCustomCollection)) {
+				if (
+					State.Task_ItemCollection_RemoveFavoriteId == NullId && 
+					State.Task_ItemCollection_AddFavoriteId == NullId	&& 
+					State.Task_ItemCollection_GetFavoriteListId == NullId
+				) {
+					if (State.AddCollection) State = AddToFavorite(State);
+					else State = RemoveFromFavorite(State);
+				}
+			} else {
+				{{{Router::P}}}SetParentPath(This, "{{{RoutePaths::C_Path_ClubEditionInfo}}}", {{{Router::P}}}GetCurrentRoutePath(This));
+				{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_ClubEditionInfo}}}", [
+					"{{{RoutePaths::C_Query_Message}}}" => RBAC::GetGamePermissionMessage(RBAC::C_GamePermissionMessage_AddFavoriteItemCollections)
+				]);
+			}
+		}
+		case "button-back" : {{{Router::P}}}PushParent(This);
+	}
+	return State;
+}
+
+Void UpdateClubButton(K_State _State, CMlLabel _Label_ClubName, CMlLabel _Label_Club, CMlFrame _Button_Club) {
+	_Label_ClubName.Value = _State.Club.Name;
+	_Button_Club.Visible = _State.Club.Name != "";
+	_Label_Club.Visible = _State.Club.Name != "";
+	{{{Navigation::P}}}Lock(_Button_Club, !_Button_Club.Visible);
+	if (_Button_Club.Visible) {
+		declare Real NameWidth = _Label_ClubName.ComputeWidth(_Label_ClubName.Value);
+		_Button_Club.RelativePosition_V3.X = _Label_ClubName.AbsolutePosition_V3.X + NameWidth + 5;
+	}
+}
+
+// Update controller hints at the bottom of the screen
+Void UpdateControllerInfo() {
+	declare Text[Text] ControllerInfos = ["A" => _("Select"), "B" => _("Back"), "{{{Const::C_NavInput_ReportSystem}}}" => "{{{Const::C_Text_Report}}}"];
+	ControllerInfo::SetButtons(ControllerInfos);
+}
+
+***MainInit***
+***
+declare CMlFrame Frame_Global;
+declare CMlLabel Label_ClubName;
+declare CMlLabel Label_Club;
+declare CMlFrame Button_Club;
+
+declare K_State State;
+***
+
+***MainStart***
+***
+Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+Label_ClubName <=> (Frame_Global.GetFirstChild("label-club-name") as CMlLabel);
+Label_Club <=> (Frame_Global.GetFirstChild("label-club") as CMlLabel);
+Button_Club <=> (Frame_Global.GetFirstChild("button-club") as CMlFrame);
+
+State.Controls = K_Controls {
+	Frame_Content = (Frame_Global.GetFirstChild("frame-content") as CMlFrame),
+	Frame_LoadingSpinner = (Frame_Global.GetFirstChild("frame-loading-spinner") as CMlFrame),
+	Label_Title = (Frame_Global.GetFirstChild("label-title") as CMlLabel),
+	Frame_Media = (Frame_Global.GetFirstChild("frame-media") as CMlFrame),
+	Button_BucketMedia = (Frame_Global.GetFirstChild("button-bucket-media") as CMlFrame),
+	Frame_Description = (Frame_Global.GetFirstChild("frame-description") as CMlFrame),
+	Label_Description = (Frame_Global.GetFirstChild("label-desc") as CMlLabel),
+	Label_MediaPager = (Frame_Global.GetFirstChild("label-media-pager") as CMlLabel),
+	Frame_PreviousMedia = (Frame_Global.GetFirstChild("frame-previous-media") as CMlFrame),
+	Frame_NextMedia = (Frame_Global.GetFirstChild("frame-next-media") as CMlFrame),
+	Label_Error = (Frame_Global.GetFirstChild("label-error") as CMlLabel),
+	Label_NoInfo = (Frame_Global.GetFirstChild("label-no-info") as CMlLabel),
+	Button_AddOrRemoveCollection = (Frame_Global.GetFirstChild("button-add-or-remove") as CMlFrame),
+	Button_Back = (Frame_Global.GetFirstChild("button-back") as CMlFrame)
+};
+
+State.GetBucketActivityRequest = Http::GetEmptyRequest();
+State.GetClubDetailRequest = Http::GetEmptyRequest();
+State.Task_ItemCollection_GetFavoriteListId = NullId;
+State.Task_ItemCollection_AddFavoriteId = NullId;
+State.Task_ItemCollection_RemoveFavoriteId = NullId;
+State.FavoriteListIds = [];
+
+{{{Navigation::P}}}SetGroupParent(This, "{{{C_NavGroupName_Content}}}", "{{{C_NavGroupName}}}");
+***
+
+***MainLoop***
+***
+if ({{{Router::P}}}PageIsRunning(This, "{{{RoutePaths::C_Path_ClubItemsActivity}}}")) {
+
+	if (Http::IsInitialized(State.GetBucketActivityRequest)) {
+		State.GetBucketActivityRequest = Http::Update(State.GetBucketActivityRequest);
+		if (!Http::IsRunning(State.GetBucketActivityRequest)) {
+			if (Http::IsSuccess(State.GetBucketActivityRequest)) {
+				declare {{{ClubStruct::P}}}K_BucketActivity BucketActivity = ClubAPI::GetResponseFromGetBucketActivity(State.GetBucketActivityRequest);
+				if (State.Activity.Type == {{{ClubStruct::P}}}C_ClubActivity_ItemUpload && BucketActivity.BucketItemList.count > 0) {
+					State.ItemCollection = BucketActivity.BucketItemList[0];
+					UpdateActivityInfo(State);
+					DisplayContent(State, True);
+					UpdateClubButton(State, Label_ClubName, Label_Club, Button_Club);
+					State = GetFavoriteList(State);
+				}
+			} else {
+				State.Controls.Label_Error.SetText(TL::Compose(
+					//L16N [Item Collection activity page] %1 will be replaced by an error, e.g. "(Error code: 500)"
+					_("Error while fetching the activity info, please try again. (Error code: %1)"), ""^Http::GetStatusCode(State.GetBucketActivityRequest)
+				));
+			}
+			State.GetBucketActivityRequest = Http::Destroy(State.GetBucketActivityRequest);
+		}
+	}
+
+	if (Http::IsInitialized(State.GetClubDetailRequest)) {
+		State.GetClubDetailRequest = Http::Update(State.GetClubDetailRequest);
+		if (!Http::IsRunning(State.GetClubDetailRequest)) {
+			if (Http::IsSuccess(State.GetClubDetailRequest)) {
+				State.Club = ClubAPI::GetResponseFromGetClub(State.GetClubDetailRequest);
+				UpdateClubButton(State, Label_ClubName, Label_Club, Button_Club);
+				if (State.Club.Id != {{{ClubStruct::P}}}C_ClubNullId) {
+					ReportSystem::AddData(
+						ReportStruct::C_ReportTarget_Club,
+						ReportStruct::LibStructuresReport_K_ReportData {
+							Details = [State.Club.Name],
+							Ids = [TL::ToText(State.Club.Id)],
+							Contexts = [["From" => "Menu ClubItemsActivity"]]
+						}
+					);
+				}
+			}
+			State.GetClubDetailRequest = Http::Destroy(State.GetClubDetailRequest);
+		}
+	}
+
+	if (State.Task_ItemCollection_AddFavoriteId != NullId) {
+		if (DataFileMgr.TaskResults.existskey(State.Task_ItemCollection_AddFavoriteId)) {
+			declare CTaskResult Task = DataFileMgr.TaskResults[State.Task_ItemCollection_AddFavoriteId];
+			if (Task != Null && !Task.IsProcessing) {
+				if (Task.HasSucceeded) {
+					State = GetFavoriteList(State);
+					State.Controls.Label_Error.Value = "";
+				} else {
+					State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorAddFavorite}}}", Task.ErrorCode);
+				}
+			}
+			if (Task == Null || !Task.IsProcessing) {
+				DataFileMgr.TaskResult_Release(State.Task_ItemCollection_AddFavoriteId);
+				State.Task_ItemCollection_AddFavoriteId = NullId;
+			}
+		} else {				
+			State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorAddFavorite}}}", {{{dump(Error::C_Code_ClubItemsActivity_TaskProcessingAddItemCollectionToFavorite)}}});
+			State.Task_ItemCollection_AddFavoriteId = NullId;
+		}
+	}
+
+	if (State.Task_ItemCollection_RemoveFavoriteId != NullId) {
+		if (DataFileMgr.TaskResults.existskey(State.Task_ItemCollection_RemoveFavoriteId)) {
+			declare CTaskResult Task = DataFileMgr.TaskResults[State.Task_ItemCollection_RemoveFavoriteId];
+			if (Task != Null && !Task.IsProcessing) {
+				if (Task.HasSucceeded) {
+					State = GetFavoriteList(State);
+					State.Controls.Label_Error.Value = "";
+				} else {
+					State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorRemoveFavorite}}}", Task.ErrorCode);
+				}
+			}
+			if (Task == Null || !Task.IsProcessing) {
+				DataFileMgr.TaskResult_Release(State.Task_ItemCollection_RemoveFavoriteId);
+				State.Task_ItemCollection_RemoveFavoriteId = NullId;
+			}
+		} else {
+			State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorRemoveFavorite}}}", {{{dump(Error::C_Code_ClubItemsActivity_TaskProcessingRemoveItemCollectionFromFavorite)}}});
+			State.Task_ItemCollection_RemoveFavoriteId = NullId;
+		}
+	}
+
+	/* Report system events */
+	foreach (Event in ReportSystem::GetPendingEvents()) {
+		if (Event.LastUsingId == "{{{C_Name}}}") {
+			switch (Event.Type) {
+				case ReportSystem::C_EventType_Open: {
+					{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", False);
+				}
+				case ReportSystem::C_EventType_Close: {
+					{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", True);
+					UpdateControllerInfo();
+				}
+			}
+		}
+	}
+
+	foreach (Event in {{{Navigation::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case {{{Navigation::P}}}C_EventType_NavigateInput: {
+				if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName}}}")) {
+					if (Event.Input == CMlScriptEvent::EMenuNavAction::Select) {
+						State = Select(State, Event.To);
+					} else if (Event.Input == CMlScriptEvent::EMenuNavAction::Left && Event.From != Null) {
+						if (Event.From.Id == State.Controls.Button_BucketMedia.Id) State = MediaPager(State, State.CurrentMediaIndex-1);
+						else Focus(Event.From, Event.To);
+					} else if (Event.Input == CMlScriptEvent::EMenuNavAction::Right && Event.From != Null) {
+						if (Event.From.Id == State.Controls.Button_BucketMedia.Id) State = MediaPager(State, State.CurrentMediaIndex+1);
+						else Focus(Event.From, Event.To);
+					} else if (Event.Input == CMlScriptEvent::EMenuNavAction::Cancel) {
+						{{{Router::P}}}PushParent(This);
+					} else {
+						Focus(Event.From, Event.To);
+					}
+				}
+			}
+			case {{{Navigation::P}}}C_EventType_NavigateMouse: {
+				if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName}}}")) {
+					if (Event.Mouse == CMlScriptEvent::Type::MouseClick) {
+						State = Select(State, Event.To);
+					} else if (Event.Mouse == CMlScriptEvent::Type::MouseOver) {
+						Focus(Event.From, Event.To);
+					}
+				} else if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroup_Pager}}}")) {
+					if (Event.Mouse == CMlScriptEvent::Type::MouseClick) {
+						State = Select(State, Event.To);
+					} else if (Event.Mouse == CMlScriptEvent::Type::MouseOver) {
+						if (Event.To != Null && Event.To.HasClass("pager-arrow-media")) {
+							Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), State.Controls.Button_BucketMedia);
+						}
+						Focus(Event.From, Event.To);
+					} else if (Event.Mouse == CMlScriptEvent::Type::MouseOut) {
+						Focus(Event.From, Event.To);
+					}
+				}
+			}
+		}
+	}
+
+	foreach (Event in {{{PopUpBackground::P}}}GetPendingEvents(This)) {
+		if (Event.Type == {{{PopUpBackground::P}}}C_Event_LeavePopUp && Event.PopUpName == "{{{C_Name}}}") {
+			{{{Router::P}}}PushParent(This);
+		}
+	}
+
+	foreach (Event in {{{Router::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case "{{{Router::C_Event_EnteringRoute}}}": {
+				ReportSystem::AddUsingId("{{{C_Name}}}");
+				UpdateControllerInfo();
+				if (Platform::IsPC(System)) {
+					State.Controls.Label_Error.Value = "";
+				} else {
+					State.Controls.Label_Error.Value = "{{{Text_WarnConsole}}}";
+				}
+
+				declare Text[Text] Query = {{{Router::P}}}GetCurrentRouteQuery(This);
+				if (Query.existskey("{{{RoutePaths::C_Query_Activity}}}")) {
+					State.Activity.fromjson(Query["{{{RoutePaths::C_Query_Activity}}}"]);
+					State.FavoriteListIds.clear();
+
+					if (State.Activity.Id != {{{ClubStruct::P}}}C_ActivityNullId) {
+						ReportSystem::AddData(
+							ReportStruct::C_ReportTarget_Activity,
+							ReportStruct::LibStructuresReport_K_ReportData {
+								Details = [State.Activity.Name],
+								Ids = [TL::ToText(State.Activity.Id)],
+								Contexts = [["From" => "Menu ClubItemsActivity"]]
+							}
+						);
+					}
+
+					if (Http::IsInitialized(State.GetBucketActivityRequest)) {
+						Http::Destroy(State.GetBucketActivityRequest);
+					}
+					State.GetBucketActivityRequest = ClubAPI::GetBucketActivity(State.Activity.ClubId, State.Activity.Id, 0, 1);
+					State.Club = {{{ClubStruct::P}}}K_Club {};
+					UpdateClubButton(State, Label_ClubName, Label_Club, Button_Club);
+					if (Http::IsInitialized(State.GetClubDetailRequest)) {
+						State.GetClubDetailRequest = Http::Destroy(State.GetClubDetailRequest);
+					}
+					if ({{{Router::P}}}GetCurrentParentPath(This) != "{{{RoutePaths::C_Path_ClubDetails}}}") {
+						if (State.Activity.ClubId != {{{ClubStruct::P}}}C_ClubNullId) {
+							State.GetClubDetailRequest = ClubAPI::GetClub(State.Activity.ClubId);
+						}
+					}
+					State.CurrentMediaIndex = 0;
+					UpdateActivityInfo(State);
+					DisplayContent(State, False);
+					{{{Button::P}}}HideAndLock(State.Controls.Button_AddOrRemoveCollection);
+				} else {
+					{{{Router::P}}}PushParent(This);
+				}
+			}
+		}
+	}
+} else {
+	foreach (Event in {{{Router::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case "{{{Router::C_Event_LeavingRoute}}}": {
+				ReportSystem::RemoveUsingId("{{{C_Name}}}");
+			}
+		}
+	}
+}
+
+if (State.Task_ItemCollection_GetFavoriteListId != NullId) {
+	if (DataFileMgr.TaskResults.existskey(State.Task_ItemCollection_GetFavoriteListId)) {
+		declare CTaskResult Task = DataFileMgr.TaskResults[State.Task_ItemCollection_GetFavoriteListId];
+		if (Task != Null && !Task.IsProcessing) {
+			if (Task is CTaskResult_NSItemCollectionList) {
+				declare CTaskResult_NSItemCollectionList Task_GetFavoriteList = (Task as CTaskResult_NSItemCollectionList);
+				if (Task_GetFavoriteList.HasSucceeded) {
+					State.FavoriteListIds.clear();
+					foreach (ItemCollection in Task_GetFavoriteList.ItemCollectionList) State.FavoriteListIds.add(ItemCollection.Id);
+					if (State.ItemCollection.ItemId != "") {
+						State = CanAddCollection(State, !IsCollectionInFavorite(State));
+					}
+				} else {
+					State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorGetFavorite}}}", Task_GetFavoriteList.ErrorCode);
+				}
+			}
+		}
+		if (Task == Null || !Task.IsProcessing) {
+			DataFileMgr.TaskResult_Release(State.Task_ItemCollection_GetFavoriteListId);
+			State.Task_ItemCollection_GetFavoriteListId = NullId;
+		}
+	} else {
+		State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorGetFavorite}}}", {{{dump(Error::C_Code_ClubItemsActivity_TaskProcessingGetFavoriteItemCollections)}}});
+		State.Task_ItemCollection_GetFavoriteListId = NullId;
+	}
+}
+***
+""",
+[
+	Transition::ComponentV2(),
+	Navigation::ComponentV2(),
+	PopUpBackground::ComponentV2(),
+	Router::ComponentV2(),
+	ClubStruct::Component(),
+	Button::ComponentV2(),
+	LoadingSpinner::ComponentV2(),
+	UserStore::ComponentV2(),
+	MenuSounds::ComponentV2()
+],
+[]
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update from the ManiaApp
+Void Yield() {
+	
+}

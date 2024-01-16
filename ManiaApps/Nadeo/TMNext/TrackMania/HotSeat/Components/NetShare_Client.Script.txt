@@ -1,0 +1,77 @@
+/**
+ *  UI module: NetShare client side
+ */
+#Const Version    "2020-09-28"
+#Const ScriptName "ManiaApps/Nadeo/TMNext/TrackMania/HotSeat/Components/NetShare_Client.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "component-hotseat-netshare" //< Component name
+#Const P "ComponentHotSeatNetShare_" //< Prefix use to differentiate functions/variables in the script
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the component
+ *
+ *	@return														The component id
+ */
+Text Component() {
+	return MV::Component(
+		C_Name,
+		"""
+		""",
+		"""
+#Include "Libs/Nadeo/TMNext/TrackMania/Modes/HotSeat/Consts.Script.txt" as HotseatConst
+#Include "Libs/Nadeo/TMNext/TrackMania/Modes/HotSeat/Structs.Script.txt" as HotseatStruct
+		""",
+		"""
+declare HotseatStruct::K_HotSeatPlayer[Integer] G_HotSeatPlayers;
+
+Integer {{{P}}}GetMapsCount() {
+	declare netread Integer Net_HotSeat_MapsCount for Teams[0];
+	return Net_HotSeat_MapsCount;
+}
+
+Integer {{{P}}}GetCurrentPlayerID() {
+	declare netread Integer Net_HotSeat_CurrentPlayerID for Teams[0] = HotseatConst::C_PlayerID_Null;
+	return Net_HotSeat_CurrentPlayerID;
+}
+
+HotseatStruct::K_HotSeatPlayer[Integer] {{{P}}}GetHotSeatPlayers() {
+	return G_HotSeatPlayers;
+}
+
+***MainInit***
+***
+declare Integer HotSeatPlayersVersion;
+***
+
+***MainStart***
+***
+declare netread Integer Net_HotSeat_HotSeatPlayersVersion for Teams[0];
+declare netread HotseatStruct::K_HotSeatPlayer[Integer] Net_HotSeat_HotSeatPlayers for Teams[0];
+***
+
+***MainLoop***
+***
+if (HotSeatPlayersVersion != Net_HotSeat_HotSeatPlayersVersion) {
+	HotSeatPlayersVersion = Net_HotSeat_HotSeatPlayersVersion;
+	G_HotSeatPlayers = Net_HotSeat_HotSeatPlayers;
+}
+***
+		""",
+		[],
+		[]
+	);
+}

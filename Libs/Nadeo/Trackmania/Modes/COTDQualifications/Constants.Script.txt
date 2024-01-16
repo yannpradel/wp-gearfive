@@ -1,0 +1,98 @@
+/**
+ *	Constants for the COTD qualifications
+ */
+#Const Version		"1.0.0"
+#Const ScriptName	"Libs/Nadeo/Trackmania/Modes/COTDQualifications/Constants.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+//L16N [COTD] Title of the Cup of the Day match
+#Const C_Text_Title _("Cup of the Day")
+//L16N [COTD] Title of the pop-up displaying the rules of the Cup of the Day
+#Const C_Text_Rules_Title _("Welcome to the Cup of the Day")
+//L16N [COTD] Rules of the Cup of the Day
+#Const C_Text_Rules_Content _("Race for 15 minutes on today's track. You will be able to join the knockout phase afterwards and earn even more trophies.\nYou can see your global rank among all servers on the left of your screen.")
+
+#Const C_Progress_Null 0 //< Not initialized
+#Const C_Progress_RequestNextCOTD 1 //< Request the next COTD to the API until we receive a valid response
+#Const C_Progress_WaitNextCOTD 2 //< We received the next COTD from the API, wait until qualifications start time is reached
+#Const C_Progress_PlayQualifications 3 //< Qualifications start time reached, users are playing the qualifications
+#Const C_Progress_WaitMatchesGeneration 4 //< Qualifications completed, waiting for the Knockout matches generation
+#Const C_Progress_TransferPlayersToKnockout 5 //< Knockout matches have been generated, transfer the players
+#Const C_Progress_TooLateToJoinKnockout 6 //< Knockout matches started, too late to join now
+#Const C_Progress_ServerDutyIsOver 7 //< The server has completed its task and will shut down soon
+
+#Const C_CompetitionType_Main "DailyCup"
+#Const C_CompetitionType_MainCrossplayOff "DailyCupCrossplayOff"
+#Const C_CompetitionType_Rerun "DailyCupMinor"
+#Const C_CompetitionType_RerunCrossplayOff "DailyCupMinorCrossplayOff"
+
+// Must be sorted by decreasing ranks Rank => [Trophy => Count]
+#Const C_RankToTrophies_Main [
+	10000 => [3 => 1],
+	2500 => [4 => 1],
+	1000 => [4 => 3],
+	500 => [4 => 6],
+	250 => [4 => 9],
+	100 => [5 => 1],
+	50 => [5 => 3],
+	10 => [5 => 5],
+	3 => [5 => 7],
+	2 => [5 => 9],
+	1 => [6 => 1]
+]
+#Const C_RankToTrophies_MainCrossplayOff [
+	10000 => [3 => 1],
+	2500 => [4 => 1],
+	1000 => [4 => 1],
+	500 => [4 => 2],
+	250 => [4 => 4],
+	100 => [4 => 5],
+	50 => [4 => 8],
+	10 => [5 => 1],
+	3 => [5 => 2],
+	2 => [5 => 4],
+	1 => [5 => 5]
+]
+#Const C_RankToTrophies_Rerun [
+	10000 => [3 => 1],
+	2500 => [4 => 1],
+	1000 => [4 => 1],
+	500 => [4 => 2],
+	250 => [4 => 4],
+	100 => [4 => 5],
+	50 => [4 => 8],
+	10 => [5 => 1],
+	3 => [5 => 2],
+	2 => [5 => 4],
+	1 => [5 => 5]
+]
+#Const C_RankToTrophies_RerunCrossplayOff [
+	10000 => [2 => 1],
+	2500 => [3 => 1],
+	1000 => [3 => 1],
+	500 => [3 => 2],
+	250 => [3 => 4],
+	100 => [3 => 5],
+	50 => [3 => 8],
+	10 => [4 => 1],
+	3 => [4 => 2],
+	2 => [4 => 4],
+	1 => [4 => 5]
+]
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the number of trophies awarded for each competition type (main or rerun, with or without crossplay)
+Integer[Integer][Integer] GetTrophiesForCompetitionType(Text _CompetitionType) {
+	switch (_CompetitionType) {
+		case C_CompetitionType_Main: return C_RankToTrophies_Main;
+		case C_CompetitionType_MainCrossplayOff: return C_RankToTrophies_MainCrossplayOff;
+		case C_CompetitionType_Rerun: return C_RankToTrophies_Rerun;
+		case C_CompetitionType_RerunCrossplayOff: return C_RankToTrophies_RerunCrossplayOff;
+	}
+	return C_RankToTrophies_Main;
+}

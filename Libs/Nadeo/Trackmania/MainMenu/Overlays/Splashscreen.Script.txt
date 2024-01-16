@@ -1,0 +1,404 @@
+/**
+ *	Overlay : Splashscreen
+ **/
+#Const Version		"1.5.3"
+#Const ScriptName	"Libs/Nadeo/Trackmania/MainMenu/Overlays/Splashscreen.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/CMGame/Components/ExpendableButton.Script.txt" as ExpendableButton
+#Include "Libs/Nadeo/CMGame/Components/LoadingSpinner.Script.txt" as LoadingSpinner
+#Include "Libs/Nadeo/CMGame/Components/Splashscreen.Script.txt" as Splashscreen
+#Include "Libs/Nadeo/CMGame/Utils/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/CMGame/Utils/Stylesheet.Script.txt" as Stylesheet
+#Include "Libs/Nadeo/Trackmania/MainMenu/Constants.Script.txt" as Const
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "Overlay_Splashscreen"
+
+#Const Splashscreen::C_EventType_VisibilityUpdate as C_EventType_VisibilityUpdate
+
+//L16N [Splashscreen] Error message displayed when the redirection fails.
+#Const C_Text_RedirectionFailed _("An error has occurred during the redirection.")
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_Event {
+	Integer Type;
+	Boolean IsVisible;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if the splashscreen is displayed
+Boolean IsVisible() {
+	declare Boolean Trackmania_Splashscreen_IsVisible for LocalUser = False;
+	return Trackmania_Splashscreen_IsVisible;
+}
+
+/// Show the splashscreen if possible
+Void ShowIfPossible() {
+	declare Integer Trackmania_Splashscreen_ShowRequested for LocalUser = 0;
+	Trackmania_Splashscreen_ShowRequested += 1;
+}
+
+/// Get overlay pending events
+K_Event[] GetPendingEvents() {
+	declare K_Event[] Trackmania_Splashscreen_Events for LocalUser = [];
+	return Trackmania_Splashscreen_Events;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the overlay's manialink
+Text GetManialink() {
+	return MV::Create(
+C_Name, 3,
+"""
+<frame id="frame-global" z-index="{{{Const::C_ZIndex_Splashscreen}}}">
+	<frameinstance id="loadingspinner" modelid="{{{LoadingSpinner::C_Name}}}" data-label="{{{Const::C_Text_RetrievingDataPlaceholder}}}" data-dimmer="true" data-opacity="0." z-index="0"/>
+	<frameinstance
+		id="frame-error-message" z-index="1"
+		modelid="{{{ExpendableButton::C_Name}}}"
+		data-max-width="120" data-height="7"
+		data-text="{{{C_Text_RedirectionFailed}}}"
+		data-text-textsize="4" data-text-textprefix="$i"
+		data-text-opacity-focused="1." data-text-opacity-unfocused="0."
+		data-text-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_ErrorMessage)}}}"
+		data-text-textcolor-focused="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_TextError)}}}"
+		data-text-textcolor-unfocused="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_TextError)}}}"
+		data-background-color-focused="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDark)}}}"
+		data-background-color-unfocused="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDark)}}}"
+		data-background-opacity-focused="0.6" data-background-opacity-unfocused="0."
+		data-focus-opacity-focused="0." data-focus-opacity-unfocused="0."
+		data-styles="{{{ExpendableButton::C_Style_Stack}}}"
+		data-halign="center" data-valign="center"
+		hidden="1"
+	/>
+	<frameinstance id="splashscreen" modelid="{{{Splashscreen::C_Name}}}" z-index="2"/>
+</frame>
+""",
+"""
+#Include "Libs/Nadeo/CMGame/Components/ExpendableButtonBase.Script.txt" as ExpendableButton_Base
+#Include "Libs/Nadeo/CMGame/Components/LoadingSpinner.Script.txt" as LoadingSpinner
+#Include "Libs/Nadeo/CMGame/Components/Splashscreen.Script.txt" as Splashscreen
+#Include "Libs/Nadeo/CMGame/Menus/Router_ML.Script.txt" as Router
+#Include "Libs/Nadeo/CMGame/Stores/SplashscreenStore_ML.Script.txt" as SplashscreenStore
+#Include "Libs/Nadeo/CMGame/Structures/ClubStruct.Script.txt" as ClubStruct
+#Include "Libs/Nadeo/CMGame/Structures/SplashscreenStruct.Script.txt" as SplashscreenStruct
+#Include "Libs/Nadeo/CMGame/Utils/Http.Script.txt" as Http
+#Include "Libs/Nadeo/CMGame/Utils/MLHelpers.Script.txt" as MLHelpers
+#Include "Libs/Nadeo/CMGame/Utils/MainUser.Script.txt" as MainUser
+#Include "Libs/Nadeo/CMGame/Utils/Platform.Script.txt" as Platform
+#Include "Libs/Nadeo/CMGame/Utils/Privileges.Script.txt" as Privileges
+#Include "Libs/Nadeo/CMGame/Utils/Task.Script.txt" as Task
+#Include "Libs/Nadeo/CMGame/Utils/Tools.Script.txt" as Tools
+#Include "Libs/Nadeo/Trackmania/API/ClubAPI.Script.txt" as ClubAPI
+#Include "Libs/Nadeo/Trackmania/ClubEdition.Script.txt" as ClubEdition
+#Include "Libs/Nadeo/Trackmania/MainMenu/Constants.Script.txt" as Const
+#Include "Libs/Nadeo/Trackmania/MainMenu/DirectLink.Script.txt" as DirectLink
+#Include "Libs/Nadeo/Trackmania/MainMenu/RoutePaths.Script.txt" as RoutePaths
+#Include "Libs/Nadeo/Trackmania/RBAC.Script.txt" as RBAC
+#Include "Libs/Nadeo/Trackmania/Stores/CampaignStore_ML.Script.txt" as CampaignStore
+#Include "Libs/Nadeo/Trackmania/Stores/UserStore_ML.Script.txt" as UserStore
+#Include "Libs/Nadeo/Trackmania/Structures/CampaignStruct.Script.txt" as CampaignStruct
+#Include "Libs/Nadeo/Trackmania/Structures/MatchmakingStruct.Script.txt" as MatchmakingStruct
+#Include "TextLib" as TL
+
+#Const C_EventType_VisibilityUpdate {{{dump(C_EventType_VisibilityUpdate)}}}
+
+{{{dumptype(K_Event)}}}
+
+#Struct K_Controls {
+	CMlFrame Frame_ErrorMessage;
+	CMlFrame LoadingSpinner;
+}
+
+#Struct K_State {
+	Boolean IsErrorMessageVisible;
+	Text CurrentRoutePath;
+	Ident[] RunningTasksOrRequestsIdsList;
+	Integer NextSplashscreenShowTimestamp;
+	ClubStruct::LibStructuresClub_K_Activity ClubActivity;
+	Http::K_Request Request_GetClubDetail;
+	Task::K_Task Task_ShowPrimaryStore;
+	K_Controls Controls;
+}
+""",
+"""
+/// Show or hide an error message
+K_State Private_SetErrorMessageVisibility(K_State _State, Boolean _IsVisible) {
+	declare K_State State = _State;
+	declare Vec2 Pos_Hidden = MLHelpers::SkewX(<0., -74.>, 10.);
+	declare Vec2 Pos_Visible = MLHelpers::SkewX(<0., -73.>, 10.);
+
+	// Update visibility state
+	State.IsErrorMessageVisible = _IsVisible;
+
+	// Animations
+	AnimMgr.Flush(State.Controls.Frame_ErrorMessage);
+	if (_IsVisible) {
+		State.Controls.Frame_ErrorMessage.RelativePosition_V3 = Pos_Hidden;
+		ExpendableButton_Base::Unfocus(This, State.Controls.Frame_ErrorMessage, False);
+
+		AnimMgr.Add(State.Controls.Frame_ErrorMessage, "<anim pos=\""^Pos_Visible.X^" "^Pos_Visible.Y^"\" hidden=\"0\"/>", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+		AnimMgr.Add(State.Controls.Frame_ErrorMessage, "<anim pos=\""^Pos_Hidden.X^" "^Pos_Hidden.Y^"\" hidden=\"1\"/>", Now+3000, 250, CAnimManager::EAnimManagerEasing::QuadOut);
+		ExpendableButton_Base::Focus(This, State.Controls.Frame_ErrorMessage);
+		ExpendableButton_Base::AddOpacityAnimation(This, State.Controls.Frame_ErrorMessage, 0., Now+3000, 250, CAnimManager::EAnimManagerEasing::QuadOut);
+	} else {
+		AnimMgr.Add(State.Controls.Frame_ErrorMessage, "<anim pos=\""^Pos_Hidden.X^" "^Pos_Hidden.Y^"\" hidden=\"1\"/>", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+		ExpendableButton_Base::Unfocus(This, State.Controls.Frame_ErrorMessage);
+	}
+
+	return State;
+}
+
+/// Redirect to the corresponding route
+K_State Private_Redirect(K_State _State, Text _ActionType, Text _ActionIdentifier) {
+	declare K_State State = _State;
+
+	switch (_ActionType) {
+		case SplashscreenStruct::C_Action_ArcadeServer: {
+			Router::SetParentPath(This, RoutePaths::C_Path_ArcadeChannel, RoutePaths::C_Path_Live);
+			Router::Push(This, RoutePaths::C_Path_ArcadeChannel);
+		}
+		case SplashscreenStruct::C_Action_Garage: {
+			Router::SetParentPath(This, RoutePaths::C_Path_Garage, RoutePaths::C_Path_Create);
+			Router::Push(This, RoutePaths::C_Path_Garage);
+		}
+		case SplashscreenStruct::C_Action_Hotseat: {
+			Router::SetParentPath(This, RoutePaths::C_Path_LocalMultiSettings, Tools::Ternary(Platform::IsFromFirstParty(System), RoutePaths::C_Path_Local, RoutePaths::C_Path_LocalMulti));
+			Router::Push(This, RoutePaths::C_Path_LocalMultiSettings, [RoutePaths::C_Query_LocalMultiType => ""^Const::C_LocalMultiType_HotSeat]);
+		}
+		case SplashscreenStruct::C_Action_Splitscreen: {
+			Router::SetParentPath(This, RoutePaths::C_Path_LocalMultiSettings, Tools::Ternary(Platform::IsFromFirstParty(System), RoutePaths::C_Path_Local, RoutePaths::C_Path_LocalMulti));
+			Router::Push(This, RoutePaths::C_Path_LocalMultiSettings, [RoutePaths::C_Query_LocalMultiType => ""^Const::C_LocalMultiType_SplitScreen]);
+		}
+		case SplashscreenStruct::C_Action_Store: {
+			LoadingSpinner::StartAnimWithFade(This, State.Controls.LoadingSpinner);
+			State.Task_ShowPrimaryStore = Task::DestroyAndCreate(State.Task_ShowPrimaryStore, UserMgr, UserMgr.Commerce_ShowPrimaryStore(MainUser::GetMainUserId()));
+			if (!State.RunningTasksOrRequestsIdsList.exists(State.Task_ShowPrimaryStore.SourceTaskId)) {
+				State.RunningTasksOrRequestsIdsList.add(State.Task_ShowPrimaryStore.SourceTaskId);
+			}
+		}
+		case SplashscreenStruct::C_Action_NewMap: {
+			Router::SetParentPath(This, RoutePaths::C_Path_MapEditorSettings, RoutePaths::C_Path_Create);
+			Router::Push(This, RoutePaths::C_Path_MapEditorSettings, [RoutePaths::C_Query_DirectLinkNewMap => "1"]);
+		}
+		case SplashscreenStruct::C_Action_TrackOfTheDay: {
+				Router::SetParentPath(This, RoutePaths::C_Path_MonthlyCampaignDisplay, RoutePaths::C_Path_Solo);
+				Router::Push(This, RoutePaths::C_Path_MonthlyCampaignDisplay);
+			}
+		case SplashscreenStruct::C_Action_TrackOfTheDayRoom: {
+				Router::SetParentPath(This, RoutePaths::C_Path_TOTDChannelDisplay, RoutePaths::C_Path_Live);
+				Router::Push(This, RoutePaths::C_Path_TOTDChannelDisplay);
+			}
+		case SplashscreenStruct::C_Action_OfficialCampaign: {
+			declare CampaignStruct::LibCampaignStruct_K_Campaign Campaign = CampaignStore::GetLiveQuarterlyCampaign();
+			if (Campaign.Id != CampaignStruct::C_Campaign_NullId) {
+				Router::SetParentPath(This, RoutePaths::C_Path_CampaignDisplay, RoutePaths::C_Path_Solo);
+				Router::Push(This, RoutePaths::C_Path_CampaignDisplay, [
+					RoutePaths::C_Query_Campaign => ""^Campaign.tojson(),
+					Router::C_Query_DisablePrivilege => Privileges::PrivilegesToQuery([CPrivilegeMgr::EPrivilege::UseUserCreatedContentRequired])
+				], True);
+			}
+		}
+		case SplashscreenStruct::C_Action_OfficialCampaignRoom: {
+				Router::SetParentPath(This, RoutePaths::C_Path_RoomCampaignDisplay, RoutePaths::C_Path_Live);
+				Router::Push(This, RoutePaths::C_Path_RoomCampaignDisplay, [
+					Router::C_Query_DisablePrivilege => Privileges::PrivilegesToQuery([CPrivilegeMgr::EPrivilege::PlayMultiplayerModeWithUGC]),
+					Router::C_Query_EnablePrivilege => Privileges::PrivilegesToQuery([CPrivilegeMgr::EPrivilege::PlayMultiplayerMode])
+				], True);
+			}
+		case SplashscreenStruct::C_Action_Ranked: {
+				if (UserStore::HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_PlayMatchmaking)) {
+					Router::SetParentPath(This, RoutePaths::C_Path_MatchmakingMainPage, RoutePaths::C_Path_Live);
+					Router::Push(This, RoutePaths::C_Path_MatchmakingMainPage, [
+						RoutePaths::C_Query_ForceMode => MatchmakingStruct::C_Mode_Teams3v3,
+						Router::C_Query_DisablePrivilege => Privileges::PrivilegesToQuery([CPrivilegeMgr::EPrivilege::PlayMultiplayerModeWithUGC]),
+						Router::C_Query_EnablePrivilege => Privileges::PrivilegesToQuery([CPrivilegeMgr::EPrivilege::PlayMultiplayerMode])
+					]);
+				} else {
+					ClubEdition::GoToPage(This, RoutePaths::C_Path_Home, RBAC::GetGamePermissionMessage(RBAC::C_GamePermissionMessage_PlayMatchmaking));
+				}
+			}
+		case SplashscreenStruct::C_Action_Royal: {
+				if (UserStore::HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_PlayMatchmaking)) {
+					Router::SetParentPath(This, RoutePaths::C_Path_MatchmakingMainPage, RoutePaths::C_Path_Live);
+					Router::Push(This, RoutePaths::C_Path_MatchmakingMainPage, [RoutePaths::C_Query_ForceMode => MatchmakingStruct::C_Mode_Royal]);
+				} else {
+					ClubEdition::GoToPage(This, RoutePaths::C_Path_Home, RBAC::GetGamePermissionMessage(RBAC::C_GamePermissionMessage_PlayMatchmaking));
+				}
+		}
+		case SplashscreenStruct::C_Action_Club: {
+			if (!UserStore::HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_ViewClub)) {
+				ClubEdition::GoToPage(This, RoutePaths::C_Path_Clubs, RBAC::GetGamePermissionMessage(RBAC::C_GamePermissionMessage_ViewClub));
+			} else if (_ActionIdentifier != "") {
+				LoadingSpinner::StartAnimWithFade(This, State.Controls.LoadingSpinner);
+				State.Request_GetClubDetail = Http::DestroyAndCreate(State.Request_GetClubDetail, ClubAPI::GetClub(TL::ToInteger(_ActionIdentifier)));
+				if (!State.RunningTasksOrRequestsIdsList.exists(State.Request_GetClubDetail.RequestId)) {
+					State.RunningTasksOrRequestsIdsList.add(State.Request_GetClubDetail.RequestId);
+				}
+			}
+		}
+		case SplashscreenStruct::C_Action_Activity: {
+			if (!UserStore::HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_ViewClub)) {
+				ClubEdition::GoToPage(This, RoutePaths::C_Path_Clubs, RBAC::GetGamePermissionMessage(RBAC::C_GamePermissionMessage_ViewClub));
+			} else if (_ActionIdentifier != "") {
+				declare Text[] ActionIdentifiers = TL::Split(":", _ActionIdentifier);
+				if (ActionIdentifiers.count >= 3) {
+					State.ClubActivity = ClubStruct::LibStructuresClub_K_Activity {
+						Id = TL::ToInteger(ActionIdentifiers[2]),
+						ClubId = TL::ToInteger(ActionIdentifiers[1]),
+						Type = ActionIdentifiers[0],
+						Public = True
+					};
+					LoadingSpinner::StartAnimWithFade(This, State.Controls.LoadingSpinner);
+					State.Request_GetClubDetail = Http::DestroyAndCreate(State.Request_GetClubDetail, ClubAPI::GetClub(State.ClubActivity.ClubId));
+					if (!State.RunningTasksOrRequestsIdsList.exists(State.Request_GetClubDetail.RequestId)) {
+						State.RunningTasksOrRequestsIdsList.add(State.Request_GetClubDetail.RequestId);
+					}
+				}
+			}
+		}
+	}
+
+	return State;
+}
+
+/// Show the splashscreen if possible
+K_State ShowIfPossible(K_State _State) {
+	declare K_State State = _State;
+
+	if (UserStore::GetUserHasSplashscreensEnabled() && !DirectLink::IsProcessing(LocalUser)) {
+		declare SplashscreenStruct::K_Splashscreen Splashscreen = SplashscreenStore::GetSplashscreen();
+		if (Splashscreen.Uid != "" && Splashscreen.Url != "" && State.NextSplashscreenShowTimestamp < Now) {
+			State.NextSplashscreenShowTimestamp = Now + SplashscreenStruct::C_SplashscreenDelay;
+			State.CurrentRoutePath = Router::GetCurrentRoutePath(This);
+			Splashscreen::Show(This, Splashscreen);
+		}
+	}
+
+	return State;
+}
+
+***MainInit***
+***
+declare CMlFrame Frame_Global;
+
+declare K_State State;
+declare Integer ShowRequested;
+declare Boolean SendVisibilityUpdateEvent;
+
+declare K_Event[] Trackmania_Splashscreen_Events for LocalUser = [];
+declare Boolean Trackmania_Splashscreen_IsVisible for LocalUser = False;
+declare Integer Trackmania_Splashscreen_ShowRequested for LocalUser = 0;
+***
+
+***MainStart***
+***
+Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+
+State = K_State {
+	Task_ShowPrimaryStore = Task::GetEmptyTask(),
+	Request_GetClubDetail = Http::GetEmptyRequest(),
+	Controls = K_Controls {
+		Frame_ErrorMessage = (Frame_Global.GetFirstChild("frame-error-message") as CMlFrame),
+		LoadingSpinner = (Frame_Global.GetFirstChild("loadingspinner") as CMlFrame)
+	}
+};
+***
+
+***MainLoop***
+***
+if (PageIsVisible) {
+	Trackmania_Splashscreen_Events = [];
+
+	// Handle show request from the ManiaApp
+	if (ShowRequested != Trackmania_Splashscreen_ShowRequested) {
+		ShowRequested = Trackmania_Splashscreen_ShowRequested;
+		State = ShowIfPossible(State);
+	}
+
+	// Hide the splashscreen if the current route is updated while being displayed
+	if (State.CurrentRoutePath != Router::GetCurrentRoutePath(This) || DirectLink::IsProcessing(LocalUser)) {
+		State.CurrentRoutePath = Router::GetCurrentRoutePath(This);
+		if (State.IsErrorMessageVisible) State = Private_SetErrorMessageVisibility(State, False);
+		if (Trackmania_Splashscreen_IsVisible || State.RunningTasksOrRequestsIdsList.count > 0) {
+			State.RunningTasksOrRequestsIdsList.clear();
+			State.Task_ShowPrimaryStore = Task::DestroyIfInitialized(State.Task_ShowPrimaryStore);
+			State.Request_GetClubDetail = Http::DestroyIfInitialized(State.Request_GetClubDetail);
+			LoadingSpinner::StopAnimWithFade(This, State.Controls.LoadingSpinner);
+			Splashscreen::Hide(This);
+		}
+	}
+
+	// Splashscreen events
+	foreach (Event in Splashscreen::GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case Splashscreen::C_EventType_GoNow: State = Private_Redirect(State, Event.ActionType, Event.ActionIdentifier);
+			case Splashscreen::C_EventType_VisibilityUpdate: {
+				Trackmania_Splashscreen_IsVisible = Event.IsVisible;
+				SendVisibilityUpdateEvent = True;
+			}
+		}
+	}
+
+	// Get club details
+	if (Http::IsInitialized(State.Request_GetClubDetail)) {
+		State.Request_GetClubDetail = Http::Update(State.Request_GetClubDetail);
+		if (!Http::IsRunning(State.Request_GetClubDetail)) {
+			if (Http::IsSuccess(State.Request_GetClubDetail)) {
+				declare Text[Text] Query = [RoutePaths::C_Query_Club => ClubAPI::GetResponseFromGetClub(State.Request_GetClubDetail).tojson()];
+				if (State.ClubActivity.Id != ClubStruct::C_ActivityNullId) {
+					Query[RoutePaths::C_Query_Activity] = State.ClubActivity.tojson();
+				}
+
+				Router::SetParentPath(This, RoutePaths::C_Path_ClubDetails, RoutePaths::C_Path_Clubs);
+				Router::Push(This, RoutePaths::C_Path_ClubDetails, Query);
+			} else {
+				State = Private_SetErrorMessageVisibility(State, True);
+			}
+			LoadingSpinner::StopAnimWithFade(This, State.Controls.LoadingSpinner);
+			State.RunningTasksOrRequestsIdsList.remove(State.Request_GetClubDetail.RequestId);
+			State.Request_GetClubDetail = Http::Destroy(State.Request_GetClubDetail);
+			State.ClubActivity = ClubStruct::LibStructuresClub_K_Activity {};
+		}
+	}
+
+	// Task to open the primary store
+	if (Task::IsInitialized(State.Task_ShowPrimaryStore)) {
+		State.Task_ShowPrimaryStore = Task::Update(State.Task_ShowPrimaryStore);
+		if (!Task::IsRunning(State.Task_ShowPrimaryStore)) {
+			if (!Task::IsSuccess(State.Task_ShowPrimaryStore)) {
+				State = Private_SetErrorMessageVisibility(State, True);
+			}
+			LoadingSpinner::StopAnimWithFade(This, State.Controls.LoadingSpinner);
+			State.RunningTasksOrRequestsIdsList.remove(State.Task_ShowPrimaryStore.SourceTaskId);
+			State.Task_ShowPrimaryStore = Task::Destroy(State.Task_ShowPrimaryStore);
+		}
+	}
+
+	// Wait for all requests and tasks to finish before sending a visibility update event
+	if (SendVisibilityUpdateEvent && State.RunningTasksOrRequestsIdsList.count <= 0) {
+		SendVisibilityUpdateEvent = False;
+		Trackmania_Splashscreen_Events.add(K_Event {
+			Type = C_EventType_VisibilityUpdate,
+			IsVisible = Trackmania_Splashscreen_IsVisible
+		});
+	}
+}
+***
+""",
+[
+	ExpendableButton::ComponentV2(),
+	LoadingSpinner::ComponentV2(),
+	Splashscreen::ComponentV2()
+],
+[]
+	);
+}

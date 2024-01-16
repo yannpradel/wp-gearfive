@@ -1,0 +1,22 @@
+/** 
+ *	Save main user id
+ */
+#Const Version		"2022-10-18"
+#Const ScriptName	"Libs/Nadeo/CommonLibs/Common/MainUser.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the main user id
+Ident GetMainUserId() {
+	declare Ident LibMainUser_MainUserId for System = NullId;
+	return LibMainUser_MainUserId;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Set the main user id
+Void SetMainUserId(Ident _MainUserId) {
+	declare Ident LibMainUser_MainUserId for System = NullId;
+	LibMainUser_MainUserId = _MainUserId;
+}

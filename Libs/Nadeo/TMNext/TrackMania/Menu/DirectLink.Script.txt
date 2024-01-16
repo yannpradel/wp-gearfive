@@ -1,0 +1,55 @@
+/** 
+ *	`DirectLink` helpers functions
+ */
+#Const Version		"2023-02-02"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Menu/DirectLink.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_MatchmakingStatus {
+	Boolean IsInQueue;
+	Integer QueueId;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_MatchmakingStatus_Null K_MatchmakingStatus {
+	IsInQueue = False,
+	QueueId = -123
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update the matchmaking status of the user
+Void SetMatchmakingStatus(CUser _User, Boolean _IsInQueue, Integer _QueueId) {
+	declare K_MatchmakingStatus LibTMNext_DirectLink_MatchmakingStatus for _User = C_MatchmakingStatus_Null;
+	LibTMNext_DirectLink_MatchmakingStatus = K_MatchmakingStatus {
+		IsInQueue = _IsInQueue,
+		QueueId = _QueueId
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the matchmaking status of the user
+K_MatchmakingStatus GetMatchmakingStatus(CUser _User) {
+	declare K_MatchmakingStatus LibTMNext_DirectLink_MatchmakingStatus for _User = C_MatchmakingStatus_Null;
+	return LibTMNext_DirectLink_MatchmakingStatus;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Allow `DirectLink` to cancel a queue in the matchmaking page
+Void RequestMatchmakingPageQueueCancel(CUser _User) {
+	declare Integer LibTMNext_DirectLink_MatchmakingQueueCancel for _User = 0;
+	LibTMNext_DirectLink_MatchmakingQueueCancel += 1;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if `DirectLink` requested to cancel a queue in the matchmaking page
+Integer GetMatchmakingPageQueueCancel(CUser _User) {
+	declare Integer LibTMNext_DirectLink_MatchmakingQueueCancel for _User = 0;
+	return LibTMNext_DirectLink_MatchmakingQueueCancel;
+}

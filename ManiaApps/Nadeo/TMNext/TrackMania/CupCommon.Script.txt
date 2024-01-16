@@ -1,0 +1,28 @@
+/**
+ *  Cup common UI
+ *  This file must be in Scripts because it is the base path when using #Extends
+ */
+#Extends "ManiaApps/Nadeo/TMNext/TrackMania/TMNextBase.Script.txt"
+
+#Const C_CupCommon_Version    "2020-09-28"
+#Const C_CupCommon_ScriptName "ManiaApps/Nadeo/TMNext/TrackMania/CupCommon.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "ManiaApps/Nadeo/TMNext/TrackMania/Rounds/UIModules/SmallScoresTable_Client.Script.txt" as UIModules_SmallScoresTable
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Extends
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+***StartApp***
+***
+UIModules::CreateModule(UIModules_SmallScoresTable::GetId(), UIModules_SmallScoresTable::GetML(), UIModules_SmallScoresTable::GetLayerType(), SplitScreenEnable, UIModules::C_SplitScreen_Everyone);
+***
+
+/*
+***AppLoop***
+***
+
+***
+*/

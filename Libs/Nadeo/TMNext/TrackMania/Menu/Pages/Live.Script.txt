@@ -1,0 +1,710 @@
+/** 
+ *	Page: Live
+ */
+#Const Version		"2023-05-22"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Menu/Pages/Live.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Navigation.Script.txt" as Navigation
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Transition.Script.txt" as Transition
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Router_ML.Script.txt" as Router
+#Include "Libs/Nadeo/TMNext/TrackMania/ColorPalette.Script.txt" as ColorPalette
+#Include "Libs/Nadeo/TMNext/TrackMania/Config.Script.txt" as Config
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/Button.Script.txt" as Button
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/ExpendableButton.Script.txt" as ExpendableButton
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/CupOfTheDayStatus.Script.txt" as CupOfTheDayStatus
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/PlayerRank.Script.txt" as PlayerRank
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as Const
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/RoutePaths.Script.txt" as RoutePaths
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/CampaignStore_ML.Script.txt" as CampaignStore
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/UserStore_ML.Script.txt" as UserStore
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/MatchmakingStruct.Script.txt" as MatchmakingStruct
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/PlayerRoyalVictories.Script.txt" as PlayerRoyalVictories
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/Helpers.Script.txt" as MLHelpers
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/MenuSounds.Script.txt" as MenuSounds
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/PopUpMultiChoice.Script.txt" as PopUpMultiChoice
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "Page_Live"
+#Const C_NavGroupName "navgroup-page-live"
+
+#Const C_Color_TOTD_Month "60d9e7"
+#Const C_Color_TOTD_Day_Focused "135178"
+#Const C_Color_TOTD_Day_Unfocused "092b47"
+#Const C_Color_TOTD_Footer "ffc600"
+
+#Const C_Index_Royal 0
+#Const C_Index_Ranked 1
+#Const C_Index_Arcade 2
+#Const C_Index_TOTD 3
+#Const C_Index_Events 4
+
+#Const C_ChannelNames [
+	0 => _("Royal"),
+	1 => _("Ranked"),
+	//L16N Name of a channel whith UGC content and live servers (aka rooms)
+	2 => _("Arcade"),
+	3 => _("Track of the day"),
+	4 => _("Events")
+]
+
+#Const C_ChannelImagePath_Royal_NoCustom "file://Media/Manialinks/Nadeo/TMNext/Menus/PageLive/Menu_Play_Live_Royal_CN.dds"
+#Const C_ChannelImagePath_COTD "file://Media/Manialinks/Nadeo/TMNext/Menus/PageLive/Menu_Play_Live_COTD.dds"
+#Const C_COTD_AnnouncementLine "file://Media/Manialinks/Nadeo/TMNext/Menus/PageLive/Menu_Play_Live_COTD_banner.dds"
+#Const C_ChannelImagePath_Starter_Ranked "file://Media/Manialinks/Nadeo/TMNext/Menus/Icons/Matchmaking_Ranks/Starter.dds"
+#Const C_ChannelImagesPathList [
+	0 => "file://Media/Manialinks/Nadeo/TMNext/Menus/PageLive/Menu_Play_Live_Royal.dds",
+	1 => "file://Media/Manialinks/Nadeo/TMNext/Menus/PageLive/Menu_Play_Live_Ranked.dds",
+	2 => "file://Media/Manialinks/Nadeo/TMNext/Menus/PageLive/Menu_Play_Live_Arcade.dds",
+	3 => "file://Media/Manialinks/Nadeo/TMNext/Menus/PageSolo/Menu_Play_TOTD.dds",
+	4 => "file://Media/Manialinks/Nadeo/TMNext/Menus/PageLive/Menu_Play_Live_Events.dds"
+]
+
+#Const Const::C_Choices_ConnectionRestored as C_Choices_ConnectionRestored
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the page manialink
+ *
+ *	@return														The page manialink
+ */
+Text GetManialink() {
+	declare Text Text_Back = _("Back");
+	//L16N [Cup of the Day] The cup of the day starts in less than one hour (more than 15min)
+	declare Text Text_CupOfTheDayStartingDateDisplayed = _("The Cup of the Day will start in less than one hour");
+	//L16N [Cup of the Day] The cup of the day is about to start
+	declare Text Text_CupOfTheDayStartingSoon = _("The Cup of the Day is about to start");
+	//L16N [Cup of the Day] The cup started but the player can still join to participate
+	declare Text Text_CupOfTheDayStarted = _("Cup of the Day qualifications ongoing");
+	//L16N [Live Page] Subtitle of the Arcade channel, to explain that the Arcade channel includes UGC content and online servers (aka rooms)
+	declare Text Text_OnlineRooms = _("Online rooms");
+	// Description of the offline pop-up
+	declare PopUpMultiChoice::K_DescriptionPart[] Description_Offline = [
+		PopUpMultiChoice::CreateDescriptionPart(Const::C_OfflinePopUp_Description, <120., 30.>, 3., FontManager::C_GameFontSemiBold, "$t$i", <1., 1., 1.>, False)
+	];
+
+	declare Vec2 Size_HorizontalButton = MLHelpers::KeepRatioFromY(1232., 556., 46.3);
+	declare Vec2 Size_VerticalButton = MLHelpers::KeepRatioFromY(1004., 1152., 95.8);
+
+	declare Vec2 Pos_ButtonRanked = MLHelpers::SkewX(<-13., 17.1>, 10.);
+	declare Vec2 Pos_ButtonTOTD = MLHelpers::SkewX(<-13., -32.5>, 10.);
+	declare Vec2 Pos_ButtonArcade = MLHelpers::SkewX(<85., 17.1>, 10.);
+	declare Vec2 Pos_ButtonEvents = MLHelpers::SkewX(<85., -32.5>, 10.);
+
+	return MV::Create(
+C_Name, 3,
+"""
+<stylesheet>
+	<style class="quad-base" halign="center" valign="center"/>
+	<style class="text-semibold" halign="left" valign="center2" textsize="2." textprefix="$t$i" textfont="{{{FontManager::C_GameFontSemiBold}}}" italicslope=".2" textcolor="FFFFFF"/>
+	<style class="text-extrabold" halign="center" valign="center2" textsize="3" textprefix="$t" textfont="{{{FontManager::C_GameFontExtraBold}}}" textcolor="FFFFFF"/>
+</stylesheet>
+
+<!-- Pop-ups -->
+<frameinstance 
+	id="popupmultichoice-offline" z-index="{{{Const::C_ZIndex_PopUpDisplay}}}"
+	modelid="{{{PopUpMultiChoice::C_Name}}}"
+	data-title="{{{Const::C_OfflinePopUp_Title}}}"
+	data-description="{{{TL::MLEncode(Description_Offline.tojson())}}}"
+	data-choices="{{{TL::MLEncode(C_Choices_ConnectionRestored.tojson())}}}"
+	data-default-focus-second-button="1"
+	hidden="1"
+/>
+
+<!-- Frame global -->
+<frame id="frame-global">
+	<frame id="frame-channels">
+		<frameinstance modelid="{{{PlayerRoyalVictories::C_Name}}}" id="frame-royal-victory" pos="-98.5 -6.5." scale="1.45" z-index="2" data-imagetype="{{{PlayerRoyalVictories::C_ImageType_Lion_Without_Count}}}"/>
+		<frameinstance 
+			id="button-royal" pos="-98.5 -7.7"
+			modelid="{{{Button::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-text="{{{C_ChannelNames[C_Index_Royal]}}}"
+			data-size="{{{Size_VerticalButton.X}}} {{{Size_VerticalButton.Y}}}"
+			data-labelsize="{{{Size_VerticalButton.X*0.7}}} 10"
+			data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+			data-image="{{{C_ChannelImagesPathList[C_Index_Royal]}}}"
+			data-gradientimage="{{{Const::C_ImageUrl_Common_VerticalButton_Gradient}}}"
+			data-gradientimagecolor="{{{ColorPalette::C_Color_DarkBlue}}}"
+			data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+			data-contourimage="{{{Const::C_ImageUrl_Common_VerticalButton_Contour}}}"
+			data-contourimagecolor="{{{ColorPalette::C_Color_White}}}"
+			data-contouropacityunfocus=".0"
+			data-isblink="1"
+			data-textsize="5"
+			data-textitalicslope="0.2"
+			data-textopacityunfocus="0.8"
+			data-texthalign="left" data-textvalign="top"
+			data-textxpos="0.26" data-textypos="-0.063"
+			data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+			data-valign="center" data-halign="center"
+			data-tilthitbox="10"
+			data-nav-inputs="select;cancel;right;down"
+			data-nav-targets="_;_;button-ranked;button-back"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+
+		<frameinstance modelid="{{{PlayerRank::C_Name}}}" id="frame-player-rank" pos="-32.3 14.5" scale="1.5" z-index="2"/>
+		<frameinstance 
+			id="button-ranked" pos="{{{Pos_ButtonRanked.X}}} {{{Pos_ButtonRanked.Y}}}"
+			modelid="{{{Button::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-text="{{{C_ChannelNames[C_Index_Ranked]}}}"
+			data-size="{{{Size_HorizontalButton.X}}} {{{Size_HorizontalButton.Y}}}"
+			data-labelsize="{{{Size_HorizontalButton.X*0.8}}} 10"
+			data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+			data-gradientimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Gradient}}}"
+			data-gradientimagecolor="{{{ColorPalette::C_Color_DarkBlue}}}"
+			data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+			data-image="{{{C_ChannelImagesPathList[C_Index_Ranked]}}}"
+			data-iconcolortype="{{{Button::C_ColorType_None}}}"
+			data-iconsize="30 30"
+			data-icon="{{{C_ChannelImagePath_Starter_Ranked}}}"
+			data-iconfocus="{{{C_ChannelImagePath_Starter_Ranked}}}"
+			data-iconxpos="0.282" data-iconypos="-0.555"
+			data-iconopacityunfocus="1."
+			data-contourimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Contour}}}"
+			data-contourimagecolor="{{{ColorPalette::C_Color_White}}}"
+			data-contouropacityunfocus=".0"
+			data-isblink="1"
+			data-textsize="5"
+			data-textitalicslope="0.2"
+			data-textopacityunfocus="0.8"
+			data-texthalign="left" data-textvalign="top"
+			data-textxpos="0.13" data-textypos="-0.13"
+			data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+			data-valign="center" data-halign="center"
+			data-tilthitbox="10"
+			data-nav-inputs="select;cancel;left;right;down"
+			data-nav-targets="_;_;button-royal;button-arcade;button-totd"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+		
+		<frame id="frame-arcade" pos="{{{Pos_ButtonArcade.X}}} {{{Pos_ButtonArcade.Y}}}">
+			<frameinstance
+				id="button-arcade"
+				modelid="{{{Button::C_Name}}}"
+				class="{{{Navigation::C_Class}}}"
+				data-text="{{{C_ChannelNames[C_Index_Arcade]}}}"
+				data-secondarylabel="label-online-rooms"
+				data-tts-text="{{{TL::Compose("%1 - %2", C_ChannelNames[C_Index_Arcade], Text_OnlineRooms)}}}"
+				data-size="{{{Size_HorizontalButton.X}}} {{{Size_HorizontalButton.Y}}}"
+				data-labelsize="{{{Size_HorizontalButton.X*0.8}}} 10"
+				data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+				data-image="{{{C_ChannelImagesPathList[C_Index_Arcade]}}}"
+				data-gradientimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Gradient}}}"
+				data-gradientimagecolor="{{{ColorPalette::C_Color_DarkBlue}}}"
+				data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+				data-contourimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Contour}}}"
+				data-contourimagecolor="{{{ColorPalette::C_Color_White}}}"
+				data-contouropacityunfocus=".0"
+				data-isblink="1"
+				data-textsize="5"
+				data-textitalicslope="0.2"
+				data-textopacityunfocus="0.8"
+				data-texthalign="left" data-textvalign="top"
+				data-textxpos="0.13" data-textypos="-0.13"
+				data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+				data-valign="center" data-halign="center"
+				data-tilthitbox="10"
+				data-nav-inputs="select;cancel;left;down"
+				data-nav-targets="_;_;button-ranked;button-events"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+			/>
+			<label id="label-online-rooms" class="text-semibold" text="{{{Text_OnlineRooms}}}" pos="{{{-Size_HorizontalButton.X/2 * 0.75}}} {{{Size_HorizontalButton.Y/2 * 0.3}}}" size="{{{Size_HorizontalButton.X * 0.75}}} 10" textsize="2.5" textcolor="{{{ColorPalette::C_Color_GreenOne}}}" opacity="0.8" z-index="10"/>
+		</frame>
+
+		<frame id="frame-totd" pos="{{{Pos_ButtonTOTD.X}}} {{{Pos_ButtonTOTD.Y}}}">
+			<frameinstance 
+				id="button-totd"
+				modelid="{{{Button::C_Name}}}"
+				class="{{{Navigation::C_Class}}}"
+				data-text="{{{C_ChannelNames[C_Index_TOTD]}}}"
+				data-secondarylabel="label-totd-date"
+				data-size="{{{Size_HorizontalButton.X}}} {{{Size_HorizontalButton.Y}}}"
+				data-labelsize="{{{Size_HorizontalButton.X*0.8}}} 10"
+				data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+				data-image="{{{C_ChannelImagesPathList[C_Index_TOTD]}}}"
+				data-gradientimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Gradient}}}"
+				data-gradientimagecolor="{{{ColorPalette::C_Color_DarkBlue}}}"
+				data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+				data-contourimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Contour}}}"
+				data-contourimagecolor="{{{ColorPalette::C_Color_White}}}"
+				data-contouropacityunfocus=".0"
+				data-isblink="1"
+				data-textsize="5"
+				data-textitalicslope="0.2"
+				data-textopacityunfocus="0.8"
+				data-texthalign="left" data-textvalign="top"
+				data-textxpos="0.13" data-textypos="-0.13"
+				data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+				data-valign="center" data-halign="center"
+				data-tilthitbox="10"
+				data-nav-inputs="select;cancel;left;right;up;down"
+				data-nav-targets="_;_;button-royal;button-events;button-ranked;button-back"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+			/>
+			<label id="label-totd-date" class="text-semibold" pos="{{{-Size_HorizontalButton.X/2 * 0.75}}} {{{Size_HorizontalButton.Y/2 * 0.3}}}" size="{{{Size_HorizontalButton.X * 0.4}}} 10" textsize="2.5" textcolor="{{{C_Color_TOTD_Month}}}" opacity="0.8" z-index="10"/>
+			<label id="label-totd-day" class="text-extrabold" pos="{{{Size_HorizontalButton.X/2 * 0.43}}} {{{-Size_HorizontalButton.Y/2 * 0.27}}}" size="10 10" textsize="5" textcolor="{{{C_Color_TOTD_Day_Unfocused}}}" z-index="10" />
+			<quad id="quad-footer" hidden="1" class="quad-base" opacity="0.6" size="{{{Size_HorizontalButton.X}}} {{{Size_HorizontalButton.Y}}}" colorize="{{{ColorPalette::C_Color_DarkBlue}}}" image="{{{C_COTD_AnnouncementLine}}}" z-index="5"/>
+			<label id="label-footer" class="text-semibold" pos="{{{-Size_HorizontalButton.X/2 * 0.85}}} -20." size="{{{Size_HorizontalButton.X*0.8}}} 10" textcolor="{{{C_Color_TOTD_Footer}}}" z-index="10"/>
+		</frame>
+
+		<frameinstance 
+			id="button-events" pos="{{{Pos_ButtonEvents.X}}} {{{Pos_ButtonEvents.Y}}}"
+			modelid="{{{Button::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-text="{{{C_ChannelNames[C_Index_Events]}}}"
+			data-size="{{{Size_HorizontalButton.X}}} {{{Size_HorizontalButton.Y}}}"
+			data-labelsize="{{{Size_HorizontalButton.X*0.8}}} 10"
+			data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+			data-image="{{{C_ChannelImagesPathList[C_Index_Events]}}}"
+			data-gradientimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Gradient}}}"
+			data-gradientimagecolor="{{{ColorPalette::C_Color_DarkBlue}}}"
+			data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+			data-contourimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Contour}}}"
+			data-contourimagecolor="{{{ColorPalette::C_Color_White}}}"
+			data-contouropacityunfocus=".0"
+			data-isblink="1"
+			data-textsize="5"
+			data-textitalicslope="0.2"
+			data-textopacityunfocus="0.8"
+			data-texthalign="left" data-textvalign="top"
+			data-textxpos="0.13" data-textypos="-0.13"
+			data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+			data-tilthitbox="10"
+			data-valign="center" data-halign="center"
+			data-nav-inputs="select;cancel;left;up;down"
+			data-nav-targets="_;_;button-totd;button-arcade;button-back"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+	</frame>
+	<frameinstance
+		id="button-back" pos="-151.5 -73"
+		modelid="{{{ExpendableButton::C_Name}}}"
+		class="{{{Navigation::C_Class}}}"
+		data-styles="{{{ExpendableButton::C_Style_SizeExpendable}}} {{{ExpendableButton::C_Style_AlignCenter}}} {{{ExpendableButton::C_Style_PageBack}}}"
+		data-nav-inputs="select;cancel;up"
+		data-nav-targets="_;_;button-royal"
+		data-nav-group="{{{C_NavGroupName}}}"
+		data-nav-zone="{{{ExpendableButton::C_NavZone}}}"
+	/>
+</frame>
+""",
+"""
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/CommonLibs/Common/Privileges.Script.txt" as Privileges
+#Include "Libs/Nadeo/CommonLibs/Common/MainUser.Script.txt" as MainUser
+#Include "Libs/Nadeo/CommonLibs/Common/ReportContext.Script.txt" as ReportContext
+#Include "Libs/Nadeo/MenuLibs/Common/Components/Tools.Script.txt" as Tools
+#Include "Libs/Nadeo/TMNext/TrackMania/Config.Script.txt" as Config
+#Include "Libs/Nadeo/TMNext/TrackMania/RBAC.Script.txt" as RBAC
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Overlays/ControllerInfo_ML.Script.txt" as ControllerInfo
+
+#Struct K_Controls {
+	CMlFrame Button_Back;
+	CMlFrame Button_Ranked;
+	CMlFrame Button_TOTD;
+	CMlFrame Frame_Channels;
+	CMlFrame Frame_PlayerRank;
+	CMlFrame Frame_RoyalVictory;
+	CMlFrame Frame_TOTD;
+	CMlFrame PopUpMultiChoice_Offline;
+	CMlLabel Label_DateTOTD;
+	CMlLabel Label_DayTOTD;
+	CMlLabel Label_Footer;
+	CMlLabel Label_SearchResult;
+	CMlQuad Quad_Footer;
+}
+#Struct K_State {
+	K_Controls Controls;
+	Privileges::K_PrivilegeCheck UGCPrivilegeCheck;
+}
+
+#Const C_Rank_Icons {{{dump(Const::C_Rank_Icons)}}}
+#Const C_Month_Names {{{dump(Const::C_Month_Names)}}}
+
+#Const C_ChannelNames {{{dump(C_ChannelNames)}}}
+#Const C_ChannelImagesPathList {{{dump(C_ChannelImagesPathList)}}}
+#Const C_ChannelImagePath_Royal_NoCustom {{{dump(C_ChannelImagePath_Royal_NoCustom)}}}
+
+#Const C_COTDStatus_Check_Frequency 30000 //30 sec
+
+#Const C_Choice_Reconnect {{{dump(Const::C_Choice_Reconnect)}}}
+""",
+"""
+Void SetTOTDDayTextColor(CMlLabel _Label_DayTOTD, Boolean _IsFocused) {
+	AnimMgr.Flush(_Label_DayTOTD);
+	if (_IsFocused) {
+		AnimMgr.Add(_Label_DayTOTD, "<anim textcolor=\""^{{{dump(C_Color_TOTD_Day_Focused)}}}^"\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+	} else {
+		AnimMgr.Add(_Label_DayTOTD, "<anim textcolor=\""^{{{dump(C_Color_TOTD_Day_Unfocused)}}}^"\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+	}
+}
+
+Void SetLabelOpacity(CMlLabel _Label, Boolean _IsFocused) {
+	AnimMgr.Flush(_Label);
+	if (_IsFocused) {
+		AnimMgr.Add(_Label, "<anim opacity=\"1.\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+	} else {
+		AnimMgr.Add(_Label, "<anim opacity=\"0.8\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+	}
+}
+
+Void Focus(K_State _State, CMlControl _From, CMlControl _To) {
+	if ({{{Transition::P}}}IsInTransition(This)) return;
+
+	if (_From != Null) {
+		{{{Navigation::P}}}Unfocus(This, _From);
+		if ({{{ExpendableButton::P}}}IsButton(_From)) {
+			{{{ExpendableButton::P}}}Unfocus(This, (_From as CMlFrame));
+		} else if ({{{Button::P}}}IsButton(_From)) {
+			{{{Button::P}}}Unfocus(This, (_From as CMlFrame));
+			if (_From.Id == _State.Controls.Button_TOTD.Id) SetTOTDDayTextColor(_State.Controls.Label_DayTOTD, False);
+			if (_From.DataAttributeExists("secondarylabel")) {
+				SetLabelOpacity(_From.Parent.GetFirstChild(_From.DataAttributeGet("secondarylabel")) as CMlLabel, False);
+			}
+		}
+	}
+	
+	if (_To != Null) {
+		{{{Navigation::P}}}Focus(This, _To);
+		if ({{{ExpendableButton::P}}}IsButton(_To)) {
+			{{{ExpendableButton::P}}}Focus(This, (_To as CMlFrame));
+		} else if ({{{Button::P}}}IsButton(_To)) {
+			{{{Button::P}}}Focus(This, (_To as CMlFrame));
+			if (_To.Id == _State.Controls.Button_TOTD.Id) SetTOTDDayTextColor(_State.Controls.Label_DayTOTD, True);
+			if (_To.DataAttributeExists("secondarylabel")) {
+				SetLabelOpacity(_To.Parent.GetFirstChild(_To.DataAttributeGet("secondarylabel")) as CMlLabel, True);
+			}
+		}
+	}
+}
+
+Void FocusDefaultControl(K_State _State) {
+	foreach (Control in _State.Controls.Frame_Channels.Controls) {
+		if ({{{Button::P}}}IsButton(Control) && !{{{Navigation::P}}}IsLocked(Control)) {
+			Focus(_State, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), Control);
+			break;
+		}
+	}
+}
+
+K_State Select(K_State _State, CMlControl _Control) {
+	if (_Control == Null || {{{Transition::P}}}IsInTransition(This)) return _State;
+	
+	if ({{{UserStore::P}}}IsOfflineMode() && _Control.Id != _State.Controls.Button_Back.Id) {
+		{{{PopUpMultiChoice::P}}}Open(This, _State.Controls.PopUpMultiChoice_Offline);
+		return _State;
+	}
+
+	declare K_State State = _State;
+
+	switch (_Control.ControlId) {
+		case "button-ranked": {
+			if (!{{{UserStore::P}}}HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_PlayMatchmaking)) {
+				{{{Router::P}}}SetParentPath(This, "{{{RoutePaths::C_Path_ClubEditionInfo}}}", {{{Router::P}}}GetCurrentRoutePath(This));
+				{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_ClubEditionInfo}}}", ["{{{RoutePaths::C_Query_Message}}}" => RBAC::GetGamePermissionMessage(RBAC::C_GamePermissionMessage_PlayMatchmaking)]);
+			} else {
+				{{{Router::P}}}Push(
+					This,
+					"{{{RoutePaths::C_Path_MatchmakingMainPage}}}",
+					[
+						"{{{Router::C_Query_DisablePrivilege}}}" => Privileges::PrivilegesToQuery([CPrivilegeMgr::EPrivilege::PlayMultiplayerModeWithUGC]),
+						"{{{Router::C_Query_EnablePrivilege}}}" => Privileges::PrivilegesToQuery([CPrivilegeMgr::EPrivilege::PlayMultiplayerMode])
+					]
+				);
+			}
+		}
+		case "button-totd": {
+			{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_TOTDChannelDisplay}}}", True);
+		}
+		case "button-arcade": {
+			// Check that the user has the privilege to view UGC
+			State.UGCPrivilegeCheck = Privileges::Check_DestroyAndCreate(
+				State.UGCPrivilegeCheck,
+				PrivilegeMgr,
+				MainUser::GetMainUserId(),
+				CPrivilegeMgr::EPrivilege::UseUserCreatedContent
+			);
+		}
+		case "button-events": {
+			{{{Router::P}}}SetParentPath(This, "{{{RoutePaths::C_Path_Events}}}", "{{{RoutePaths::C_Path_Live}}}");
+			{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_Events}}}");
+		}
+		case "button-royal": {
+			if (!{{{UserStore::P}}}HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_PlayMatchmaking)) {
+				{{{Router::P}}}SetParentPath(This, "{{{RoutePaths::C_Path_ClubEditionInfo}}}", {{{Router::P}}}GetCurrentRoutePath(This));
+				{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_ClubEditionInfo}}}", ["{{{RoutePaths::C_Query_Message}}}" => RBAC::GetGamePermissionMessage(RBAC::C_GamePermissionMessage_PlayMatchmaking)]);
+			} else {
+				{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_MatchmakingMainPage}}}", ["{{{RoutePaths::C_Query_ForceMode}}}" => "{{{MatchmakingStruct::C_Mode_Royal}}}"]);
+			}
+		}
+		case "button-back": {{{Router::P}}}PushParent(This);
+	}
+
+	return State;
+}
+
+Void UpdateStatusTOTD(K_State _State) {
+	switch ({{{CupOfTheDayStatus::P}}}GetStatus()) {
+		case {{{CupOfTheDayStatus::P}}}C_CupOfTheDayStatus_StartingDateDisplayed: {
+			{{{Button::P}}}SetImage(This, _State.Controls.Button_TOTD, "{{{C_ChannelImagePath_COTD}}}");
+			_State.Controls.Label_Footer.SetText("{{{Text_CupOfTheDayStartingDateDisplayed}}}");
+		}
+		case {{{CupOfTheDayStatus::P}}}C_CupOfTheDayStatus_StartingSoon: {
+			{{{Button::P}}}SetImage(This, _State.Controls.Button_TOTD, "{{{C_ChannelImagePath_COTD}}}");
+			_State.Controls.Label_Footer.SetText("{{{Text_CupOfTheDayStartingSoon}}}");
+		}
+		case {{{CupOfTheDayStatus::P}}}C_CupOfTheDayStatus_QualificationsStarted: {
+			{{{Button::P}}}SetImage(This, _State.Controls.Button_TOTD, "{{{C_ChannelImagePath_COTD}}}");
+			_State.Controls.Label_Footer.SetText("{{{Text_CupOfTheDayStarted}}}");
+		}
+		default: {
+			{{{Button::P}}}SetImage(This, _State.Controls.Button_TOTD, "{{{C_ChannelImagesPathList[C_Index_TOTD]}}}");
+			_State.Controls.Label_Footer.SetText("");
+		}
+	}
+	_State.Controls.Quad_Footer.Visible = _State.Controls.Label_Footer.Value != "";
+	Tools::FitLabelValue(_State.Controls.Label_Footer, 2., 1., 0.25);
+}
+
+Void UpdatePlayerCurrentDivisions(K_State _State) {
+	// Ranked 
+	declare {{{UserStore::P}}}K_MatchmakingInfo RankedMatchmakingInfo = {{{UserStore::P}}}GetMatchmakingInfos("{{{MatchmakingStruct::C_Mode_Teams3v3}}}");
+	{{{PlayerRank::P}}}SetDivisions(RankedMatchmakingInfo.Divisions);
+	{{{PlayerRank::P}}}UpdatePlayerRank(_State.Controls.Frame_PlayerRank, RankedMatchmakingInfo.PlayerProgression.CurrentDivision);
+	if (RankedMatchmakingInfo.PlayerProgression.CurrentDivision == "") {
+		{{{Button::P}}}SetIconFocus(This, _State.Controls.Button_Ranked, C_Rank_Icons[1]);
+		{{{Button::P}}}SetIcon(This, _State.Controls.Button_Ranked, C_Rank_Icons[1]);
+	}
+
+	// Royal
+	declare {{{UserStore::P}}}K_MatchmakingInfo RoyalMatchmakingInfo = {{{UserStore::P}}}GetMatchmakingInfos("{{{MatchmakingStruct::C_Mode_Royal}}}");
+	{{{PlayerRoyalVictories::P}}}SetDivisions(This, RoyalMatchmakingInfo.Divisions);
+	{{{PlayerRoyalVictories::P}}}UpdatePlayerRoyalVictories(This, _State.Controls.Frame_RoyalVictory, RoyalMatchmakingInfo.PlayerProgression.CurrentDivision, RoyalMatchmakingInfo.PlayerProgression.CurrentProgression);
+}
+
+***MainInit***
+***
+declare CMlFrame Frame_Global;
+
+declare K_State State;
+declare Integer Next_COTD_Status_CheckTime;
+declare Integer NextDayUpdate;
+***
+
+***MainStart***
+***
+Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+
+State = K_State {
+	Controls = K_Controls {
+		Frame_Channels = (Frame_Global.GetFirstChild("frame-channels") as CMlFrame),
+		Frame_PlayerRank = (Frame_Global.GetFirstChild("frame-player-rank") as CMlFrame),
+		Frame_RoyalVictory = (Frame_Global.GetFirstChild("frame-royal-victory") as CMlFrame),
+		Frame_TOTD = (Frame_Global.GetFirstChild("frame-totd") as CMlFrame),
+		Button_Back = (Frame_Global.GetFirstChild("button-back") as CMlFrame),
+		Button_Ranked = (Frame_Global.GetFirstChild("button-ranked") as CMlFrame),
+		Button_TOTD = (Frame_Global.GetFirstChild("button-totd") as CMlFrame),
+		Label_DateTOTD = (Frame_Global.GetFirstChild("label-totd-date") as CMlLabel),
+		Label_DayTOTD = (Frame_Global.GetFirstChild("label-totd-day") as CMlLabel),
+		Label_Footer = (Frame_Global.GetFirstChild("label-footer") as CMlLabel),
+		Label_SearchResult = (Frame_Global.GetFirstChild("label-search-result") as CMlLabel),
+		PopUpMultiChoice_Offline = (Page.GetFirstChild("popupmultichoice-offline") as CMlFrame),
+		Quad_Footer = (Frame_Global.GetFirstChild("quad-footer") as CMlQuad)
+	}
+};
+
+FocusDefaultControl(State);
+***
+
+***MainLoop***
+***
+if ({{{Router::P}}}PageIsRunning(This, "{{{RoutePaths::C_Path_Live}}}")) {
+	foreach (Event in {{{Router::P}}}GetPendingEvents(This)) {
+		if (Event.Type == {{{Router::P}}}C_Event_EnteringRoute) {
+			ReportContext::SetMenuSection(System, ReportContext::C_MenuSection_Live);
+			
+			if ({{{UserStore::P}}}IsOfflineMode()) {
+				ControllerInfo::SetButtons(["A" => _("Select"), "{{{Const::C_NavInput_ProfileWidget}}}" => "{{{Const::C_Text_ProfileWidget}}}", "B" => "{{{Text_Back}}}"]);
+				{{{PopUpMultiChoice::P}}}Open(This, State.Controls.PopUpMultiChoice_Offline);
+			} else {
+				ControllerInfo::SetButtons(["A" => _("Select"), "{{{Const::C_NavInput_ProfileWidget}}}" => "{{{Const::C_Text_ProfileWidget}}}", "{{{Const::C_NavInput_ClubWidget}}}" => "{{{Const::C_Text_ClubWidget}}}", "B" => "{{{Text_Back}}}"]);
+				declare {{{UserStore::P}}}K_MatchmakingInfo RankedMatchmakingInfo = {{{UserStore::P}}}GetMatchmakingInfos("{{{MatchmakingStruct::C_Mode_Teams3v3}}}");
+				declare {{{UserStore::P}}}K_MatchmakingInfo RoyalMatchmakingInfo = {{{UserStore::P}}}GetMatchmakingInfos("{{{MatchmakingStruct::C_Mode_Royal}}}");	
+				if (RankedMatchmakingInfo.Divisions.count <= 0 || RoyalMatchmakingInfo.Divisions.count <= 0) { //< Try to load matchmaking infos again if not loaded correctly
+					{{{UserStore::P}}}Action_LoadMatchmakingInfos(This, LocalUser.WebServicesUserId);
+				}				
+				{{{CampaignStore::P}}}Action_LoadLiveMonthlyCampaign(This);
+			}
+			UpdatePlayerCurrentDivisions(State);
+
+			// Refresh current focus for TTS
+			Focus(State, Null, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"));
+		}
+	}
+
+	/* Navigation events */
+	foreach (Event in {{{Navigation::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case {{{Navigation::P}}}C_EventType_NavigateInput: {
+				if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName}}}")) {
+					switch (Event.Input) {
+						case CMlScriptEvent::EMenuNavAction::Cancel: {{{Router::P}}}PushParent(This);
+						case CMlScriptEvent::EMenuNavAction::Select: State = Select(State, Event.To);
+						default: {
+							declare CMlControl To = Event.To;
+							if (Event.To != Null) {
+								declare CMlControl[CMlScriptEvent::EMenuNavAction] NavigationMemory for Event.To;
+								NavigationMemory[{{{Navigation::P}}}InvertInput(Event.Input)] = Event.From;
+							}
+							if (Event.From != Null) {
+								declare CMlControl[CMlScriptEvent::EMenuNavAction] NavigationMemory for Event.From;
+								if (NavigationMemory.existskey(Event.Input) && NavigationMemory[Event.Input] != Null && !{{{Navigation::P}}}IsLocked(NavigationMemory[Event.Input])) {
+									To = NavigationMemory[Event.Input];
+								}
+							}
+							Focus(State, Event.From, To);
+						}
+					}
+				}
+			}
+			case {{{Navigation::P}}}C_EventType_NavigateMouse: {
+				if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName}}}")) {
+					if (Event.Mouse == CMlScriptEvent::Type::MouseClick) {
+						State = Select(State, Event.To);
+					} else if (Event.Mouse == CMlScriptEvent::Type::MouseOver) {
+						Focus(State, Event.From, Event.To);
+					}
+				}
+			}
+		}
+	}
+
+	/* Stores events */
+	foreach (Event in PendingEvents) {
+		switch (Event.Type) {
+			case CMlScriptEvent::Type::PluginCustomEvent: {
+				switch (Event.CustomEventType) {
+					case {{{CampaignStore::P}}}C_Event_LiveMonthlyCampaignUpdated: {
+						declare Status = {{{CampaignStore::P}}}GetLiveMonthlyCampaignStatus();
+						if (Status == {{{CampaignStore::P}}}C_LiveCampaignStatus_Loaded || Status == {{{CampaignStore::P}}}C_LiveCampaignStatus_NoCampaigns) {
+							{{{CupOfTheDayStatus::P}}}Update_COTD_Times();
+							UpdateStatusTOTD(State);
+							Next_COTD_Status_CheckTime = Now + C_COTDStatus_Check_Frequency;
+							NextDayUpdate = Now;
+						}
+					}
+					case {{{UserStore::P}}}C_Event_MatchmakingInfosUpdated: {
+						UpdatePlayerCurrentDivisions(State);
+					}
+				}
+			}
+		}
+	}
+
+	/* COTD status update */
+	if (Next_COTD_Status_CheckTime > 0 && Next_COTD_Status_CheckTime <= Now) {
+		Next_COTD_Status_CheckTime = Now + C_COTDStatus_Check_Frequency;
+		UpdateStatusTOTD(State);
+	}
+
+	/* TOTD day update */
+	if (Now > NextDayUpdate) {
+		State.Controls.Label_DateTOTD.SetText({{{CampaignStore::P}}}GetMonthYearTOTD());
+		State.Controls.Label_DayTOTD.SetText(""^{{{CampaignStore::P}}}GetDayTOTD());
+		NextDayUpdate = Now + {{{CampaignStore::P}}}GetRelativeEndTOTD();
+		{{{Button::P}}}SetTextToSpeech(This, State.Controls.Button_TOTD, TL::Compose("%1 - %2 %3", C_ChannelNames[{{{C_Index_TOTD}}}], State.Controls.Label_DayTOTD.Value, TL::GetTranslatedText(State.Controls.Label_DateTOTD.Value)));
+	}
+
+	/* PopUpMultiChoice events */
+	foreach (Event in {{{PopUpMultiChoice::P}}}GetPendingEvents(This)) {
+		if (Event.PopUpMultiChoice != Null && Event.PopUpMultiChoice.Id == State.Controls.PopUpMultiChoice_Offline.Id) {
+			switch (Event.Type) {
+				case {{{PopUpMultiChoice::P}}}C_EventType_Display: {
+					{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", !Event.PopUpMultiChoice.Visible);
+				}
+				case {{{PopUpMultiChoice::P}}}C_EventType_Select: {
+					switch (Event.SelectedIndex) {
+						case C_Choice_Reconnect: {
+							SendCustomEvent("{{{Const::C_Event_ConnectionError_RequestRestart}}}", []);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Check UGC privilege
+	if (!Privileges::Check_IsComplete(State.UGCPrivilegeCheck)) {
+		State.UGCPrivilegeCheck = Privileges::Check_Update(State.UGCPrivilegeCheck);
+		if (Privileges::Check_IsComplete(State.UGCPrivilegeCheck)) {
+			State.UGCPrivilegeCheck = Privileges::Check_Destroy(State.UGCPrivilegeCheck);
+			if (Privileges::Check_HasPrivilege(State.UGCPrivilegeCheck)) {
+				{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_Arcade}}}");
+			} else {
+				{{{Router::P}}}SetParentPath(This, "{{{RoutePaths::C_Path_RoomCampaignDisplay}}}", {{{Router::P}}}GetCurrentRoutePath(This));
+				{{{Router::P}}}Push(This, 
+					"{{{RoutePaths::C_Path_RoomCampaignDisplay}}}",
+					[
+						"{{{Router::C_Query_DisablePrivilege}}}" => Privileges::PrivilegesToQuery([CPrivilegeMgr::EPrivilege::PlayMultiplayerModeWithUGC]),
+						"{{{Router::C_Query_EnablePrivilege}}}" => Privileges::PrivilegesToQuery([CPrivilegeMgr::EPrivilege::PlayMultiplayerMode])
+					],
+					True
+				);
+			}
+		}
+	}
+}
+
+foreach (Event in {{{Router::P}}}GetPendingEvents(This)) {
+	switch (Event.Type) {
+		case "{{{Router::C_Event_LeavingRoute}}}": {
+			// Updates the focus when the player is leaving the page to avoid a visible focus update when entering the page
+			if ({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}") == State.Controls.Button_Back) {
+				FocusDefaultControl(State);
+			}
+			State.UGCPrivilegeCheck = Privileges::Check_Destroy(State.UGCPrivilegeCheck);
+		}
+	}
+}
+***
+""",
+[
+	Button::ComponentV2(),
+	ExpendableButton::ComponentV2(),
+	CampaignStore::ComponentV2(),
+	CupOfTheDayStatus::Component(),
+	Navigation::ComponentV2(),
+	PlayerRank::Component(),
+	Router::ComponentV2(),
+	Transition::ComponentV2(),
+	PlayerRoyalVictories::ComponentV2(),
+	PopUpMultiChoice::ComponentV2(),
+	MenuSounds::ComponentV2(),
+	UserStore::ComponentV2()
+],
+[]
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update from the ManiaApp
+Void Yield() {
+
+}

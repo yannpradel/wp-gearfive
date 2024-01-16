@@ -1,0 +1,14 @@
+/**
+ *	Markers management (common code)
+ */		
+#Const Version		"2021-04-23"
+#Const ScriptName	"Libs/Nadeo/ModeLibs/Common/Markers_Common.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get a marker frame id
+Text GetManialinkFrameId(Integer _MarkerFrameId) {
+	return "marker-player-"^_MarkerFrameId;
+}

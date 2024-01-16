@@ -1,0 +1,25 @@
+/** 
+ *	Component: RequestRedraw
+ */
+#Const Version		"2023-04-28"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Menu/Components/RequestRedraw.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Force components redraw
+Void RequestComponentsRedraw() {
+	declare Integer TMNext_MenuComponents_RedrawRequested for System = 0;
+	TMNext_MenuComponents_RedrawRequested += 1;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the value of the component redraw counter
+Integer GetComponentsRedrawCounter() {
+	declare Integer TMNext_MenuComponents_RedrawRequested for System = 0;
+	return TMNext_MenuComponents_RedrawRequested;
+}

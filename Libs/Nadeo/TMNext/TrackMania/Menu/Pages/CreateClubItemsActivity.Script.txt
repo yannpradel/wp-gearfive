@@ -1,0 +1,1276 @@
+/** 
+ *	Page: CreateClubItemsActivity
+ */
+#Const Version		"2023-06-09"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Menu/Pages/CreateClubItemsActivity.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/TextField.Script.txt" as TextField
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Transition.Script.txt" as Transition
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Navigation.Script.txt" as Navigation
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/MenuSounds.Script.txt" as MenuSounds
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/PopUpBackground.Script.txt" as PopUpBackground
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as Const
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/Button.Script.txt" as Button
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Router_ML.Script.txt" as Router
+#Include "Libs/Nadeo/TMNext/TrackMania/API/BrowserAPI.Script.txt" as BrowserAPI
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/LoadingSpinner.Script.txt" as LoadingSpinner
+#Include "Libs/Nadeo/TMNext/TrackMania/ColorPalette.Script.txt" as ColorPalette
+#Include "Libs/Nadeo/TMNext/TrackMania/Config.Script.txt" as Config
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/ClubStore_ML.Script.txt" as ClubStore
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/ClubStruct.Script.txt" as ClubStruct
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/RoutePaths.Script.txt" as RoutePaths
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/UserStore_ML.Script.txt" as UserStore
+#Include "Libs/Nadeo/CommonLibs/Common/Error.Script.txt" as Error
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/ExpendableButton.Script.txt" as ExpendableButton
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/PopUpMultiChoice.Script.txt" as PopUpMultiChoice
+#Include "Libs/Nadeo/CommonLibs/Common/Platform.Script.txt" as Platform
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "Page_CreateClubItemsActivity"
+#Const C_NavGroupName "navgroup-page-create-club-items-activity"
+#Const C_NavGroupName_Content "navgroup-page-create-club-items-activity-content"
+#Const C_NavGroup_Pager "navgroup-page-create-club-items-activity-pager"
+
+#Const C_Privileges [
+	CPrivilegeMgr::EPrivilege::UseUserCreatedContentRequired
+]
+
+#Const C_Class_Media "class-page-create-club-items-activity-media"
+#Const C_Class_MediaAction "class-page-create-club-items-activity-media-action"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the page manialink
+ *
+ *	@return														The page manialink
+ */
+Text GetManialink() {
+	//L16N [Item Collection activity creation page] [Item Collection activity creation page] Button to finalize the creation of an activity
+	declare Text Text_Create = _("Create");
+	//L16N [Item Collection activity creation page] Button to finalize the edition of an activity
+	declare Text Text_Edit = _("Edit");
+	//L16N [Item Collection activity creation page] Text displayed while creating an activity
+	declare Text Text_Creating = _("Creating activity...");
+	//L16N [Item Collection activity creation page] Text displayed while editing an activity
+	declare Text Text_Editing = _("Editing activity...");
+	//L16N [Item Collection activity creation page] Name of the Item Collection in 20 characters max
+	declare Text Text_Name = _("Item collection name");
+	//L16N [Item Collection activity creation page] Basic text for the description entry
+	declare Text Text_DescriptionTextField = _("Item collection description");
+	//L16N [Item Collection activity creation page] Button to open the browser and upload the Item Collection
+	declare Text Text_Upload = _("Upload Item Collection");
+	//L16N [Item Collection activity creation page] Button to open the browser and upload a new Item Collection
+	declare Text Text_NewUpload = _("Update Item Collection");
+	//L16N [Item Collection activity creation page] Text above the images used to illustrate the collection
+	declare Text Text_Pictures = _("Image gallery");
+	//L16N [Item Collection activity creation page] Item Collection text description
+	declare Text Text_Description = _("Description");
+	//L16N [Item Collection activity creation page] Button to remove the selecting image
+	declare Text Text_Remove = _("Remove image");
+	//L16N [Item Collection activity creation page] Text to indicate the current image position, e.g "2/10"
+	declare Text Text_Pager = _("%1/%2");
+	//L16N [Item Collection activity creation page] Text preceded by a button icon (i.e. "X") to inform the player that they can access the image gallery by pressing the associated button on their controller.
+	declare Text Text_AccessGallery = _("Access gallery");
+	//L16N [Item Collection activity creation page] Text preceded by a button icon (i.e. "X") to inform the player that they can exit the image gallery by pressing the associated button on their controller.
+	declare Text Text_ExitGallery = _("Exit gallery");
+	//L16N [Item Collection activity creation page] Message displayed when there is an error while getting the Item Collections to edit. %1 will be replaced with an error code. e.g. "Failed to retrieve the Item Collection to edit. (Error: 123456)"
+	declare Text Text_ErrorGetCollection = _("Failed to retrieve the Item Collection to edit. (Error: %1)");
+	//L16N [Item Collection activity creation page] Message displayed when there is an error while creating the Item Collections. %1 will be replaced with an error code. e.g. "Failed to create the Item Collection. (Error: 123456)"
+	declare Text Text_ErrorCreateCollection = _("Failed to create the Item Collection. (Error: %1)");
+	//L16N [Item Collection activity creation page] Message displayed when there is an error while updating the Item Collections. %1 will be replaced with an error code. e.g. "Failed to update the Item Collection. (Error: 123456)"
+	declare Text Text_ErrorUpdateCollection = _("Failed to update the Item Collection. (Error: %1)");
+	// Description of the upload error pop-up
+	declare PopUpMultiChoice::K_DescriptionPart[] Description_UploadError = [
+		PopUpMultiChoice::CreateDescriptionPart(Const::C_UploadOnPlatformPopUp_Description, <120., 30.>, 3., FontManager::C_GameFontSemiBold, "$t$i", <1., 1., 1.>, False)
+	];
+
+	declare Boolean PlaformIsFromFirstParty = Platform::IsFromFirstParty(System);
+	declare Vec2 Size_TextField = <130., 11.>;
+	declare Real PosTitleX = 50.;
+	declare Real PosDescriptionX = -75.;
+
+	return MV::Create(
+C_Name, 3,
+"""
+<stylesheet>
+	<style class="text-default" halign="center" valign="center2" textfont="{{{FontManager::C_GameFontRegular}}}" textsize="3" textcolor="FFFFFF"/>
+	<style class="text-title" halign="center" valign="center2" textfont="{{{FontManager::C_GameFontExtraBold}}}" textsize="5" textcolor="FFF" textprefix="$i$t"/>
+	<style class="image-default" halign="center" valign="center"/>
+</stylesheet>
+
+<!-- Browsers -->
+<frameinstance modelid="{{{BrowserAPI::C_Name}}}" id="frame-browser" z-index="{{{Const::C_ZIndex_BrowserAPI}}}" hidden="1"/>
+
+<!-- Frame global -->
+<frame id="frame-global" z-index="{{{Const::C_ZIndex_PopUpDisplay}}}">
+	<frameinstance id="popupmultichoice-upload-error" modelid="{{{PopUpMultiChoice::C_Name}}}" data-title="{{{Const::C_UploadOnPlatformPopUp_Title}}}" data-description="{{{TL::MLEncode(Description_UploadError.tojson())}}}" z-index="3" hidden="1"/>
+	<frameinstance modelid="{{{PopUpBackground::C_Name}}}" id="frame-popup-background" z-index="-1"
+		data-pop-up-name="{{{C_Name}}}" 
+		data-background-size="{{{PopUpBackground::C_PopUp_BigSizeX+3.}}} {{{PopUpBackground::C_PopUp_BigSizeY+3.}}}" 
+		data-background-opacity="0.95" 
+		data-background-url="{{{Const::C_ImageUrl_PopUp_Activity_Background_Body}}}"
+		data-use-hitbox="1"
+	/>
+
+	<frame id="frame-content">
+		<frameinstance
+			modelid="{{{Button::C_Name}}}" id="button-activity-media"
+			class="{{{Navigation::C_Class}}}"
+			pos="{{{PosDescriptionX}}} 52.5"
+			data-backgroundcolortype="{{{Button::C_ColorType_Colorize}}}"
+			data-image="{{{Const::C_ImageUrl_PopUp_Activity_New_Logo}}}"
+			data-imagefocus="{{{Const::C_ImageUrl_PopUp_Activity_New_Logo}}}"
+			data-alphamask="{{{Const::C_ImageUrl_PopUp_Activity_New_Logo_Mask}}}"
+			data-bgcolor="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-focuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-size="52 24"
+			data-opacityunfocus=".5"
+			data-iconcolortype="{{{Button::C_ColorType_Colorize}}}"
+			data-iconcolor="{{{ColorPalette::C_Color_GreenOne}}}"
+			data-iconfocuscolor="{{{ColorPalette::C_Color_White}}}"
+			data-icon="{{{Const::C_ImageUrl_Icon_Plus_Oblique}}}"
+			data-iconfocus="{{{Const::C_ImageUrl_Icon_Plus_Oblique}}}"
+			data-iconsize="17 17"
+			data-labelsize="45 10"
+			data-textypos="-0.8"
+			data-textxpos="0.48"
+			data-textsize="3"
+			data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+			data-textitalicslope=".2"
+			data-iconopacityunfocus="1."
+			data-halign="center"
+			data-valign="center"
+			data-nav-inputs="select;cancel;right;down"
+			data-nav-targets="_;_;textfield-name;textfield-description"
+			data-nav-group="{{{C_NavGroupName_Content}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+
+		<frameinstance 
+			modelid="{{{TextField::C_Name}}}" id="textfield-name" pos="{{{PosTitleX + 2}}} 58.5"
+			class="{{{Navigation::C_Class}}}"
+			data-size="{{{Size_TextField.X}}} {{{Size_TextField.Y}}}"
+			data-placeholder="{{{Text_Name}}}"
+			data-bgopacityunfocus="0.4"
+			data-bgcolorfocus="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-bgcolorunfocus="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-contourcolorfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+			data-contouropacityunfocus=".0"
+			data-contouropacityfocus="1."
+			data-textcolorunfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+			data-halign="center" data-valign="center"
+			data-nav-inputs="select;cancel;down;left"
+			data-nav-targets="_;_;button-upload-collection;button-activity-media"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{TextField::C_NavZone}}}"
+		/>
+
+		<frameinstance
+			id="button-upload-collection" pos="{{{PosTitleX}}} 46.5" z-index="1"
+			modelid="{{{ExpendableButton::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-styles="{{{ExpendableButton::C_Style_Stack}}}"
+			data-width="{{{Size_TextField.X}}}" data-height="{{{Size_TextField.Y}}}"
+			data-text="{{{Text_Upload}}}"
+			data-text-textfont="{{{FontManager::C_GameFontSemiBold}}}"
+			data-text-textsize="4."
+			data-icon-size="11 11"
+			data-icon-image="{{{Const::C_ImageUrl_Icon_Glass_Plus}}}"
+			data-icon-colormode="{{{ExpendableButton::C_ColorMode_Colorize}}}"
+			data-icon-color-focused="{{{ColorPalette::C_Color_White}}}"
+			data-icon-color-unfocused="{{{ColorPalette::C_Color_GreenOne}}}"
+			data-icon-align="{{{ExpendableButton::C_IconAlign_Right}}}"
+			data-focus-color-unfocused="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-background-color-focused="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-background-color-unfocused="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-background-opacity-unfocused="0.4"
+			data-valign="center" data-halign="center"
+			data-nav-inputs="select;cancel;left;up;down"
+			data-nav-targets="_;_;button-activity-media;textfield-name;button-bucket-media"
+			data-nav-group="{{{C_NavGroupName_Content}}}"
+			data-nav-zone="{{{ExpendableButton::C_NavZone}}}"
+		/>
+
+		<frame id="frame-description" pos="{{{PosDescriptionX}}} -14">
+			<label id="label-desc" class="text-title" text="{{{Text_Description}}}" pos="0 42" textsize="5" />
+			<frameinstance 
+				modelid="{{{TextField::C_Name}}}" id="textfield-description"
+				class="{{{Navigation::C_Class}}}"
+				data-size="90 75" data-skew="0."
+				data-placeholder="{{{Text_DescriptionTextField}}}"
+				data-bgopacityunfocus="0.4"
+				data-bgcolorfocus="{{{ColorPalette::C_Color_GreenFour}}}"
+				data-bgcolorunfocus="{{{ColorPalette::C_Color_GreenFour}}}"
+				data-contourimage="{{{Const::C_ImageUrl_PopUp_Activity_ItemCollection_Description_Contour}}}"
+				data-contourcolorfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-contouropacityunfocus=".0"
+				data-contouropacityfocus="1."
+				data-autonewline="1" data-maxline="4"
+				data-textfieldtype="{{{TextField::C_TextFieldType_TextEdit}}}"
+				data-textcolorunfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-halign="center" data-valign="center"
+				data-nav-inputs="select;cancel;up;down;right"
+				data-nav-targets="_;_;button-activity-media;button-create;button-previous-media"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{TextField::C_NavZone}}}"
+			/>
+		</frame>
+
+		<frame id="frame-media" pos="{{{PosTitleX + 2}}} -14">
+		
+			<frameinstance 
+				id="button-previous-media" pos="-75 0"
+				modelid="{{{Button::C_Name}}}" 
+				class="{{{Navigation::C_Class}}} {{{C_Class_MediaAction}}}"
+				data-bgempty="1"
+				data-iconcolortype="{{{Button::C_ColorType_Colorize}}}"
+				data-iconcolor="{{{ColorPalette::C_Color_White}}}"
+				data-iconfocuscolor="{{{ColorPalette::C_Color_White}}}"
+				data-icon="{{{Const::C_ImageUrl_Icon_Arrow_Left_Oblique}}}"
+				data-iconfocus="{{{Const::C_ImageUrl_Icon_Arrow_Left_Oblique}}}"
+				data-iconsize="15 15"
+				data-iconopacityunfocus=".4"
+				data-halign="center" data-valign="center"
+				data-nav-inputs="select;cancel;left;right;down;up" 
+				data-nav-targets="_;_;textfield-description;button-bucket-media;button-create;button-upload-collection"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+			/>
+			
+			<frameinstance modelid="{{{Button::C_Name}}}" id="button-bucket-media"
+				data-text="{{{Text_Pictures}}}"
+				data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+				data-textsize="5"
+				data-textitalicslope=".2"
+				data-textypos="0.05"
+				class="{{{Navigation::C_Class}}} {{{C_Class_Media}}}"
+				data-backgroundcolortype="{{{Button::C_ColorType_Colorize}}}"
+				data-bgcolor="{{{ColorPalette::C_Color_GreenFour}}}"
+				data-focuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
+				data-size="133 75"
+				data-textopacityunfocus="1."
+				data-opacityunfocus=".5"
+				data-contourimage="{{{Const::C_ImageUrl_PopUp_Activity_ItemCollection_Media_Contour}}}"
+				data-contourimagecolor="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-contouropacityunfocus=".0"
+				data-iconcolortype="{{{Button::C_ColorType_Colorize}}}"
+				data-iconcolor="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-iconfocuscolor="{{{ColorPalette::C_Color_White}}}"
+				data-icon="{{{Const::C_ImageUrl_Icon_Plus_Oblique}}}"
+				data-iconfocus="{{{Const::C_ImageUrl_Icon_Plus_Oblique}}}"
+				data-iconsize="30 30"
+				data-iconopacityunfocus="1."
+				data-halign="center"
+				data-valign="center"
+				data-bgkeepratio="Clip"
+				data-nav-inputs="select;cancel;up;down;action1;left;right"
+				data-nav-targets="_;_;button-upload-collection;button-create;button-remove-media;button-previous-media;button-next-media"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+			/>
+
+			<frameinstance 
+				id="button-next-media" pos="75 0"
+				modelid="{{{Button::C_Name}}}" 
+				class="{{{Navigation::C_Class}}} {{{C_Class_MediaAction}}}"
+				data-bgempty="1"
+				data-iconcolortype="{{{Button::C_ColorType_Colorize}}}"
+				data-iconcolor="{{{ColorPalette::C_Color_White}}}"
+				data-iconfocuscolor="{{{ColorPalette::C_Color_White}}}"
+				data-icon="{{{Const::C_ImageUrl_Icon_Arrow_Right_Oblique}}}"
+				data-iconfocus="{{{Const::C_ImageUrl_Icon_Arrow_Right_Oblique}}}"
+				data-iconsize="15 15"
+				data-iconopacityunfocus=".4"
+				data-halign="center" data-valign="center"
+				data-nav-inputs="select;cancel;left;down;up" 
+				data-nav-targets="_;_;button-bucket-media;button-create;button-upload-collection"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+			/>
+
+			<label id="label-media-pager" class="text-default" textfont="{{{FontManager::C_GameFontSemiBold}}}" pos="0 -41"/>
+
+			<frameinstance
+				modelid="{{{Button::C_Name}}}" id="button-remove-media" z-index="2"
+				pos="55 27"
+				data-image="{{{Const::C_ImageUrl_Icon_Bin_Inc}}}"
+				data-imagefocus="{{{Const::C_ImageUrl_Icon_Bin_Inc}}}"
+				data-bgcolor="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-focuscolor="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-size="14 14"
+				data-opacityunfocus=".5"
+				data-halign="center"
+				data-valign="center"
+				data-nav-inputs="select;cancel"
+				data-nav-targets="_;_"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+				class="{{{Navigation::C_Class}}} {{{C_Class_MediaAction}}}"
+			/>
+		</frame>
+
+		<frameinstance
+			modelid="{{{Button::C_Name}}}" id="button-create"
+			pos="85 -75" z-index="2"
+			class="{{{Navigation::C_Class}}}"
+			data-text="{{{Text_Create}}}"
+			data-size="60 12"
+			data-labelsize="38 12"
+			data-textxpos="0.45"
+			data-opacityunfocus=".5"
+			data-image="{{{Const::C_ImageUrl_ButtonBG_LocalMulti_Play}}}"
+			data-imagefocus="{{{Const::C_ImageUrl_ButtonBG_LocalMulti_Play}}}"
+			data-bgcolor="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-focuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-textcolor="FFF"
+			data-textfocuscolor="FFF"
+			data-iconcolortype="{{{Button::C_ColorType_Colorize}}}"
+			data-iconcolor="FFF"
+			data-iconfocuscolor="FFF"
+			data-icon="{{{Const::C_ImageUrl_Icon_Arrow_Right_Oblique}}}"
+			data-iconfocus="{{{Const::C_ImageUrl_Icon_Arrow_Right_Oblique}}}"
+			data-iconxpos=".85"
+			data-iconypos="-.49"
+			data-textsize="5"
+			data-textopacityunfocus=".5"
+			data-iconopacityunfocus=".5"
+			data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+			data-textitalicslope=".2"
+			data-halign="center"
+			data-valign="bottom"
+			data-nav-inputs="select;cancel;up"
+			data-nav-targets="_;_;button-bucket-media"
+			data-nav-group="{{{C_NavGroupName_Content}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+	</frame>
+
+	<label id="label-error" pos="0 -60" size="220 10" textfont="{{{FontManager::C_GameFontSemiBold}}}" textcolor="{{{ColorPalette::C_Color_ErrorRed}}}" class="text-default"/>
+	<frameinstance id="frame-loading-spinner" modelid="{{{LoadingSpinner::C_Name}}}" data-label="{{{Text_Creating}}}" scale="1." />
+</frame>
+""",
+"""
+#Include "TextLib" as TL
+#Include "ColorLib" as CL
+#Include "Libs/Nadeo/CommonLibs/Common/Http.Script.txt" as Http
+#Include "Libs/Nadeo/CommonLibs/Common/MainUser.Script.txt" as MainUser
+#Include "Libs/Nadeo/MenuLibs/Common/Components/Tools.Script.txt" as Tools
+#Include "Libs/Nadeo/TMNext/TrackMania/API/ClubAPI.Script.txt" as ClubAPI
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Overlays/ControllerInfo_ML.Script.txt" as ControllerInfo
+
+#Const C_Name_MaxChar 20
+#Const C_Desc_MaxChar 200
+
+#Const C_AddMedia_Index -1
+#Const C_MaxCollectionMedia 10
+
+#Const C_ErrorTypeDataFileManager "DataFileManager"
+#Const C_ErrorCodeActivityExists "0x000007D1"
+
+#Const C_PlaformIsFromFirstParty {{{dump(PlaformIsFromFirstParty)}}}
+
+#Struct K_Controls {
+	CMlFrame Frame_Content;
+	CMlFrame Frame_Browser;
+	CMlFrame Frame_LoadingSpinner;
+	CMlFrame Button_ActivityMedia;
+	CMlFrame Button_BucketMedia;
+	CMlFrame Button_RemoveMedia;
+	CMlFrame TextField_Name;
+	CMlFrame TextField_Description;
+	CMlLabel Label_MediaPager;
+	CMlFrame Button_PreviousMedia;
+	CMlFrame Button_NextMedia;
+	CMlLabel Label_Error;
+	CMlFrame PopUpMultiChoice_UploadError;
+}
+
+#Struct K_State {
+	K_Controls Controls;
+	Text BucketActivityType;
+	{{{ClubStruct::P}}}K_Activity Activity;
+	{{{ClubStruct::P}}}K_BucketItem ItemCollection;
+	{{{ClubStruct::P}}}K_BucketItem OldItemCollection;	
+	Http::K_Request GetBucketActivityRequest;
+	Http::K_Request GetExistingActivityRequest;
+	Boolean IsMediaControllerNavigationEnabled;
+	Boolean IsBrowsingActivityMedia;
+	Boolean IsBrowsingBucketMedia;
+	Boolean IsEditing;
+	Integer CurrentMediaIndex;
+	Boolean IsBrowsingCollection;
+	Text FileName;
+	Ident Task_GetItemCollectionId;
+	Ident Task_CreateItemCollectionId;
+	Ident Task_UpdateItemCollectionId;
+	Ident Task_UpdateVersionItemCollectionId;
+	Ident Task_SetActivityIdToItemCollectionId;
+	Text CreatorId;
+	Text CreatorDisplayName;
+}
+""",
+"""
+Void UpdateControllerInfo(K_State _State) {
+	declare CMlControl FocusedControl = {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}");
+	declare Text[Text] ControllerInfos = ["Select" => _("Select"), "Cancel" => _("Back")];
+
+	if (!_State.Controls.Frame_Browser.Visible) {
+		if (_State.IsMediaControllerNavigationEnabled) {
+			ControllerInfos["Cancel"] = "{{{Text_ExitGallery}}}";
+			if (_State.CurrentMediaIndex != C_AddMedia_Index) {
+				ControllerInfos["Action1"] = "{{{Text_Remove}}}";
+				ControllerInfos.removekey("Select");
+			}
+		} else if (FocusedControl != Null && FocusedControl == _State.Controls.Button_BucketMedia) {
+			if (_State.ItemCollection.MediaUrls.count > 0) {
+				ControllerInfos["Select"] = "{{{Text_AccessGallery}}}";
+			}
+		}
+	}
+
+	ControllerInfo::SetButtons(ControllerInfos);
+}
+
+Void Focus(K_State _State, CMlControl _From, CMlControl _To) {
+	if ({{{Transition::P}}}IsInTransition(This)) return;
+	
+	if (_From != Null) {
+		{{{Navigation::P}}}Unfocus(This, _From);
+		if ({{{TextField::P}}}IsTextField(_From)) {
+			{{{TextField::P}}}Unfocus(This, _From as CMlFrame);
+		} else if ({{{ExpendableButton::P}}}IsButton(_From)) {
+			{{{ExpendableButton::P}}}Unfocus(This, _From as CMlFrame);
+		} else if ({{{Button::P}}}IsButton(_From)) {
+			{{{Button::P}}}Unfocus(This, _From as CMlFrame);
+			if (_From.HasClass("{{{C_Class_MediaAction}}}")) {
+				{{{Button::P}}}Unfocus(This, _State.Controls.Button_BucketMedia);
+			} else if (_From.HasClass("{{{C_Class_Media}}}")) {
+				UpdateControllerInfo(_State);
+			}
+		}
+	}
+	
+	if (_To != Null) {
+		{{{Navigation::P}}}Focus(This, _To);
+		if ({{{TextField::P}}}IsTextField(_To)) {
+			{{{TextField::P}}}Focus(This, _To as CMlFrame);
+		} else if ({{{ExpendableButton::P}}}IsButton(_To)) {
+			{{{ExpendableButton::P}}}Focus(This, _To as CMlFrame);
+		} else if ({{{Button::P}}}IsButton(_To)) {
+			{{{Button::P}}}Focus(This, _To as CMlFrame);
+			if (_To.HasClass("{{{C_Class_MediaAction}}}")) {
+				{{{Button::P}}}Focus(This, _State.Controls.Button_BucketMedia);
+			} else if (_To.HasClass("{{{C_Class_Media}}}")) {
+				UpdateControllerInfo(_State);
+			}
+		}
+	}
+}
+
+K_State EnableMediaControllerNavigation(K_State _State, Boolean _IsEnabled) {
+	declare K_State State = _State;
+
+	State.IsMediaControllerNavigationEnabled = _IsEnabled;
+	{{{Button::P}}}SetVisibilityAndNavigation(State.Controls.Button_NextMedia, _IsEnabled);
+	{{{Button::P}}}SetVisibilityAndNavigation(State.Controls.Button_PreviousMedia, _IsEnabled);
+	{{{Button::P}}}SetVisibilityAndNavigation(State.Controls.Button_RemoveMedia, _IsEnabled && State.CurrentMediaIndex != C_AddMedia_Index);
+	if (_IsEnabled) {
+		{{{Button::P}}}SetContourColor(This, State.Controls.Button_BucketMedia, <1., 1., 1.>);
+	} else {
+		{{{Button::P}}}SetContourColor(This, State.Controls.Button_BucketMedia, {{{ColorPalette::C_Color_Vec3_GreenOne}}});
+	}
+	
+	UpdateControllerInfo(State);
+	return State;
+}
+
+Void DisplayContent(K_State _State, Boolean _IsVisible) {
+	{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName_Content}}}", _IsVisible);
+	_State.Controls.Frame_Content.Visible = _IsVisible;
+	{{{LoadingSpinner::P}}}SetIsLoading(This, _State.Controls.Frame_LoadingSpinner, !_IsVisible);
+}
+
+Void SetButtonsAndLabels(K_State _State, CMlFrame _Button_Create) {
+	if (_State.IsEditing) {
+		{{{Button::P}}}SetValue(This, _Button_Create, "{{{Text_Edit}}}");
+		{{{LoadingSpinner::P}}}SetLabel(_State.Controls.Frame_LoadingSpinner, "{{{Text_Editing}}}");
+	} else {
+		{{{Button::P}}}SetValue(This, _Button_Create, "{{{Text_Create}}}");
+		{{{LoadingSpinner::P}}}SetLabel(_State.Controls.Frame_LoadingSpinner, "{{{Text_Creating}}}");
+	}
+	{{{Navigation::P}}}Lock(_Button_Create, _State.IsEditing);
+}
+
+Void SetButtonWithImage(CMlFrame _Button, Text _ImgUrl) {
+	{{{Button::P}}}SetBgColor(This, _Button, <-1.,-1.,-1.>);
+	{{{Button::P}}}SetFocusColor(This, _Button, <-1.,-1.,-1.>);
+	{{{Button::P}}}SetBgColorType(This, _Button, {{{Button::C_ColorType_None}}});
+	{{{Button::P}}}SetOpacityUnfocus(This, _Button, 0.75);
+	if (Http.IsValidUrl(_ImgUrl)) {
+		{{{Button::P}}}SetImage(This, _Button, _ImgUrl);
+		{{{Button::P}}}SetImageFocus(This, _Button, _ImgUrl);
+		{{{Button::P}}}SetIcon(This, _Button, "");
+		{{{Button::P}}}SetIconFocus(This, _Button, "");
+	}
+}
+
+Void ResetButton(CMlFrame _Button, Text _ImgUrl) {
+	{{{Button::P}}}SetBgColor(This, _Button, CL::Hex6ToRgb("{{{ColorPalette::C_Color_GreenFour}}}"));
+	{{{Button::P}}}SetFocusColor(This, _Button, CL::Hex6ToRgb("{{{ColorPalette::C_Color_GreenFour}}}"));
+	{{{Button::P}}}SetBgColorType(This, _Button, {{{Button::C_ColorType_Colorize}}});
+	{{{Button::P}}}SetOpacityUnfocus(This, _Button, 0.5);
+	{{{Button::P}}}SetImage(This, _Button, _ImgUrl);
+	{{{Button::P}}}SetImageFocus(This, _Button, _ImgUrl);
+	{{{Button::P}}}SetIcon(This, _Button, "{{{Const::C_ImageUrl_Icon_Plus_Oblique}}}");
+	{{{Button::P}}}SetIconFocus(This, _Button, "{{{Const::C_ImageUrl_Icon_Plus_Oblique}}}");
+}
+
+Void UpdateActivityInfo(K_State _State) {
+	// Activity media
+	if (_State.Activity.MediaUrl == "") {
+		ResetButton(_State.Controls.Button_ActivityMedia, "{{{Const::C_ImageUrl_PopUp_Activity_New_Logo}}}");
+		{{{Button::P}}}SetValue(This, _State.Controls.Button_ActivityMedia, "");
+	} else {
+		if (Http.IsValidUrl(_State.Activity.MediaUrl)) {
+			SetButtonWithImage(_State.Controls.Button_ActivityMedia, _State.Activity.MediaUrl);
+		} else {
+			SetButtonWithImage(_State.Controls.Button_ActivityMedia, {{{BrowserAPI::P}}}C_BasePath^_State.Activity.MediaUrl);
+		}
+		{{{Button::P}}}SetValue(This, _State.Controls.Button_ActivityMedia, _State.Activity.Name);
+	}
+
+	// Item Collection medias
+	declare Boolean HasImages = _State.ItemCollection.MediaUrls.count > 0;
+	{{{Button::P}}}SetVisibilityAndNavigation(_State.Controls.Button_PreviousMedia, HasImages);
+	{{{Button::P}}}SetVisibilityAndNavigation(_State.Controls.Button_NextMedia, HasImages);
+	{{{Button::P}}}SetVisibilityAndNavigation(_State.Controls.Button_RemoveMedia, HasImages && _State.CurrentMediaIndex != C_AddMedia_Index);
+	_State.Controls.Label_MediaPager.Visible = HasImages;
+	_State.Controls.Label_MediaPager.Value = TL::Compose("{{{Text_Pager}}}", TL::ToText(_State.CurrentMediaIndex+1), TL::ToText(_State.ItemCollection.MediaUrls.count));
+	if (HasImages && _State.CurrentMediaIndex != C_AddMedia_Index) {
+		if (_State.ItemCollection.MediaUrls.existskey(_State.CurrentMediaIndex)) {
+			if (Http.IsValidUrl(_State.ItemCollection.MediaUrls[_State.CurrentMediaIndex])) {
+				SetButtonWithImage(_State.Controls.Button_BucketMedia, _State.ItemCollection.MediaUrls[_State.CurrentMediaIndex]);
+			} else {
+				SetButtonWithImage(_State.Controls.Button_BucketMedia, {{{BrowserAPI::P}}}C_BasePath^_State.ItemCollection.MediaUrls[_State.CurrentMediaIndex]);
+			}
+		}
+	} else {
+		ResetButton(_State.Controls.Button_BucketMedia, "");
+	}
+	
+	// Entries
+	{{{TextField::P}}}SetValue(This, _State.Controls.TextField_Name, _State.Activity.Name);
+	{{{TextField::P}}}SetValue(This, _State.Controls.TextField_Description, _State.ItemCollection.Description);
+
+	UpdateControllerInfo(_State);
+}
+
+K_State MediaPager(K_State _State, Integer _MediaIndex) {
+	declare K_State State = _State;
+
+	if (_MediaIndex >= State.ItemCollection.MediaUrls.count) {
+		if (State.ItemCollection.MediaUrls.count < C_MaxCollectionMedia) {
+			State.CurrentMediaIndex = C_AddMedia_Index;
+		} else {
+			State.CurrentMediaIndex = 0;
+		}
+	}	else if (_MediaIndex <= C_AddMedia_Index) {
+		if (_MediaIndex == C_AddMedia_Index && State.ItemCollection.MediaUrls.count < C_MaxCollectionMedia) {
+			State.CurrentMediaIndex = C_AddMedia_Index;
+		} else {
+			State.CurrentMediaIndex = State.ItemCollection.MediaUrls.count - 1;
+		}
+	} else {
+		State.CurrentMediaIndex = _MediaIndex;
+	}
+
+	UpdateActivityInfo(State);
+	
+	return State;
+}
+
+Void SetBrowser(K_State _State) {
+	declare BrowserSettings = {{{BrowserAPI::P}}}GetDefaultSettings();
+	if (_State.IsBrowsingBucketMedia || _State.IsBrowsingActivityMedia) {
+		BrowserSettings.FilterByExtension = ["png", "jpg", "jpeg"];
+		if (_State.IsBrowsingBucketMedia) BrowserSettings.FilterByExtension.add("webm");
+		BrowserSettings.DisplayFileNameTooltip = True;
+		{{{BrowserAPI::P}}}SetCurrentBrowser(This, 
+			{{{BrowserAPI::C_BrowserType_PathNavigation}}},
+			"{{{BrowserAPI::C_BrowserName_Image}}}",
+			[{{{BrowserAPI::C_DataType_Image}}}],
+			"",
+			BrowserSettings
+		);
+	} else if (_State.IsBrowsingCollection) {
+		BrowserSettings.FilterByExtension = ["zip"];
+		{{{BrowserAPI::P}}}SetCurrentBrowser(This, 
+			{{{BrowserAPI::C_BrowserType_PathNavigationSmall}}},
+			"{{{BrowserAPI::C_BrowserName_ItemCollection}}}",
+			[{{{BrowserAPI::C_DataType_ItemCollection}}}],
+			"",
+			BrowserSettings
+		);
+	}
+}
+
+K_State DisplayBrowser(K_State _State, Boolean _IsVisible) {
+	declare K_State State = _State;
+	State.Controls.Frame_Browser.Visible = _IsVisible;
+	{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", !_IsVisible);
+	{{{BrowserAPI::P}}}FocusBrowser(This, _IsVisible);
+	if (_IsVisible) {
+		SetBrowser(State);
+		{{{BrowserAPI::P}}}RefreshBrowserData(This);
+	} else {
+		if (State.IsBrowsingBucketMedia) {
+			State.IsBrowsingBucketMedia = False;
+			State = MediaPager(State, State.ItemCollection.MediaUrls.count-1);
+		} else if (State.IsBrowsingActivityMedia) {
+			State.IsBrowsingActivityMedia = False;
+		} else if (State.IsBrowsingCollection) {
+			State.IsBrowsingCollection = False;
+		}
+	}
+	UpdateControllerInfo(State);
+	return State;
+}
+
+K_State SetActivityIdToItemCollection(K_State _State, Text _ActivityId) {
+	declare K_State State = _State;
+	if (State.Task_SetActivityIdToItemCollectionId != NullId) {
+		DataFileMgr.TaskResult_Release(State.Task_SetActivityIdToItemCollectionId);
+		State.Task_SetActivityIdToItemCollectionId = NullId;
+	}
+	declare CTaskResult Task = DataFileMgr.ItemCollection_SetActivityId(MainUser::GetMainUserId(), State.ItemCollection.ItemId, _ActivityId);
+	if (Task != Null)	State.Task_SetActivityIdToItemCollectionId = Task.Id;
+	else State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorCreateCollection}}}", {{{dump(Error::C_Code_CreateClubItemsActivity_TaskCreationSetActivityIdToItemCollection)}}});
+	return State;
+}
+
+K_State CreateItemCollection(K_State _State) {
+	declare K_State State = _State;
+	if (State.Task_CreateItemCollectionId != NullId) {
+		DataFileMgr.TaskResult_Release(State.Task_CreateItemCollectionId);
+		State.Task_CreateItemCollectionId = NullId;
+	}
+	declare CTaskResult Task;
+	if (State.FileName == "") {
+		//L16N [Item Collection activity creation page] Message displayed when there the user forgets to upload a .zip in their collection
+		State.Controls.Label_Error.Value = _("You must upload a .zip to create your collection");
+	} else {
+		Task = DataFileMgr.ItemCollection_Create(
+			MainUser::GetMainUserId(),
+			TL::ToText({{{ClubStore::P}}}GetUserCurrentClub().Id),
+			State.Activity.Name,
+			State.FileName
+		);
+	}	
+	if (Task != Null) {
+		State.Task_CreateItemCollectionId = Task.Id;
+		DisplayContent(State, False);
+	} else if (Task == Null && State.FileName != "") {
+		State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorCreateCollection}}}", {{{dump(Error::C_Code_CreateClubItemsActivity_TaskCreationCreateItemCollection)}}});
+	}
+	return State;
+}
+
+K_State UpdateItemCollection(K_State _State) {
+	declare K_State State = _State;
+	if (State.Task_UpdateItemCollectionId != NullId) {
+		DataFileMgr.TaskResult_Release(State.Task_UpdateItemCollectionId);
+		State.Task_UpdateItemCollectionId = NullId;
+	}
+	if (State.Task_UpdateVersionItemCollectionId != NullId) {
+		DataFileMgr.TaskResult_Release(State.Task_UpdateVersionItemCollectionId);
+		State.Task_UpdateVersionItemCollectionId = NullId;
+	}
+	
+	declare CTaskResult Task_Update;
+	declare CTaskResult Task_UpdateVersion;
+	Task_Update = DataFileMgr.ItemCollection_Update(
+		MainUser::GetMainUserId(),
+		State.ItemCollection.ItemId,
+		State.Activity.Name
+	);
+	if (State.FileName != "") {
+		if (State.CreatorId == LocalUser.WebServicesUserId) {
+			Task_UpdateVersion = DataFileMgr.ItemCollection_CreateVersion(
+				MainUser::GetMainUserId(),
+				State.ItemCollection.ItemId,
+				State.FileName
+			);
+		} else {
+			//L16N [Item Collection activity creation page] Message displayed when there is an error while updating the Item Collections. Only the creator of the collection can update the version. %1 will be replaced by the name of the creator. e.g. "You cannot update the version of the Item Collection. Only its creator (Apozie50) has the right to do it."
+			State.Controls.Label_Error.Value = TL::Compose(_("You cannot update the version of the Item Collection. Only its creator (%1) has the right to do it."), State.CreatorDisplayName);
+		}
+	}
+	if (Task_UpdateVersion != Null) {
+		State.Task_UpdateVersionItemCollectionId = Task_UpdateVersion.Id;
+		DisplayContent(State, False);
+	} else if (Task_UpdateVersion == Null && State.FileName != "" && State.CreatorId == LocalUser.WebServicesUserId) {
+		State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorUpdateCollection}}}", {{{dump(Error::C_Code_CreateClubItemsActivity_TaskCreationUpdateItemCollectionVersion)}}});
+	}
+	if (Task_Update != Null) {
+		State.Task_UpdateItemCollectionId = Task_Update.Id;
+		DisplayContent(State, False);
+	} else if (Task_Update == Null) {
+		State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorUpdateCollection}}}", {{{dump(Error::C_Code_CreateClubItemsActivity_TaskCreationUpdateItemCollection)}}});
+	}
+	return State;
+}
+
+K_State Select(K_State _State, CMlControl _Control, Boolean _IsMouse) {
+	if (_Control == Null || {{{Transition::P}}}IsInTransition(This)) return _State;
+	declare K_State State = _State;
+
+	//Reset error label when player select something else
+	State.Controls.Label_Error.Value = "";
+
+	switch (_Control.ControlId) {
+		case "button-activity-media": {
+			if (C_PlaformIsFromFirstParty) {
+				{{{PopUpMultiChoice::P}}}Open(This, _State.Controls.PopUpMultiChoice_UploadError);
+			} else {
+				State.IsBrowsingActivityMedia = True;
+				State = DisplayBrowser(State, True);
+			}
+		}
+		case "button-upload-collection": {
+			if (C_PlaformIsFromFirstParty) {
+				{{{PopUpMultiChoice::P}}}Open(This, State.Controls.PopUpMultiChoice_UploadError);
+			} else {
+				State.IsBrowsingCollection = True;
+				State = DisplayBrowser(State, True);
+			}
+		}
+		case "button-bucket-media": {
+			if (
+				State.CurrentMediaIndex == C_AddMedia_Index && 
+				State.ItemCollection.MediaUrls.count < C_MaxCollectionMedia &&
+				(_IsMouse || State.IsMediaControllerNavigationEnabled || State.ItemCollection.MediaUrls.count <= 0)
+			) {
+				if (C_PlaformIsFromFirstParty) {
+					{{{PopUpMultiChoice::P}}}Open(This, _State.Controls.PopUpMultiChoice_UploadError);
+				} else {
+					State.IsBrowsingBucketMedia = True;
+					State = DisplayBrowser(State, True);
+				}
+			} else if (!_IsMouse) {
+				State = EnableMediaControllerNavigation(State, True);
+			}
+		}
+		case "button-previous-media": State = MediaPager(State, State.CurrentMediaIndex-1);
+		case "button-next-media": State = MediaPager(State, State.CurrentMediaIndex+1);
+		case "button-remove-media" : {
+			if (State.ItemCollection.MediaUrls.removekey(State.CurrentMediaIndex)) {
+				State = MediaPager(State, State.ItemCollection.MediaUrls.count);
+				if (State.IsMediaControllerNavigationEnabled && State.ItemCollection.MediaUrls.count <= 0) {
+					State = EnableMediaControllerNavigation(State, False);
+				}
+			}
+		}
+		case "button-create": {
+			if (State.Activity.Name == TL::GetTranslatedText("{{{Text_Name}}}")) {
+				//L16N [Item Collection activity creation page] Indicate that activity title must be set by the user
+				State.Controls.Label_Error.Value = _("You must set the activity title");
+			} else {
+				if (State.IsEditing) {
+					State = UpdateItemCollection(State);
+				} else {
+					State = CreateItemCollection(State);
+				}
+			}
+		}
+	}
+	return State;
+}
+
+Text GetActivityName(Integer _ActivityId) {
+	declare ClubActivities = {{{ClubStore::P}}}GetClubActivities({{{ClubStore::P}}}GetUserCurrentClub().Id);
+	foreach (Activity in ClubActivities) {
+		if (Activity.Id == _ActivityId) return Activity.Name;
+	}
+	return "";
+}
+
+***MainInit***
+***
+declare CMlFrame Frame_Global;
+declare CMlFrame Button_Create;
+declare CMlFrame Button_UploadCollection;
+declare CMlLabel Label_Desc;
+
+declare K_State State;
+declare Boolean ActivityNameOk;
+declare Boolean IsUsingMouse;
+***
+
+***MainStart***
+***
+Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+Button_Create <=> (Frame_Global.GetFirstChild("button-create") as CMlFrame);
+Button_UploadCollection <=> (Frame_Global.GetFirstChild("button-upload-collection") as CMlFrame);
+Label_Desc <=> (Frame_Global.GetFirstChild("label-desc") as CMlLabel);
+
+State.Controls = K_Controls {
+	Frame_Content = (Frame_Global.GetFirstChild("frame-content") as CMlFrame),
+	Frame_Browser = (Page.GetFirstChild("frame-browser") as CMlFrame),
+	Frame_LoadingSpinner = (Frame_Global.GetFirstChild("frame-loading-spinner") as CMlFrame),
+	Button_ActivityMedia = (Frame_Global.GetFirstChild("button-activity-media") as CMlFrame),
+	Button_BucketMedia = (Frame_Global.GetFirstChild("button-bucket-media") as CMlFrame),
+	Button_RemoveMedia = (Frame_Global.GetFirstChild("button-remove-media") as CMlFrame),
+	TextField_Name = (Frame_Global.GetFirstChild("textfield-name") as CMlFrame),
+	TextField_Description = (Frame_Global.GetFirstChild("textfield-description") as CMlFrame),
+	Label_MediaPager = (Frame_Global.GetFirstChild("label-media-pager") as CMlLabel),
+	Button_PreviousMedia = (Frame_Global.GetFirstChild("button-previous-media") as CMlFrame),
+	Button_NextMedia = (Frame_Global.GetFirstChild("button-next-media") as CMlFrame),
+	Label_Error = (Frame_Global.GetFirstChild("label-error") as CMlLabel),
+	PopUpMultiChoice_UploadError = (Page.GetFirstChild("popupmultichoice-upload-error") as CMlFrame)
+};
+
+State.GetBucketActivityRequest = Http::GetEmptyRequest();
+State.GetExistingActivityRequest = Http::GetEmptyRequest();
+
+{{{Navigation::P}}}SetGroupParent(This, "{{{C_NavGroupName_Content}}}", "{{{C_NavGroupName}}}");
+***
+
+***MainLoop***
+***
+if (PageIsVisible) {
+	foreach (Event in {{{TextField::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case {{{TextField::P}}}C_EventType_Update: {
+				if (Event.Control != Null) {
+					switch (Event.Control.ControlId) {
+						case State.Controls.TextField_Name.ControlId: {
+							if (Event.Value != State.Activity.Name) {
+								declare Text NewName = Tools::FormatValue(Event.Value);
+								declare Integer Length = TL::Length(TL::StripFormatting(NewName));
+								if (Length > C_Name_MaxChar) {
+									//L16N [Item Collection activity creation page] %1 will be replaced by a number, e.g. "The name has a maximum of 20 characters"
+									State.Controls.Label_Error.Value = TL::Compose(_("The name has a maximum of %1 characters"), ""^C_Name_MaxChar);
+									NewName = TL::SubText(NewName, 0, C_Name_MaxChar);
+									ActivityNameOk = False;
+								} else if (Length == 0) {
+									//L16N [Item Collection activity creation page] Indicate that activity name can't be an empty
+									State.Controls.Label_Error.Value = _("The name has a minimum of 1 character");
+									NewName = TL::GetTranslatedText("{{{Text_Name}}}");
+									ActivityNameOk = False;
+								} else {
+									if (!ActivityNameOk) {
+										ActivityNameOk = True;
+										State.Controls.Label_Error.Value = "";
+									}
+								}
+								State.Activity.Name = NewName;
+								{{{TextField::P}}}SetValue(This, State.Controls.TextField_Name, NewName);
+								if (State.Activity.MediaUrl != "") {
+									{{{Button::P}}}SetValue(This, State.Controls.Button_ActivityMedia, NewName);
+								} else {
+									{{{Button::P}}}SetValue(This, State.Controls.Button_ActivityMedia, "");
+								}
+							}
+						}
+						case State.Controls.TextField_Description.ControlId: {
+							if (Event.Value != State.ItemCollection.Description) {
+								declare Text Description = Tools::FormatValue(Event.Value);
+								declare Integer Length = TL::Length(TL::StripFormatting(Description));
+								if (Length > C_Desc_MaxChar) {
+									//L16N [Item Collection activity creation page] %1 will be replaced by a number, e.g. "The description has a maximum of 200 characters"
+									State.Controls.Label_Error.Value = TL::Compose(_("The description has a maximum of %1 characters"), ""^C_Desc_MaxChar);
+									Description = TL::SubText(Description, 0, C_Desc_MaxChar);
+								} else {
+									State.Controls.Label_Error.Value = "";
+								}
+								State.ItemCollection.Description = Description;
+								{{{TextField::P}}}SetValue(This, State.Controls.TextField_Description, Description);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	// Retrieve bucket activity infos (from LIVE)
+	if (Http::IsInitialized(State.GetBucketActivityRequest)) {
+		State.GetBucketActivityRequest = Http::Update(State.GetBucketActivityRequest);
+		if (!Http::IsRunning(State.GetBucketActivityRequest)) {
+			if (Http::IsSuccess(State.GetBucketActivityRequest)) {
+				declare {{{ClubStruct::P}}}K_BucketActivity BucketActivity = ClubAPI::GetResponseFromGetBucketActivity(State.GetBucketActivityRequest);
+				if (State.Activity.Type == {{{ClubStruct::P}}}C_ClubActivity_ItemUpload && BucketActivity.BucketItemList.count > 0) {
+					State.OldItemCollection = BucketActivity.BucketItemList[0];
+					State.ItemCollection = State.OldItemCollection;
+					UpdateActivityInfo(State);
+					if (State.Task_GetItemCollectionId != NullId) {
+						DataFileMgr.TaskResult_Release(State.Task_GetItemCollectionId);
+						State.Task_GetItemCollectionId = NullId;
+					}
+					declare CTaskResult Task = DataFileMgr.ItemCollection_Get(MainUser::GetMainUserId(), State.ItemCollection.ItemId);
+					if (Task != Null) {
+						State.Task_GetItemCollectionId = Task.Id;
+					} else {
+						State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorGetCollection}}}", {{{dump(Error::C_Code_CreateClubItemsActivity_TaskCreationLiveGetItemCollection)}}});
+					}
+				}
+			} else {
+				State.Controls.Label_Error.SetText(TL::Compose(
+					//L16N [Item Collection activity creation page] %1 will be replaced by an error, e.g. "(Error code: 500)"
+					_("Error while fetching the activity info, please try again. (Error code: %1)"), ""^Http::GetStatusCode(State.GetBucketActivityRequest)
+				));
+			}
+			State.GetBucketActivityRequest = Http::Destroy(State.GetBucketActivityRequest);
+		}
+	}
+
+	// Retrieve item collection infos (from CORE)
+	if (State.Task_GetItemCollectionId != NullId) {
+		if (DataFileMgr.TaskResults.existskey(State.Task_GetItemCollectionId)) {
+			declare CTaskResult Task = DataFileMgr.TaskResults[State.Task_GetItemCollectionId];
+			if (Task != Null && !Task.IsProcessing) {
+				if (Task is CTaskResult_NSItemCollection) {
+					declare CTaskResult_NSItemCollection Task_GetItemCollection = (Task as CTaskResult_NSItemCollection);
+					if (Task_GetItemCollection.HasSucceeded) {
+						State.ItemCollection.ItemId = Task_GetItemCollection.ItemCollection.Id;
+						State.CreatorId = Task_GetItemCollection.ItemCollection.CreatorWebServicesUserId;
+						State.CreatorDisplayName = {{{UserStore::P}}}GetPlayerName(Task_GetItemCollection.ItemCollection.CreatorDisplayName, Task_GetItemCollection.ItemCollection.CreatorIsFirstPartyDisplayName);
+						{{{Navigation::P}}}Lock(Button_Create, False);
+					} else {
+						State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorGetCollection}}}", Task_GetItemCollection.ErrorCode);
+					}
+				}
+			}
+			if (Task == Null || !Task.IsProcessing) {
+				DataFileMgr.TaskResult_Release(State.Task_GetItemCollectionId);
+				State.Task_GetItemCollectionId = NullId;
+			}
+		} else {
+			State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorGetCollection}}}", {{{dump(Error::C_Code_CreateClubItemsActivity_TaskCreationCoreGetItemCollection)}}});
+			State.Task_GetItemCollectionId = NullId;
+		}
+	}
+
+	// Create item collection
+	if (State.Task_CreateItemCollectionId != NullId) {
+		if (DataFileMgr.TaskResults.existskey(State.Task_CreateItemCollectionId)) {
+			declare CTaskResult Task = DataFileMgr.TaskResults[State.Task_CreateItemCollectionId];
+			if (Task != Null && !Task.IsProcessing) {
+				if (Task is CTaskResult_NSItemCollection) {
+					declare CTaskResult_NSItemCollection Task_CreateItemCollection = (Task as CTaskResult_NSItemCollection);
+					if (Task_CreateItemCollection.HasSucceeded) {
+						State.ItemCollection.ItemId = Task_CreateItemCollection.ItemCollection.Id;
+						{{{ClubStore::P}}}Action_CreateOrEditItemCollectionActivity(This, State.ItemCollection, {{{ClubStore::P}}}GetUserCurrentClub().Id, State.Activity.Id, State.Activity.Name, State.Activity.MediaUrl, State.IsEditing, State.OldItemCollection);
+					} else {
+						if (Task_CreateItemCollection.ErrorType == C_ErrorTypeDataFileManager && Task_CreateItemCollection.ErrorCode == C_ErrorCodeActivityExists) {
+							declare Integer ActivityId = TL::ToInteger(Task_CreateItemCollection.ErrorDescription);
+							declare Text ActivityName = GetActivityName(ActivityId);
+							if (ActivityName == "") {
+								ActivityName = Task_CreateItemCollection.ErrorDescription;
+								if (Http::IsInitialized(State.GetExistingActivityRequest)) {
+									State.GetExistingActivityRequest = Http::Destroy(State.GetExistingActivityRequest);
+								}
+								State.GetExistingActivityRequest = ClubAPI::GetBucketActivity({{{ClubStore::P}}}GetUserCurrentClub().Id, ActivityId, 0, 1);
+							}
+							//L16N [Item Collection activity creation page] Message displayed when there is an error while creating or updating the Item Collections. %1 will be replaced with an error code. %2 will be replaced with club activity id. e.g. "Failed to create the Item Collection. Item Collection already exists in another club activity 'My Collection'. Please update or delete the other activity."
+							State.Controls.Label_Error.Value = TL::Compose(_("Failed to create the Item Collection. Item Collection already exists in another club activity '%1'. Please update or delete the other activity."), "$<"^ActivityName^"$>");
+							DisplayContent(State, True);
+						} else {
+							State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorCreateCollection}}}", Task_CreateItemCollection.ErrorCode);
+						}
+					}
+				}
+			}
+			if (Task == Null || !Task.IsProcessing) {
+				DataFileMgr.TaskResult_Release(State.Task_CreateItemCollectionId);
+				State.Task_CreateItemCollectionId = NullId;
+			}
+		} else {
+			State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorCreateCollection}}}", {{{dump(Error::C_Code_CreateClubItemsActivity_TaskProcessingCreateItemCollection)}}});
+			State.Task_CreateItemCollectionId = NullId;
+		}
+	}
+
+	// Only in case of Item Collection already existing in another club activity 
+	// Retrieve bucket activity infos (from LIVE) to have the existing activity name
+	if (Http::IsInitialized(State.GetExistingActivityRequest)) {
+		State.GetExistingActivityRequest = Http::Update(State.GetExistingActivityRequest);
+		if (!Http::IsRunning(State.GetExistingActivityRequest)) {
+			if (Http::IsSuccess(State.GetExistingActivityRequest)) {
+				declare {{{ClubStruct::P}}}K_BucketActivity BucketActivity = ClubAPI::GetResponseFromGetBucketActivity(State.GetExistingActivityRequest);
+				//L16N [Item Collection activity creation page] Message displayed when there is an error while creating or updating the Item Collections. %1 will be replaced with an error code. %2 will be replaced with club activity id. e.g. "Failed to create the Item Collection. Item Collection already exists in another club activity 'My Collection'. Please update or delete the other activity."
+				State.Controls.Label_Error.Value = TL::Compose(_("Failed to create the Item Collection. Item Collection already exists in another club activity '%1'. Please update or delete the other activity."), "$<"^BucketActivity.Name^"$>");
+			}
+			State.GetExistingActivityRequest = Http::Destroy(State.GetExistingActivityRequest);
+		}
+	}
+
+	// Set activity Id (from LIVE) to Item Collection (to CORE)
+	if (State.Task_SetActivityIdToItemCollectionId != NullId) {
+		if (DataFileMgr.TaskResults.existskey(State.Task_SetActivityIdToItemCollectionId)) {
+			declare CTaskResult Task = DataFileMgr.TaskResults[State.Task_SetActivityIdToItemCollectionId];
+			if (Task != Null && !Task.IsProcessing) {
+				if (Task is CTaskResult_NSItemCollection) {
+					declare CTaskResult_NSItemCollection Task_SetActivityIdToItemCollection = (Task as CTaskResult_NSItemCollection);
+					if (Task_SetActivityIdToItemCollection.HasSucceeded) {
+						if (Task_SetActivityIdToItemCollection.ItemCollection.ActivityId != "") {{{Router::P}}}PushParent(This);
+					} else {
+						{{{ClubStore::P}}}Action_DeleteActivity(This, {{{ClubStore::P}}}GetUserCurrentClub().Id, State.Activity.Id);
+						State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorCreateCollection}}}", Task_SetActivityIdToItemCollection.ErrorCode);
+					}
+				}
+			}
+			if (Task == Null || !Task.IsProcessing) {
+				DataFileMgr.TaskResult_Release(State.Task_SetActivityIdToItemCollectionId);
+				State.Task_SetActivityIdToItemCollectionId = NullId;
+			}
+		} else {
+			State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorCreateCollection}}}", {{{dump(Error::C_Code_CreateClubItemsActivity_TaskProcessingSetActivityIdToItemCollectionId)}}});
+			State.Task_SetActivityIdToItemCollectionId = NullId;
+		}
+	}
+
+	// Update Item Collection
+	if (State.Task_UpdateItemCollectionId != NullId) {
+		if (DataFileMgr.TaskResults.existskey(State.Task_UpdateItemCollectionId)) {
+			declare CTaskResult Task = DataFileMgr.TaskResults[State.Task_UpdateItemCollectionId];
+			if (Task != Null && !Task.IsProcessing) {
+				if (Task is CTaskResult_NSItemCollection) {
+					declare CTaskResult_NSItemCollection Task_UpdateItemCollection = (Task as CTaskResult_NSItemCollection);
+					if (Task_UpdateItemCollection.HasSucceeded) {
+						{{{ClubStore::P}}}Action_CreateOrEditItemCollectionActivity(This, State.ItemCollection, {{{ClubStore::P}}}GetUserCurrentClub().Id, State.Activity.Id, State.Activity.Name, State.Activity.MediaUrl, State.IsEditing, State.OldItemCollection);
+					} else {
+						State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorUpdateCollection}}}", Task_UpdateItemCollection.ErrorDescription);
+					}
+				}
+			}
+			if (Task == Null || !Task.IsProcessing) {
+				DataFileMgr.TaskResult_Release(State.Task_UpdateItemCollectionId);
+				State.Task_UpdateItemCollectionId = NullId;
+			}
+		} else {
+			State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorUpdateCollection}}}", {{{dump(Error::C_Code_CreateClubItemsActivity_TaskProcessingUpdateItemCollection)}}});
+			State.Task_UpdateItemCollectionId = NullId;
+		}
+	}
+	
+	// Update Item Collection version
+	if (State.Task_UpdateVersionItemCollectionId != NullId) {
+		if (DataFileMgr.TaskResults.existskey(State.Task_UpdateVersionItemCollectionId)) {
+			declare CTaskResult Task = DataFileMgr.TaskResults[State.Task_UpdateVersionItemCollectionId];
+			if (Task != Null && !Task.IsProcessing) {
+				if (Task is CTaskResult_NSItemCollection) {
+					declare CTaskResult_NSItemCollection Task_UpdateVersionItemCollection = (Task as CTaskResult_NSItemCollection);
+					if (Task_UpdateVersionItemCollection.HasSucceeded) {
+						{{{Router::P}}}PushParent(This);
+					} else {
+						State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorUpdateCollection}}}", Task_UpdateVersionItemCollection.ErrorDescription);
+					}
+				}
+			}
+			if (Task == Null || !Task.IsProcessing) {
+				DataFileMgr.TaskResult_Release(State.Task_UpdateVersionItemCollectionId);
+				State.Task_UpdateVersionItemCollectionId = NullId;
+			}
+		} else {
+			State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorUpdateCollection}}}", {{{dump(Error::C_Code_CreateClubItemsActivity_TaskProcessingUpdateItemCollectionVersion)}}});
+			State.Task_UpdateVersionItemCollectionId = NullId;
+		}
+	}
+
+	foreach (Event in {{{Navigation::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case {{{Navigation::P}}}C_EventType_NavigateInput: {
+				if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName}}}")) {
+					if (Event.Input == CMlScriptEvent::EMenuNavAction::Select) {
+						State = Select(State, Event.To, False);
+					} else if (Event.From != Null && Event.From.Id == State.Controls.Button_BucketMedia.Id && State.IsMediaControllerNavigationEnabled) {
+						switch (Event.Input) {
+							case CMlScriptEvent::EMenuNavAction::Left: State = MediaPager(State, State.CurrentMediaIndex-1);
+							case CMlScriptEvent::EMenuNavAction::Right: State = MediaPager(State, State.CurrentMediaIndex+1);
+							case CMlScriptEvent::EMenuNavAction::Cancel: State = EnableMediaControllerNavigation(State, False);
+							case CMlScriptEvent::EMenuNavAction::Action1: State = Select(State, Event.To, False);
+						}
+					} else if (Event.Input == CMlScriptEvent::EMenuNavAction::Cancel) {
+						{{{Router::P}}}PushParent(This);
+					} else {
+						Focus(State, Event.From, Event.To);
+					}
+				}
+			}
+			case {{{Navigation::P}}}C_EventType_NavigateMouse: {
+				if (State.IsMediaControllerNavigationEnabled) State = EnableMediaControllerNavigation(State, False);
+				if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName}}}")) {
+					if (Event.Mouse == CMlScriptEvent::Type::MouseClick) {
+						State = Select(State, Event.To, True);
+					} else if (Event.Mouse == CMlScriptEvent::Type::MouseOver) {
+						Focus(State, Event.From, Event.To);
+					}
+				} else if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroup_Pager}}}")) {
+					if (Event.Mouse == CMlScriptEvent::Type::MouseClick) {
+						State = Select(State, Event.To, True);
+					} else if (Event.Mouse == CMlScriptEvent::Type::MouseOver) {
+						if (Event.To != Null && Event.To.HasClass("pager-arrow-media")) {
+							Focus(State, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), State.Controls.Button_BucketMedia);
+						}
+						Focus(State, Event.From, Event.To);
+					} else if (Event.Mouse == CMlScriptEvent::Type::MouseOut) {
+						Focus(State, Event.From, Event.To);
+					}
+				}
+			}
+		}
+	}
+
+	foreach (Event in PendingEvents) {
+		if (Event.Type == CMlScriptEvent::Type::PluginCustomEvent) {
+			switch (Event.CustomEventType) {
+				case {{{ClubStore::P}}}C_Event_ItemCollectionActivityCreatedOrEdited: {
+					if (Event.CustomEventData.count > 0) {
+						if (State.Activity.Id == {{{ClubStruct::P}}}C_ActivityNullId) {
+							State.Activity.Id = TL::ToInteger(Event.CustomEventData[0]);
+							State = SetActivityIdToItemCollection(State, Event.CustomEventData[0]);
+						} else if (State.IsEditing && State.Task_UpdateVersionItemCollectionId == NullId) {
+							{{{Router::P}}}PushParent(This);
+						}
+					} else {
+						DisplayContent(State, True);
+						State.Controls.Label_Error.Value = TL::Compose("{{{Text_ErrorCreateCollection}}}", {{{dump(Error::C_Code_CreateClubItemsActivity_ItemCollectionActivityCreatedOrEdited)}}});
+					}
+				}
+				case {{{ClubStore::P}}}C_Event_ItemCollectionActivityCreationOrEditionFailed: {
+					DisplayContent(State, True);
+					if (Event.CustomEventData.count > 0) {
+						State.Controls.Label_Error.SetText(Event.CustomEventData[0]);
+					}
+					// Reset Activity Id for Item Collection (from CORE) if activity creation failed (from LIVE)
+					if (!State.IsEditing) State = SetActivityIdToItemCollection(State, "");
+				}
+			}
+		}
+	}
+
+	foreach (Event in {{{BrowserAPI::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case {{{BrowserAPI::P}}}C_EventType_Select: {
+				if (Event.DataType == {{{BrowserAPI::P}}}C_DataType_Image) {
+					if (State.IsBrowsingActivityMedia)	State.Activity.MediaUrl = {{{BrowserAPI::P}}}C_BasePath_Media^Event.Data;
+					else if (State.IsBrowsingBucketMedia) State.ItemCollection.MediaUrls.add({{{BrowserAPI::P}}}C_BasePath_Media^Event.Data);
+					UpdateActivityInfo(State);
+				} else if (Event.DataType == {{{BrowserAPI::P}}}C_DataType_ItemCollection) {
+					State.FileName = Event.Data;
+					{{{ExpendableButton::P}}}SetText(This, Button_UploadCollection, Event.Data);
+				}
+				State = DisplayBrowser(State, False);
+			}
+			case {{{BrowserAPI::P}}}C_EventType_Cancel: {
+				State = DisplayBrowser(State, False);
+			}
+		}
+	}
+
+	foreach (Event in {{{PopUpBackground::P}}}GetPendingEvents(This)) {
+		if (Event.Type == {{{PopUpBackground::P}}}C_Event_LeavePopUp && Event.PopUpName == "{{{C_Name}}}") {
+			{{{Router::P}}}PushParent(This);
+		} 
+	}
+
+	foreach (Event in {{{Router::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case "{{{Router::C_Event_EnteringRoute}}}": {
+				declare Text[Text] Query = {{{Router::P}}}GetCurrentRouteQuery(This);
+				if (Query.existskey("{{{RoutePaths::C_Query_BucketActivityType}}}")) {
+					State.BucketActivityType = Query["{{{RoutePaths::C_Query_BucketActivityType}}}"];
+					State.IsEditing = Query.existskey("{{{RoutePaths::C_Query_Activity}}}");
+					if (State.IsEditing) {
+						State.Activity.fromjson(Query["{{{RoutePaths::C_Query_Activity}}}"]);
+						if (Http::IsInitialized(State.GetBucketActivityRequest)) {
+							State.GetBucketActivityRequest = Http::Destroy(State.GetBucketActivityRequest);
+						}
+						State.GetBucketActivityRequest = ClubAPI::GetBucketActivity(State.Activity.ClubId, State.Activity.Id, 0, 1);
+						{{{ExpendableButton::P}}}SetText(This, Button_UploadCollection, "{{{Text_NewUpload}}}");
+					} else {
+						State.Activity = {{{ClubStruct::P}}}K_Activity {};
+						State.ItemCollection = {{{ClubStruct::P}}}K_BucketItem {};
+						State.OldItemCollection = {{{ClubStruct::P}}}K_BucketItem {};
+						{{{ExpendableButton::P}}}SetText(This, Button_UploadCollection, "{{{Text_Upload}}}");
+						State.Activity.Id = {{{ClubStruct::P}}}C_ActivityNullId;
+					}
+					State.CurrentMediaIndex = C_AddMedia_Index;
+					State.CreatorId = "";
+					State.CreatorDisplayName = "";
+					State.FileName = "";
+					UpdateActivityInfo(State);
+					SetButtonsAndLabels(State, Button_Create);
+					DisplayContent(State, True);
+					State.Controls.Label_Error.Value = "";
+					EnableMediaControllerNavigation(State, False);
+
+					Focus(State, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), Button_Create);
+				} else {
+					{{{Router::P}}}PushParent(This);
+				}
+			}
+		}
+	}
+
+	/* PopUpMultiChoice events */
+	foreach (Event in {{{PopUpMultiChoice::P}}}GetPendingEvents(This)) {
+		if (Event.PopUpMultiChoice != Null && Event.PopUpMultiChoice.Id == State.Controls.PopUpMultiChoice_UploadError.Id) {
+			switch (Event.Type) {
+				case {{{PopUpMultiChoice::P}}}C_EventType_Display: {
+					{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", !Event.PopUpMultiChoice.Visible);
+				}
+			}
+		}
+	}
+
+	// Mouse detection
+	IsUsingMouse = State.ItemCollection.MediaUrls.count > 0 && Tools::IsUsingMouse(Input);
+	if (!State.IsMediaControllerNavigationEnabled && State.Controls.Button_PreviousMedia.Visible != IsUsingMouse) {
+		{{{Button::P}}}SetVisibilityAndNavigation(State.Controls.Button_NextMedia, IsUsingMouse);
+		{{{Button::P}}}SetVisibilityAndNavigation(State.Controls.Button_PreviousMedia, IsUsingMouse);
+		{{{Button::P}}}SetVisibilityAndNavigation(State.Controls.Button_RemoveMedia, IsUsingMouse && State.CurrentMediaIndex != C_AddMedia_Index);
+		declare CMlControl FocusedControl = {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}");
+		if (FocusedControl != Null && FocusedControl.HasClass("{{{C_Class_MediaAction}}}")) {
+			Focus(State, FocusedControl, State.Controls.Button_BucketMedia);
+		}
+	}
+}
+***
+""",
+[
+	Transition::ComponentV2(),
+	ExpendableButton::ComponentV2(),
+	TextField::ComponentV2(),
+	Navigation::ComponentV2(),
+	PopUpBackground::ComponentV2(),
+	PopUpMultiChoice::ComponentV2(),
+	Button::ComponentV2(),
+	Router::ComponentV2(),
+	BrowserAPI::ComponentV2(),
+	LoadingSpinner::ComponentV2(),
+	ClubStore::ComponentV2(),
+	UserStore::ComponentV2(),
+	ClubStruct::Component(),
+	MenuSounds::ComponentV2()
+],
+[]
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update from the ManiaApp
+Void Yield() {
+	
+}

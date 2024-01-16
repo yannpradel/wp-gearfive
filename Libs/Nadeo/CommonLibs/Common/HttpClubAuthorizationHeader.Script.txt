@@ -1,0 +1,35 @@
+/**
+ *	Http authorization header
+ */
+#Const Version		"2023-04-11"
+#Const ScriptName	"Libs/Nadeo/CommonLibs/Common/HttpClubAuthorizationHeader.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the automatic authorization header
+Text Get() {
+	declare Text LibCommonHttpClubAuthorizationHeader_OverrideHeader for System;
+	if (LibCommonHttpClubAuthorizationHeader_OverrideHeader != "") {
+		return LibCommonHttpClubAuthorizationHeader_OverrideHeader;
+	}
+	
+	declare Text Sys_Auth_ClubHttpHeader for System;
+	return Sys_Auth_ClubHttpHeader;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Override the automatic authorization header
+Void Override(Text _AuthorizationHeader) {
+	declare Text LibCommonHttpClubAuthorizationHeader_OverrideHeader for System;
+	LibCommonHttpClubAuthorizationHeader_OverrideHeader = _AuthorizationHeader;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if an authentication header is set
+Boolean IsSet() {
+	declare Text Sys_Auth_ClubHttpHeader for System;
+	declare Text LibCommonHttpClubAuthorizationHeader_OverrideHeader for System;
+	return (Sys_Auth_ClubHttpHeader != "" || LibCommonHttpClubAuthorizationHeader_OverrideHeader != "");
+}

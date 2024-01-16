@@ -1,0 +1,398 @@
+/**
+ *	Matchmaking related code
+ */
+#Const Version		"2.0.0"
+#Const ScriptName	"Libs/Nadeo/Trackmania/Modes/Matchmaking.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/CMGame/Modes/Legacy/XmlRpc2.Script.txt" as XmlRpc
+#Include "Libs/Nadeo/CMGame/Utils/Http.Script.txt" as Http
+#Include "Libs/Nadeo/CMGame/Utils/Log.Script.txt" as Log
+#Include "Libs/Nadeo/Trackmania/API/MatchmakingAPI.Script.txt" as MatchmakingAPI
+#Include "Libs/Nadeo/Trackmania/Modes/ServerAuth.Script.txt" as ServerAuth
+#Include "Libs/Nadeo/Trackmania/Structures/MatchmakingStruct.Script.txt" as MatchmakingStruct
+#Include "Libs/Nadeo/CMGame/Utils/Config.Script.txt" as Config
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structure
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_Method_AddPlayer {
+	Text AccountId;
+	Integer Clan;
+}
+#Struct K_Callback_EliminatedTeams {
+	Integer[] teams;
+}
+#Struct K_GetMatchParticipants {
+	Integer RetryTime;
+	Boolean RetryUntilCompleted;
+	Http::K_Request Request;
+}
+#Struct K_Match {
+	Text MatchmakingId;
+	Text MatchId;
+	MatchmakingStruct::LibStructuresMatchmaking_K_Division[Text] Divisions;
+	MatchmakingStruct::LibStructuresMatchmaking_K_MatchParticipants Participants;
+	Http::K_Request GetMatchmakingDivisionRules;
+	K_GetMatchParticipants GetMatchParticipants;
+	Boolean IsDebug;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Method_AddPlayer "Club.Match.AddPlayer"
+#Const C_Method_RemovePlayer "Club.Match.RemovePlayer"
+#Const C_Method_MatchStarted "Club.Match.Start"
+#Const C_Method_MatchCompleted "Club.Match.Completed"
+
+#Const C_Callback_EliminatedTeams "Club.Match.EliminatedTeams"
+
+#Const C_Match_Null K_Match {
+	MatchmakingId = "",
+	MatchId = "",
+	Divisions = [],
+	Participants = MatchmakingStruct::LibStructuresMatchmaking_K_MatchParticipants {
+		IsCompleted = False,
+		Participants = []
+	},
+	GetMatchParticipants = K_GetMatchParticipants {
+		RetryTime = 0,
+		RetryUntilCompleted = False
+	},
+	IsDebug = False
+}
+
+#Const C_MatchmakingAPIDebugUrl "http://localhost:3000/matchmaking"
+
+#Const C_RequestInterval_GetMatchmakingDivisionRules 15000
+#Const C_RequestRetry_GetMatchmakingDivisionRules 20
+
+#Const C_RequestCooldown_GetMatchParticipants 2000
+#Const C_RequestInterval_GetMatchParticipants 2000
+#Const C_RequestRetry_GetMatchParticipants 15
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the account id and clan of the player added to the match
+K_Method_AddPlayer GetEventInfo_Method_AddPlayer(CXmlRpcEvent _Event) {
+	assert(
+		(
+			_Event.Type == CXmlRpcEvent::EType::CallbackArray &&
+			_Event.ParamArray1 == C_Method_AddPlayer
+		),
+		"""Are you sure this event comes from the '{{{C_Method_AddPlayer}}}' method?"""
+	);
+
+	Log::Log("""[Matchmaking] Read '{{{C_Method_AddPlayer}}}' xmlrpc method. Params : {{{_Event.ParamArray2}}}""");
+
+	declare Text AccountId = "";
+	if (_Event.ParamArray2.count > 0) AccountId = _Event.ParamArray2[0];
+	declare Integer Clan = 0;
+	if (_Event.ParamArray2.count > 1) Clan = TL::ToInteger(_Event.ParamArray2[1]);
+
+	return K_Method_AddPlayer {
+		AccountId = AccountId,
+		Clan = Clan
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the account id of the player removed from the match
+Text GetEventInfo_Method_RemovePlayer(CXmlRpcEvent _Event) {
+	assert(
+		(
+			_Event.Type == CXmlRpcEvent::EType::CallbackArray &&
+			_Event.ParamArray1 == C_Method_RemovePlayer
+		),
+		"""Are you sure this event comes from the '{{{C_Method_RemovePlayer}}}' method?"""
+	);
+
+	Log::Log("""[Matchmaking] Read '{{{C_Method_RemovePlayer}}}' xmlrpc method. Params : {{{_Event.ParamArray2}}}""");
+
+	declare Text AccountId = "";
+	if (_Event.ParamArray2.count > 0) AccountId = _Event.ParamArray2[0];
+
+	return AccountId;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Send a list of newly eliminated teams to the matchmaking api
+Void SendEliminatedTeams(Integer[] _EliminatedTeamIds) {
+	declare K_Callback_EliminatedTeams Callback_EliminatedTeams = K_Callback_EliminatedTeams {
+		teams = _EliminatedTeamIds
+	};
+
+	Log::Log("""[Matchmaking] Send '{{{C_Callback_EliminatedTeams}}}' xmlrpc callback. Params: {{{Callback_EliminatedTeams}}}""");
+
+	XmlRpc::SendCallback(C_Callback_EliminatedTeams, [Callback_EliminatedTeams.tojson()]);
+}
+
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Cleanup the previous match
+Void Private_CleanupPreviousMatch(K_Match _Match) {
+	Http::Destroy(_Match.GetMatchmakingDivisionRules);
+	Http::Destroy(_Match.GetMatchParticipants.Request);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Create a new matchmaking match
+K_Match NewMatch(K_Match _PreviousMatch, Text _MatchmakingId, Text _MatchId, Boolean _IsDebug) {
+	assert(ServerAuth::IsServiceActive(ServerAuth::C_Services_Club), "You must initialize `ServerAuth::C_Services_Club` in the `ServerAuth` library to be able to make requests to the matchmaking API from a server.");
+
+	Private_CleanupPreviousMatch(_PreviousMatch);
+
+	declare Text MatchmakingId = _MatchmakingId;
+	declare Text MatchId = _MatchId;
+	if (_IsDebug) {
+		if (MatchmakingId == "") MatchmakingId = "DebugMatchmakingId";
+		if (MatchId == "") MatchId = "DebugMatchId";
+	}
+
+	if (MatchmakingId == "") log("WARNING [Matchmaking] `MatchmakingId` is empty");
+	if (MatchmakingId == "") log("WARNING [Matchmaking] `MatchId` is empty");
+
+	return K_Match {
+		MatchmakingId = MatchmakingId,
+		MatchId = MatchId,
+		Divisions = [],
+		Participants = MatchmakingStruct::LibStructuresMatchmaking_K_MatchParticipants {
+			IsCompleted = False,
+			Participants = []
+		},
+		GetMatchmakingDivisionRules = Http::GetEmptyRequest(),
+		GetMatchParticipants = K_GetMatchParticipants {
+			Request = Http::GetEmptyRequest(),
+			RetryTime = 0,
+			RetryUntilCompleted = False
+		},
+		IsDebug = _IsDebug
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the matchmaking API url
+Text Private_GetMatchmakingUrl(K_Match _Match) {
+	if (_Match.IsDebug) {
+		return C_MatchmakingAPIDebugUrl;
+	}
+	return Config::Get().APIMeetUrl;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Start a request to get the matchmaking divisions
+K_Match Private_GetMatchmakingDivisionRules(K_Match _Match) {
+	if (_Match.MatchmakingId == "") return _Match;
+
+	declare K_Match Match = _Match;
+
+	Match.GetMatchmakingDivisionRules = Http::DestroyAndCreate(
+		Match.GetMatchmakingDivisionRules,
+		MatchmakingAPI::Server_GetMatchmakingDivisionRules(
+			Private_GetMatchmakingUrl(Match),
+			Match.MatchmakingId,
+			C_RequestRetry_GetMatchmakingDivisionRules,
+			C_RequestInterval_GetMatchmakingDivisionRules
+		)
+	);
+
+	return Match;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Start a request to get the match participants
+K_Match Private_GetMatchParticipants(K_Match _Match) {
+	if (_Match.MatchId == "") return _Match;
+
+	declare K_Match Match = _Match;
+
+	Match.GetMatchParticipants.Request = Http::DestroyAndCreate(
+		Match.GetMatchParticipants.Request,
+		MatchmakingAPI::Server_GetMatchParticipants(
+			Private_GetMatchmakingUrl(Match),
+			Match.MatchId,
+			C_RequestRetry_GetMatchParticipants,
+			C_RequestInterval_GetMatchParticipants
+		)
+	);
+	Match.GetMatchParticipants.RetryTime = 0;
+	Match.GetMatchParticipants.RetryUntilCompleted = False;
+
+	return Match;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Create a new matchmaking match
+K_Match StartMatch(K_Match _Match) {
+	declare K_Match Match = _Match;
+
+	Match = Private_GetMatchmakingDivisionRules(Match);
+	Match = Private_GetMatchParticipants(Match);
+
+	return Match;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Create a new matchmaking match
+K_Match StopMatch(K_Match _Match) {
+	declare K_Match Match = _Match;
+
+	Match = Private_GetMatchParticipants(Match);
+
+	return Match;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Set the matchmaking divisions
+K_Match SetDivisions(K_Match _Match, MatchmakingStruct::LibStructuresMatchmaking_K_Division[Text] _Divisions) {
+	declare K_Match Match = _Match;
+
+	Match.Divisions = _Divisions;
+
+	return Match;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Set the match participants
+K_Match SetParticipants(K_Match _Match, MatchmakingStruct::LibStructuresMatchmaking_K_MatchParticipants _Participants) {
+	declare K_Match Match = _Match;
+
+	Match.Participants = _Participants;
+
+	return Match;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update the match
+K_Match UpdateMatch(K_Match _Match) {
+	declare K_Match Match = _Match;
+
+	// Update matchmaking divisions
+	if (Http::IsInitialized(Match.GetMatchmakingDivisionRules)) {
+		Match.GetMatchmakingDivisionRules = Http::Update(Match.GetMatchmakingDivisionRules);
+		if (!Http::IsRunning(Match.GetMatchmakingDivisionRules)) {
+			if (Http::IsSuccess(Match.GetMatchmakingDivisionRules)) {
+				Match = SetDivisions(Match, MatchmakingAPI::GetResponseFromGetMatchmakingDivisionRules(Match.GetMatchmakingDivisionRules));
+			}
+			Match.GetMatchmakingDivisionRules = Http::Destroy(Match.GetMatchmakingDivisionRules);
+		}
+	}
+
+	// Update match participants
+	if (
+		!Http::IsInitialized(Match.GetMatchParticipants.Request) &&
+		Match.GetMatchParticipants.RetryUntilCompleted &&
+		Match.GetMatchParticipants.RetryTime > 0 &&
+		Now >= Match.GetMatchParticipants.RetryTime
+	) {
+		Match = Private_GetMatchParticipants(Match);
+	}
+	if (Http::IsInitialized(Match.GetMatchParticipants.Request)) {
+		Match.GetMatchParticipants.Request = Http::Update(Match.GetMatchParticipants.Request);
+		if (!Http::IsRunning(Match.GetMatchParticipants.Request)) {
+			if (Http::IsSuccess(Match.GetMatchParticipants.Request)) {
+				Match = SetParticipants(Match, MatchmakingAPI::GetResponseFromGetMatchParticipants(Match.GetMatchParticipants.Request));
+				/* @Todo TMWTMatchmaking
+				We need to add a check on `RetryUntilCompleted` here. If `RetryUntilCompleted` is `True` and the match is not complete,
+				then we need to launch a new request until complete is `True`.
+				 */
+			}
+			Match.GetMatchParticipants.Request = Http::Destroy(Match.GetMatchParticipants.Request);
+		}
+	}
+
+	return Match;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Unload the library
+Void Unload() {
+	XmlRpc::UnregisterMethod(C_Method_AddPlayer);
+	XmlRpc::UnregisterMethod(C_Method_RemovePlayer);
+	XmlRpc::UnregisterMethod(C_Method_MatchStarted);
+	XmlRpc::UnregisterMethod(C_Method_MatchCompleted);
+
+	XmlRpc::UnregisterCallback(C_Callback_EliminatedTeams);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Load the library
+Void Load() {
+	Unload();
+
+	XmlRpc::RegisterMethod(C_Method_AddPlayer, """
+* Name: {{{C_Method_AddPlayer}}}
+* Type: TriggerModeScriptEventArray
+* Description: Add a player to the match.
+* Data:
+	- Version >=3.6.0:
+	```
+	[
+		"accountid", //< Account id of the player to add to the match
+		"1" //< Team in which the player will be added
+	]
+	```
+	""");
+	XmlRpc::RegisterMethod(C_Method_RemovePlayer, """
+* Name: {{{C_Method_RemovePlayer}}}
+* Type: TriggerModeScriptEventArray
+* Description: Remove a player from a match.
+* Data:
+	- Version >=3.6.0:
+	```
+	[
+		"accountid" //< Account id of the player to remove from the match
+	]
+	```
+	""");
+	XmlRpc::RegisterMethod(C_Method_MatchStarted, """
+* Name: {{{C_Method_MatchStarted}}}
+* Type: TriggerModeScriptEventArray
+* Description: Start a matchmaking match.
+* Data:
+	- Version >=3.6.0:
+	```
+	[]
+	```
+	""");
+	XmlRpc::RegisterMethod(C_Method_MatchCompleted, """
+* Name: {{{C_Method_MatchCompleted}}}
+* Type: TriggerModeScriptEventArray
+* Description: Complete a matchmaking match.
+* Data:
+	- Version >=3.6.0:
+	```
+	[]
+	```
+	""");
+
+	XmlRpc::RegisterCallback(C_Callback_EliminatedTeams, """
+* Name: {{{C_Callback_EliminatedTeams}}}
+* Type: CallbackArray
+* Description: Callback sent when teams are eliminated in matchmaking.
+* Data:
+	- Version >=3.6.0:
+	```
+	[
+		"{
+			"teams": [1, 5, 10, 17] //< The teams that were eliminated. Team number starts at 1.
+		}"
+	]
+	```
+	""");
+}
+
+/* @Changelog
+
+Version 2.0.0
+-------------
+
+- Removed `APICompetitionUrl` and `APIMatchmakingUrl` from `K_Config` to use only `APIMeetUrl` (replacing `APIBordeauxClubUrl`) with the new API
+
+ */

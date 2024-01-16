@@ -1,0 +1,13 @@
+/**
+ *  Cup common constants
+ */
+#Const Version    "2020-10-14"
+#Const ScriptName "Libs/Nadeo/TMNext/TrackMania/Modes/CupCommon/Constants.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// State Manager
+#Const C_State_Waiting 0
+#Const C_State_Playing 1
+#Const C_State_WarmUp 2

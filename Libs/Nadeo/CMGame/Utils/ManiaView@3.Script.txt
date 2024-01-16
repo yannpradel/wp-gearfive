@@ -1,0 +1,1160 @@
+/**
+ *	Components system
+ *
+ *	Documentation: https://confluence.ubisoft.com/pages/viewpage.action?pageId=2217047111
+ */
+#Const Version "3.2.0"
+#Const ScriptName "Libs/Nadeo/CMGame/Utils/ManiaView@3.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "ColorLib" as CL
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/CMGame/Utils/Tools.Script.txt" as Tools
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_EventDefinition {
+	Text Get;
+	Text Reset;
+}
+
+#Struct K_Script {
+	Text Directives;
+	Text Declarations;
+}
+
+#Struct K_Mixin {
+	Text Name;
+	Text Path;
+	Text Class;
+	Text[] DefineProps;
+	K_Script Script;
+	Text[Text] Hooks;
+}
+
+#Struct K_Component {
+	Text Name;
+	Text Path;
+	Text Class;
+	K_EventDefinition[Text] DefineEvents;
+	Text[] DefineProps;
+	Text Template;
+	K_Script Script;
+	Text[Text] Hooks;
+	K_Component[] Components;
+	K_Mixin[] Mixins;
+}
+
+#Struct K_ComponentCompilation {
+	Boolean IsCompiled;
+	Text Template;
+	Text ProcessComponentEvents;
+}
+#Struct K_ManialinkPageCompilation {
+	Text ML_Templates;
+	Text ML_Hooks;
+	Text[Text] ML_Hooks_LocalComponentMouseEvents;
+	Text ML_ProcessComponentsEvents;
+	Text ML_Script_Directives;
+	Text ML_Script_Declarations;
+	Text ML_LocalComponentInit;
+	Text ML_LocalMixinInit;
+	Text[][Text] DefinedComponentHooks;
+	Text[][Text] DefinedMixinHooks;
+	K_Component PageComponent;
+	K_Component[Text] SortedComponents;
+	K_ComponentCompilation[Text] CompiledComponents;
+	K_Mixin[Text] SortedMixins;
+	Text[Text] MixinsProps;
+	Integer ManialinkVersion;
+}
+
+#Struct K_Redraw {
+	CMlFrame Component;
+	Text[] Tags;
+}
+
+#Struct K_MatchedComponent {
+	Boolean Matched;
+	Text Xml;
+	Text Name;
+	Text Attributes;
+}
+
+#Struct K_MatchedMixin {
+	Boolean Matched;
+	Text Xml;
+	Text Prepend;
+	Text Append;
+	Text Attributes;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_IncludeName "CMGame_MV3"
+#Const C_Prefix "CMGame_MV3_"
+#Const C_DefaultManialinkVersion 3
+
+#Const C_Class_ComponentInstance "cmgame-mv3-component-instance"
+#Const C_Class_MixinInstance "cmgame-mv3-mixin-instance"
+#Const C_Class_EventBindings "cmgame-mv3-event-bindings"
+#Const C_Class_TriggerZone "cmgame-mv3-trigger-zone"
+
+#Const C_Hook_MainInit "CMGame_MV3_Main_Init"
+#Const C_Hook_MainStart "CMGame_MV3_Main_Start"
+#Const C_Hook_MainEnd "CMGame_MV3_Main_End"
+#Const C_Hook_YieldBefore "CMGame_MV3_Yield_Before"
+#Const C_Hook_YieldAfter "CMGame_MV3_Yield_After"
+#Const C_Hook_OnEvent "CMGame_MV3_OnEvent"
+#Const C_Hook_OnEvent_KeyPress "CMGame_MV3_OnEvent_KeyPress"
+#Const C_Hook_OnEvent_MouseClick "CMGame_MV3_OnEvent_MouseClick"
+#Const C_Hook_OnEvent_MouseRightClick "CMGame_MV3_OnEvent_MouseRightClick"
+#Const C_Hook_OnEvent_MouseOver "CMGame_MV3_OnEvent_MouseOver"
+#Const C_Hook_OnEvent_MouseOut "CMGame_MV3_OnEvent_MouseOut"
+#Const C_Hook_OnEvent_LocalComponentMouseClick "CMGame_MV3_OnEvent_ComponentMouseClick"
+#Const C_Hook_OnEvent_LocalComponentMouseRightClick "CMGame_MV3_OnEvent_ComponentMouseRightClick"
+#Const C_Hook_OnEvent_LocalComponentMouseOver "CMGame_MV3_OnEvent_ComponentMouseOver"
+#Const C_Hook_OnEvent_LocalComponentMouseOut "CMGame_MV3_OnEvent_ComponentMouseOut"
+#Const C_Hook_OnEvent_EntrySubmit "CMGame_MV3_OnEvent_EntrySubmit"
+#Const C_Hook_OnEvent_MenuNavigation "CMGame_MV3_OnEvent_MenuNavigation"
+#Const C_Hook_OnEvent_PluginCustomEvent "CMGame_MV3_OnEvent_PluginCustomEvent"
+#Const C_Hook_AllComponentsInit "CMGame_MV3_AllComponentsInit"
+#Const C_Hook_LocalComponentInit "CMGame_MV3_LocalComponentInit"
+#Const C_Hook_ComponentDraw "CMGame_MV3_ComponentDraw"
+#Const C_Hook_AllMixinsInit "CMGame_MV3_AllMixinsInit"
+#Const C_Hook_LocalMixinInit "CMGame_MV3_LocalMixinInit"
+
+#Const C_DefaultDirectives [
+	"mv-mixin-set:" => "data-cmgame-mv3-mixin-set-",
+	"$$" => "data-cmgame-mv3-mixin-set-", //< Must be declared before the `$` directive
+	"mv-on:" => "data-cmgame-mv3-on-",
+	"@" => "data-cmgame-mv3-on-",
+	"mv-set:" => "data-cmgame-mv3-set-",
+	"$" => "data-cmgame-mv3-set-"
+]
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Globales
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+declare K_Redraw[Ident] G_ComponentInstancesToRedraw;
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the component instance to which the element belongs
+CMlFrame GetComponentInstanceThatOwnsControl(CMlControl _Control) {
+	if (_Control == Null) return Null;
+
+	// Check if the owner is already cached
+	declare Boolean CMGame_MV3_ComponentInstanceOwnerIsCached for _Control = False;
+	declare CMlFrame CMGame_MV3_ComponentInstanceOwnerCache for _Control = Null;
+	if (CMGame_MV3_ComponentInstanceOwnerIsCached) {
+		return CMGame_MV3_ComponentInstanceOwnerCache;
+	}
+
+	// Find the owner
+	declare CMlFrame Control = _Control.Parent;
+	declare CMlFrame Owner = Null;
+	while (Control != Null && Owner == Null) {
+		if (Control.HasClass(C_Class_ComponentInstance)) {
+			Owner = Control;
+		} else {
+			Control = Control.Parent;
+		}
+	}
+
+	// Save owner in cache
+	CMGame_MV3_ComponentInstanceOwnerCache = Owner;
+	CMGame_MV3_ComponentInstanceOwnerIsCached = True;
+
+	return Owner;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Mark a component instance to be redrawn at the end of the frame
+Void MarkForRedraw(CMlFrame _ComponentInstance, Text[] _Tags) {
+	if (_ComponentInstance == Null) return;
+	declare K_Redraw Redraw = G_ComponentInstancesToRedraw.get(_ComponentInstance.Id, K_Redraw { Component = _ComponentInstance });
+	for (Tag in _Tags) {
+		if (Tag != "" && !Redraw.Tags.exists(Tag)) {
+			Redraw.Tags.add(Tag);
+		}
+	}
+	G_ComponentInstancesToRedraw[_ComponentInstance.Id] = Redraw;
+}
+Void MarkForRedraw(CMlFrame _ComponentInstance, Text _Tag) {
+	MarkForRedraw(_ComponentInstance, [_Tag]);
+}
+Void MarkForRedraw(CMlFrame _ComponentInstance) {
+	MarkForRedraw(_ComponentInstance, "");
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if the given component instance is marked for redraw
+Boolean IsMarkedForRedraw(CMlFrame _ComponentInstance) {
+	return (
+		_ComponentInstance != Null &&
+		G_ComponentInstancesToRedraw.existskey(_ComponentInstance.Id)
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the component instances waiting to be redrawn
+K_Redraw[Ident] GetComponentInstancesToRedraw() {
+	return G_ComponentInstancesToRedraw;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Reset the component instances waiting to be redrawn
+Void ResetComponentInstancesToRedraw() {
+	G_ComponentInstancesToRedraw = [];
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if one of the given redraw tag is present
+Boolean HasRedrawTag(Text[] _TagsInWhichToSearch, Text _InitTag, Text[] _TagsToFind) {
+	return (
+		_TagsInWhichToSearch.exists(_InitTag) ||
+		_TagsInWhichToSearch.containsoneof(_TagsToFind)
+	);
+}
+Boolean HasRedrawTag(Text[] _TagsInWhichToSearch, Text _InitTag, Text _TagToFind) {
+	return HasRedrawTag(_TagsInWhichToSearch, _InitTag, [_TagToFind]);
+}
+Boolean HasRedrawTag(Text[] _TagsInWhichToSearch, Text[] _TagsToFind) {
+	return _TagsInWhichToSearch.containsoneof(_TagsToFind);
+}
+Boolean HasRedrawTag(Text[] _TagsInWhichToSearch, Text _TagToFind) {
+	return HasRedrawTag(_TagsInWhichToSearch, [_TagToFind]);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the data attribute name of a prop
+Text Private_GetPropName(Text _PropName, Boolean _IsMixin) {
+	if (_IsMixin) return "cmgame-mv3-mixin-set-"^_PropName;
+	return "cmgame-mv3-set-"^_PropName;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if the given control has the request prop
+Boolean HasProp(CMlControl _Control, Text _PropName, Boolean _IsMixin) {
+	return (
+		_Control != Null &&
+		_Control.DataAttributeExists(Private_GetPropName(_PropName, _IsMixin))
+	);
+}
+Boolean HasProp(CMlControl _Control, Text _PropName) {
+	return HasProp(_Control, _PropName, False);
+}
+Boolean HasMixinProp(CMlControl _Control, Text _PropName) {
+	return HasProp(_Control, _PropName, True);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get a `Boolean` prop from a control
+Boolean GetProp_Boolean(CMlControl _Control, Text _PropName, Boolean _DefaultValue, Boolean _IsMixin) {
+	if (!HasProp(_Control, _PropName, _IsMixin)) return _DefaultValue;
+	return Tools::TextToBoolean2(_Control.DataAttributeGet(Private_GetPropName(_PropName, _IsMixin)));
+}
+Boolean GetProp_Boolean(CMlControl _Control, Text _PropName, Boolean _DefaultValue) {
+	return GetProp_Boolean(_Control, _PropName, _DefaultValue, False);
+}
+Boolean GetMixinProp_Boolean(CMlControl _Control, Text _PropName, Boolean _DefaultValue) {
+	return GetProp_Boolean(_Control, _PropName, _DefaultValue, True);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get a `Int2` prop from a control
+Int2 GetProp_Int2(CMlControl _Control, Text _PropName, Int2 _DefaultValue, Boolean _IsMixin) {
+	if (!HasProp(_Control, _PropName, _IsMixin)) return _DefaultValue;
+	return Tools::TextToInt2(_Control.DataAttributeGet(Private_GetPropName(_PropName, _IsMixin)));
+}
+Int2 GetProp_Int2(CMlControl _Control, Text _PropName, Int2 _DefaultValue) {
+	return GetProp_Int2(_Control, _PropName, _DefaultValue, False);
+}
+Int2 GetMixinProp_Int2(CMlControl _Control, Text _PropName, Int2 _DefaultValue) {
+	return GetProp_Int2(_Control, _PropName, _DefaultValue, True);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get a `Int3` prop from a control
+Int3 GetProp_Int3(CMlControl _Control, Text _PropName, Int3 _DefaultValue, Boolean _IsMixin) {
+	if (!HasProp(_Control, _PropName, _IsMixin)) return _DefaultValue;
+	return Tools::TextToInt3(_Control.DataAttributeGet(Private_GetPropName(_PropName, _IsMixin)));
+}
+Int3 GetProp_Int3(CMlControl _Control, Text _PropName, Int3 _DefaultValue) {
+	return GetProp_Int3(_Control, _PropName, _DefaultValue, False);
+}
+Int3 GetMixinProp_Int3(CMlControl _Control, Text _PropName, Int3 _DefaultValue) {
+	return GetProp_Int3(_Control, _PropName, _DefaultValue, True);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get a `Integer` prop from a control
+Integer GetProp_Integer(CMlControl _Control, Text _PropName, Integer _DefaultValue, Boolean _IsMixin) {
+	if (!HasProp(_Control, _PropName, _IsMixin)) return _DefaultValue;
+	return TL::ToInteger(_Control.DataAttributeGet(Private_GetPropName(_PropName, _IsMixin)));
+}
+Integer GetProp_Integer(CMlControl _Control, Text _PropName, Integer _DefaultValue) {
+	return GetProp_Integer(_Control, _PropName, _DefaultValue, False);
+}
+Integer GetMixinProp_Integer(CMlControl _Control, Text _PropName, Integer _DefaultValue) {
+	return GetProp_Integer(_Control, _PropName, _DefaultValue, True);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get a `Real` prop from a control
+Real GetProp_Real(CMlControl _Control, Text _PropName, Real _DefaultValue, Boolean _IsMixin) {
+	if (!HasProp(_Control, _PropName, _IsMixin)) return _DefaultValue;
+	return TL::ToReal(_Control.DataAttributeGet(Private_GetPropName(_PropName, _IsMixin)));
+}
+Real GetProp_Real(CMlControl _Control, Text _PropName, Real _DefaultValue) {
+	return GetProp_Real(_Control, _PropName, _DefaultValue, False);
+}
+Real GetMixinProp_Real(CMlControl _Control, Text _PropName, Real _DefaultValue) {
+	return GetProp_Real(_Control, _PropName, _DefaultValue, True);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get a `Text` prop from a control
+Text GetProp_Text(CMlControl _Control, Text _PropName, Text _DefaultValue, Boolean _IsMixin) {
+	if (!HasProp(_Control, _PropName, _IsMixin)) return _DefaultValue;
+	return _Control.DataAttributeGet(Private_GetPropName(_PropName, _IsMixin));
+}
+Text GetProp_Text(CMlControl _Control, Text _PropName, Text _DefaultValue) {
+	return GetProp_Text(_Control, _PropName, _DefaultValue, False);
+}
+Text GetMixinProp_Text(CMlControl _Control, Text _PropName, Text _DefaultValue) {
+	return GetProp_Text(_Control, _PropName, _DefaultValue, True);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get a `Vec2` prop from a control
+Vec2 GetProp_Vec2(CMlControl _Control, Text _PropName, Vec2 _DefaultValue, Boolean _IsMixin) {
+	if (!HasProp(_Control, _PropName, _IsMixin)) return _DefaultValue;
+	return Tools::TextToVec2(_Control.DataAttributeGet(Private_GetPropName(_PropName, _IsMixin)));
+}
+Vec2 GetProp_Vec2(CMlControl _Control, Text _PropName, Vec2 _DefaultValue) {
+	return GetProp_Vec2(_Control, _PropName, _DefaultValue, False);
+}
+Vec2 GetMixinProp_Vec2(CMlControl _Control, Text _PropName, Vec2 _DefaultValue) {
+	return GetProp_Vec2(_Control, _PropName, _DefaultValue, True);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get a `Vec3` prop from a control
+Vec3 GetProp_Vec3(CMlControl _Control, Text _PropName, Vec3 _DefaultValue, Boolean _IsMixin) {
+	if (!HasProp(_Control, _PropName, _IsMixin)) return _DefaultValue;
+	return Tools::TextToVec3(_Control.DataAttributeGet(Private_GetPropName(_PropName, _IsMixin)));
+}
+Vec3 GetProp_Vec3(CMlControl _Control, Text _PropName, Vec3 _DefaultValue) {
+	return GetProp_Vec3(_Control, _PropName, _DefaultValue, False);
+}
+Vec3 GetMixinProp_Vec3(CMlControl _Control, Text _PropName, Vec3 _DefaultValue) {
+	return GetProp_Vec3(_Control, _PropName, _DefaultValue, True);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get a `Vec3` color prop from a control
+Vec3 GetProp_Color(CMlControl _Control, Text _PropName, Vec3 _DefaultValue, Boolean _IsMixin) {
+	if (!HasProp(_Control, _PropName, _IsMixin)) return _DefaultValue;
+	return CL::HexToRgb(_Control.DataAttributeGet(Private_GetPropName(_PropName, _IsMixin)));
+}
+Vec3 GetProp_Color(CMlControl _Control, Text _PropName, Vec3 _DefaultValue) {
+	return GetProp_Color(_Control, _PropName, _DefaultValue, False);
+}
+Vec3 GetMixinProp_Color(CMlControl _Control, Text _PropName, Vec3 _DefaultValue) {
+	return GetProp_Color(_Control, _PropName, _DefaultValue, True);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Find all components in a manialink xml
+Text[] Private_FindComponents(Text _ComponentName, Text _Manialink) {
+	return TL::RegexFind(
+		"""<\s*{{{_ComponentName}}}\s+(?:[^>\/]|\/(?!>))*\/?>""",
+		_Manialink,
+		"g"
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Regex match a component in a manialink xml and capture its attributes
+K_MatchedComponent Private_MatchComponent(Text _ComponentName, Text _Manialink) {
+	declare Text[] Matches = TL::RegexMatch(
+		"""<\s*{{{_ComponentName}}}\s+((?:[^>\/]|\/(?!>))*)\/?>""",
+		_Manialink,
+		""
+	);
+
+	declare K_MatchedComponent MatchedComponent = K_MatchedComponent {
+		Matched = Matches.count > 0,
+		Name = _ComponentName
+	};
+
+	if (Matches.count > 0) MatchedComponent.Xml = Matches[0];
+	if (Matches.count > 1) MatchedComponent.Attributes = Matches[1];
+
+	return MatchedComponent;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Regex match a component attribute
+Text[] Private_MatchComponentAttribute(Text _RawAttributes) {
+	return TL::RegexMatch(TL::Trim(""" ([\w\-.:@$#]+)\s*=\s*"((?:[^"\\]|\\["\\nrt])*)" """), _RawAttributes, "");
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Parse the attributes of an xml node
+Text[Text] Private_ParseAttributes(Text _RawAttributes) {
+	if (TL::Trim(_RawAttributes) == "") return [];
+
+	declare Text[Text] ParsedAttributes;
+	declare Text RawAttributes = _RawAttributes;
+	declare Text[] Matches = Private_MatchComponentAttribute(RawAttributes);
+	while (Matches.count >= 3) {
+		declare Text AttributeName = Matches[1];
+		for (DirectiveShortcut => DirectiveFull in C_DefaultDirectives) {
+			if (TL::StartsWith(DirectiveShortcut, AttributeName)) {
+				AttributeName = DirectiveFull ^ TL::SubText(AttributeName, TL::Length(DirectiveShortcut), TL::Length(AttributeName));
+			}
+		}
+		ParsedAttributes[AttributeName] = Matches[2];
+		RawAttributes = TL::Replace(RawAttributes, Matches[0], "");
+		Matches = Private_MatchComponentAttribute(RawAttributes);
+	}
+
+	return ParsedAttributes;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Convert an attributes array to a node attributes string
+Text Private_OutputAttributes(Text[Text] _Attributes) {
+	declare Text Attributes;
+
+	for (Name => Value in _Attributes) {
+		Attributes ^= """{{{Name}}}="{{{Value}}}" """;
+	}
+
+	return TL::Trim(Attributes);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Find nodes with mixins
+Text[] Private_FindMixins(Text _Manialink) {
+	return TL::RegexFind(
+		"""<\s*[\w-]+(?:[^>\/]|\/(?!>))*(?:\$\$|mv-mixin-set:)[\w-]+="(?:[^"\\]|\\["\\nrt])*"(?:[^>\/]|\/(?!>))*\/?>""",
+		_Manialink,
+		"g"
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Regex match a mixin in a manialink xml
+K_MatchedMixin Private_MatchMixin(Text _Manialink) {
+	declare Text[] Matches = TL::RegexMatch(
+		"""(<\s*[\w-]+)([^>]*(?:\$\$|mv-mixin-set:)[\w-]+="(?:[^"\\]|\\["\\nrt])*"(?:[^>\/]|\/(?!>))*)(\/?>)""",
+		_Manialink,
+		""
+	);
+
+	declare K_MatchedMixin MatchedMixin = K_MatchedMixin {
+		Matched = Matches.count >= 4
+	};
+
+	if (MatchedMixin.Matched) {
+		MatchedMixin.Xml = Matches[0];
+		MatchedMixin.Prepend = TL::Trim(Matches[1]);
+		MatchedMixin.Attributes = TL::Trim(Matches[2]);
+		MatchedMixin.Append = TL::Trim(Matches[3]);
+	}
+
+	return MatchedMixin;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if the function has custom arguments
+Boolean Private_FunctionHasCustomArguments(Text _HookFunction) {
+	return TL::RegexFind("""\(.*\)""", _HookFunction, "").count > 0;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Return the call for the bound function
+Text Private_CallBoundFunction(Text _Function, Text _DefaultArguments) {
+	if (Private_FunctionHasCustomArguments(_Function)) {
+		return """{{{_Function}}}""";
+	}
+	return """{{{_Function}}}({{{_DefaultArguments}}})""";
+}
+Text Private_CallBoundFunction(Text _Function, Text[] _DefaultArguments) {
+	return Private_CallBoundFunction(_Function, TL::Join(",", _DefaultArguments));
+}
+Text Private_CallBoundFunction(Text _Function) {
+	return Private_CallBoundFunction(_Function, "");
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the default lifecycle hooks of components
+Text[][Text] Private_GetDefaultComponentHooks() {
+	return [
+		C_Hook_MainInit => ["This"],
+		C_Hook_MainStart => ["This"],
+		C_Hook_MainEnd => ["This"],
+		C_Hook_YieldBefore => ["This"],
+		C_Hook_YieldAfter => ["This"],
+		C_Hook_OnEvent => ["This", "Event"],
+		C_Hook_OnEvent_KeyPress => ["This", "Event"],
+		C_Hook_OnEvent_MouseClick => ["This", "Event"],
+		C_Hook_OnEvent_MouseRightClick => ["This", "Event"],
+		C_Hook_OnEvent_MouseOver => ["This", "Event"],
+		C_Hook_OnEvent_MouseOut => ["This", "Event"],
+		C_Hook_OnEvent_LocalComponentMouseClick => ["This", "Event", "ComponentInstance"],
+		C_Hook_OnEvent_LocalComponentMouseRightClick => ["This", "Event", "ComponentInstance"],
+		C_Hook_OnEvent_LocalComponentMouseOver => ["This", "Event", "ComponentInstance"],
+		C_Hook_OnEvent_LocalComponentMouseOut => ["This", "Event", "ComponentInstance"],
+		C_Hook_OnEvent_EntrySubmit => ["This", "Event"],
+		C_Hook_OnEvent_MenuNavigation => ["This", "Event"],
+		C_Hook_OnEvent_PluginCustomEvent => ["This", "Event"],
+		C_Hook_AllComponentsInit => ["This", "ComponentInstance"],
+		C_Hook_LocalComponentInit => ["This", "ComponentInstance"],
+		C_Hook_ComponentDraw => ["This", "ComponentInstance", "Tags"]
+	];
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the default lifecycle hooks of mixins
+Text[][Text] Private_GetDefaultMixinHooks() {
+	return [
+		C_Hook_MainInit => ["This"],
+		C_Hook_MainStart => ["This"],
+		C_Hook_MainEnd => ["This"],
+		C_Hook_YieldBefore => ["This"],
+		C_Hook_YieldAfter => ["This"],
+		C_Hook_OnEvent => ["This", "Event"],
+		C_Hook_OnEvent_KeyPress => ["This", "Event"],
+		C_Hook_OnEvent_MouseClick => ["This", "Event"],
+		C_Hook_OnEvent_MouseRightClick => ["This", "Event"],
+		C_Hook_OnEvent_MouseOver => ["This", "Event"],
+		C_Hook_OnEvent_MouseOut => ["This", "Event"],
+		C_Hook_OnEvent_EntrySubmit => ["This", "Event"],
+		C_Hook_OnEvent_MenuNavigation => ["This", "Event"],
+		C_Hook_OnEvent_PluginCustomEvent => ["This", "Event"],
+		C_Hook_AllMixinsInit => ["This", "MixinInstance"],
+		C_Hook_LocalMixinInit => ["This", "MixinInstance"]
+	];
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Save a compiled component in the cache
+Void Private_SetComponentCompilationCache(Text _Key, K_ComponentCompilation _ComponentCompilation) {
+	declare K_ComponentCompilation[Text] CMGame_MV3_ComponentCompilationCache for This = [];
+	declare K_ComponentCompilation ComponentCompilation = _ComponentCompilation;
+	CMGame_MV3_ComponentCompilationCache[_Key] = ComponentCompilation;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get a compiled component from the cache
+K_ComponentCompilation Private_GetComponentCompilationCache(Text _Key) {
+	declare K_ComponentCompilation[Text] CMGame_MV3_ComponentCompilationCache for This = [];
+	return CMGame_MV3_ComponentCompilationCache.get(_Key, K_ComponentCompilation { IsCompiled = False });
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Generate a unique id for event bindings
+Integer Private_GetComponentCompilationUniqueEventBindingId() {
+	declare Integer CMGame_MV3_ComponentCompilationUniqueEventBindingId for This = 0;
+	CMGame_MV3_ComponentCompilationUniqueEventBindingId += 1;
+	return CMGame_MV3_ComponentCompilationUniqueEventBindingId;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Sort the tree of components from root to leafs
+K_ManialinkPageCompilation Private_CompileStep_SortComponents(K_ManialinkPageCompilation _Compilation) {
+	declare K_ManialinkPageCompilation Compilation = _Compilation;
+
+	declare K_Component[] Components = [Compilation.PageComponent];
+	Compilation.SortedComponents = [];
+	while (Components.count > 0) {
+		declare K_Component Component = Components[0];
+		assert(Component.Name != "", """Component with path `{{{Component.Path}}}` does not have a name""");
+		assert(Component.Path != "", """Component with name `{{{Component.Name}}}` does not have a path""");
+		assert(Component.Class != "", """Component with path `{{{Component.Path}}}` does not have a class""");
+		declare Boolean ComponentAlreadyLoaded = Compilation.SortedComponents.existskey(Component.Name);
+		assert(
+			!ComponentAlreadyLoaded || Compilation.SortedComponents[Component.Name].Path == Component.Path,
+			"""Component `{{{Component.Path}}}` already use name `{{{Component.Name}}}`"""
+		);
+
+		// If a component uses another component that is already loaded
+		// remove it from the list and add it at the end
+		// This component must be concataneted before the one that uses it
+		if (ComponentAlreadyLoaded) {
+			Compilation.SortedComponents.removekey(Component.Name);
+		}
+		Compilation.SortedComponents[Component.Name] = Component;
+		Components.add(Component.Components);
+		Components.removekey(0);
+	}
+
+	return Compilation;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Sort the used mixins
+K_ManialinkPageCompilation Private_CompileStep_SortMixins(K_ManialinkPageCompilation _Compilation) {
+	declare K_ManialinkPageCompilation Compilation = _Compilation;
+
+	Compilation.SortedMixins = [];
+	Compilation.MixinsProps = [];
+	for (Component in Compilation.SortedComponents) {
+		for (ComponentMixin in Component.Mixins) {
+			// Mixin already exists, check if there is a conflict
+			if (Compilation.SortedMixins.existskey(ComponentMixin.Name)) {
+				declare K_Mixin SortedMixin = Compilation.SortedMixins[ComponentMixin.Name];
+				assert(
+					SortedMixin.Path == ComponentMixin.Path,
+					"""The `{{{ComponentMixin.Name}}}` mixin already exists with a different path : `{{{ComponentMixin.Path}}}` != `{{{SortedMixin.Path}}}`"""
+				);
+				assert(
+					SortedMixin.Class == ComponentMixin.Class,
+					"""The `{{{ComponentMixin.Name}}}` mixin already exists with a different class : `{{{ComponentMixin.Class}}}` != `{{{SortedMixin.Class}}}`"""
+				);
+			}
+			// Add new mixin
+			else {
+				assert(ComponentMixin.Name != "", """Mixin with path `{{{ComponentMixin.Path}}}` does not have a name""");
+				assert(ComponentMixin.Path != "", """Mixin with name `{{{ComponentMixin.Name}}}` does not have a path""");
+				assert(ComponentMixin.Class != "", """Mixin with path `{{{ComponentMixin.Path}}}` does not have a class""");
+				Compilation.SortedMixins[ComponentMixin.Name] = ComponentMixin;
+				for (Prop in ComponentMixin.DefineProps) {
+					assert(!Compilation.MixinsProps.existskey(Prop), """Prop `{{{Prop}}}` in mixin `{{{ComponentMixin.Name}}}` already defined in mixin `{{{Compilation.MixinsProps[Prop]}}}`""");
+					Compilation.MixinsProps[Prop] = ComponentMixin.Name;
+				}
+			}
+		}
+	}
+
+	return Compilation;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Bind user functions to their requested component hooks
+K_ManialinkPageCompilation Private_CompileStep_BindComponentsHooks(K_ManialinkPageCompilation _Compilation) {
+	declare K_ManialinkPageCompilation Compilation = _Compilation;
+
+	declare Text[Text] ML_LocalComponentMouseEvents = [];
+	for (Component in reverse Compilation.SortedComponents) {
+		// Bind functions to hooks
+		declare Text LocalComponentInitHookFunctionCalls = "";
+		declare Text[Text] LocalComponentMouseEventsFunctionCalls = [];
+		for (HookName => HookFunction in Component.Hooks) {
+			if (Compilation.DefinedComponentHooks.existskey(HookName)) {
+				declare Text HookFunctionCall = Private_CallBoundFunction(HookFunction, Compilation.DefinedComponentHooks[HookName]);
+				if (HookName == C_Hook_LocalComponentInit) {
+					LocalComponentInitHookFunctionCalls ^= """{{{HookFunctionCall}}};""";
+				} else if (
+					HookName == C_Hook_OnEvent_LocalComponentMouseClick ||
+					HookName == C_Hook_OnEvent_LocalComponentMouseRightClick ||
+					HookName == C_Hook_OnEvent_LocalComponentMouseOver ||
+					HookName == C_Hook_OnEvent_LocalComponentMouseOut
+				) {
+					LocalComponentMouseEventsFunctionCalls[HookName] = LocalComponentMouseEventsFunctionCalls.get(HookName, "") ^ """{{{HookFunctionCall}}};""";
+				} else {
+					Compilation.ML_Hooks ^=
+"""
+***{{{HookName}}}***
+***
+{{{HookFunctionCall}}};
+***
+""";
+				}
+			}
+		}
+
+		// Bind functions to the local component init hook
+		if (LocalComponentInitHookFunctionCalls != "") {
+			declare Text Test = "if";
+			if (Compilation.ML_LocalComponentInit != "") Test = "else if";
+			Compilation.ML_LocalComponentInit ^=
+"""
+		{{{Test}}} (ComponentInstance.HasClass({{{dump(Component.Class)}}})) {
+			{{{LocalComponentInitHookFunctionCalls}}}
+		}
+""";
+		}
+
+		// Bind functions to the local component mouse event hooks
+		for (HookName => LocalComponentMouseEventFunctionCalls in LocalComponentMouseEventsFunctionCalls) {
+			if (LocalComponentMouseEventFunctionCalls != "") {
+				declare Text ML_LocalComponentMouseEvent = ML_LocalComponentMouseEvents.get(HookName, "");
+				declare Text Test = "if";
+				if (ML_LocalComponentMouseEvent != "") Test = "else if";
+				ML_LocalComponentMouseEvent ^=
+"""
+					{{{Test}}} (ComponentInstance != Null && ComponentInstance.HasClass({{{dump(Component.Class)}}})) {
+						{{{LocalComponentMouseEventFunctionCalls}}}
+					}
+""";
+				ML_LocalComponentMouseEvents[HookName] = ML_LocalComponentMouseEvent;
+			}
+		}
+	}
+
+	// Bind functions to the local component mouse event hooks
+	for (HookName => ML_LocalComponentMouseEvent in ML_LocalComponentMouseEvents) {
+		if (ML_LocalComponentMouseEvent != "") {
+			Compilation.ML_Hooks_LocalComponentMouseEvents[HookName] =
+"""
+				if (Event.Control != Null && Event.Control.HasClass({{{C_IncludeName}}}::C_Class_TriggerZone)) {
+					declare CMlFrame ComponentInstance = {{{C_IncludeName}}}::GetComponentInstanceThatOwnsControl(Event.Control);
+					{{{ML_LocalComponentMouseEvent}}}
+				}
+""";
+		}
+	}
+
+	return Compilation;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Bind user functions to their requested mixin hooks
+K_ManialinkPageCompilation Private_CompileStep_BindMixinsHooks(K_ManialinkPageCompilation _Compilation) {
+	declare K_ManialinkPageCompilation Compilation = _Compilation;
+
+	for (Mixin in reverse Compilation.SortedMixins) {
+		// Bind functions to hooks
+		declare Text LocalMixinInitHookFunctionCalls = "";
+		for (HookName => HookFunction in Mixin.Hooks) {
+			if (Compilation.DefinedMixinHooks.existskey(HookName)) {
+				declare Text HookFunctionCall = Private_CallBoundFunction(HookFunction, Compilation.DefinedMixinHooks[HookName]);
+				if (HookName == C_Hook_LocalMixinInit) {
+					LocalMixinInitHookFunctionCalls ^= """{{{HookFunctionCall}}};""";
+				} else {
+					Compilation.ML_Hooks ^=
+"""
+***{{{HookName}}}***
+***
+{{{HookFunctionCall}}};
+***
+""";
+				}
+			}
+		}
+
+		// Bind functions to the local mixin init hook
+		if (LocalMixinInitHookFunctionCalls != "") {
+			Compilation.ML_LocalMixinInit ^=
+"""
+		if (MixinInstance.HasClass({{{dump(Mixin.Class)}}})) {
+			{{{LocalMixinInitHookFunctionCalls}}}
+		}
+""";
+		}
+	}
+
+	return Compilation;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Inject the page component instance in the manialink page
+K_ManialinkPageCompilation Private_CompileStep_InjectPageComponentInstance(K_ManialinkPageCompilation _Compilation) {
+	if (_Compilation.PageComponent.Template == "") return _Compilation;
+
+	declare K_ManialinkPageCompilation Compilation = _Compilation;
+
+	Compilation.ML_Templates ^=
+"""
+<frameinstance modelid="{{{TL::MLEncode(_Compilation.PageComponent.Path)}}}" />
+""";
+
+	return Compilation;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Parse mixin instance xml and generate code for them
+K_ComponentCompilation Private_CompileStep_CompileMixinTemplate(
+	K_ComponentCompilation _ComponentCompilation,
+	K_ManialinkPageCompilation _Compilation
+) {
+	declare K_ComponentCompilation ComponentCompilation = _ComponentCompilation;
+	declare Text[] XmlMixins = Private_FindMixins(ComponentCompilation.Template);
+	for (XmlMixin in XmlMixins) {
+		declare K_MatchedMixin MatchedMixin = Private_MatchMixin(XmlMixin);
+		if (MatchedMixin.Matched) {
+			declare Text[Text] ParsedAttributes = Private_ParseAttributes(MatchedMixin.Attributes);
+			declare Text[] MixinClasses;
+
+			// Find and replace all props in the mixin instance
+			for (AttributeName => AttributeValue in ParsedAttributes) {
+				declare Text[] Matches = TL::RegexMatch("""^{{{C_DefaultDirectives["mv-mixin-set:"]}}}([\w-]+)$""", AttributeName, "");
+				if (Matches.count >= 2) {
+					declare Text MixinName = _Compilation.MixinsProps.get(Matches[1], "");
+					if (MixinName != "") {
+						declare K_Mixin Mixin = _Compilation.SortedMixins.get(MixinName, K_Mixin {});
+						if (Mixin.Class != "" && !MixinClasses.exists(Mixin.Class)) {
+							MixinClasses.add(Mixin.Class);
+						}
+					}
+				}
+			}
+
+			// Add the mixin instance class to the node
+			if (MixinClasses.count > 0) {
+				declare Text Class = ParsedAttributes.get("class", "");
+				if (Class != "") Class ^= " ";
+				Class ^= C_Class_MixinInstance ^ " " ^ TL::Join(" ", MixinClasses);
+				ParsedAttributes["class"] = Class;
+			}
+
+			// Rewrite mixin props in the xml
+			ComponentCompilation.Template = TL::Replace(ComponentCompilation.Template, MatchedMixin.Xml, """{{{MatchedMixin.Prepend}}} {{{Private_OutputAttributes(ParsedAttributes)}}} {{{MatchedMixin.Append}}}""");
+		}
+	}
+	return ComponentCompilation;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Parse component instance xml and generate code for them
+K_ComponentCompilation Private_CompileStep_CompileComponentTemplate(
+	K_ComponentCompilation _ComponentCompilation,
+	K_Component _Component
+) {
+	declare K_ComponentCompilation ComponentCompilation = _ComponentCompilation;
+	declare Text[][][Text] ComponentFamilyEventBindings;
+	declare Text[] XmlComponents = Private_FindComponents(_Component.Name, ComponentCompilation.Template);
+	for (XmlComponent in XmlComponents) {
+		declare K_MatchedComponent MatchedComponent = Private_MatchComponent(_Component.Name, XmlComponent);
+		if (MatchedComponent.Matched) {
+			declare Text[Text] Attributes = Private_ParseAttributes(MatchedComponent.Attributes);
+
+			// Add the component instance class to the node
+			declare Text Class = Attributes.get("class", "");
+			if (Class != "") Class ^= " ";
+			Class ^= _Component.Class ^ " " ^ C_Class_ComponentInstance;
+
+			// Find events binding
+			declare Text[Text] EventBindings;
+			for (AttributeName => AttributeValue in Attributes) {
+				declare Text[] Matches = TL::RegexMatch("""^{{{C_DefaultDirectives["mv-on:"]}}}([\w-]+)$""", AttributeName, "");
+				if (Matches.count >= 2) {
+					assert(
+						_Component.DefineEvents.existskey(Matches[1]),
+						"""Unknown event `{{{Matches[1]}}}` on component with id `{{{Attributes.get("id", "")}}}`"""
+					);
+					EventBindings[Matches[1]] = AttributeValue;
+				}
+			}
+			// Bind functions to the events
+			if (EventBindings.count > 0) {
+				declare Text EventBindingsClass = C_Class_EventBindings^"-"^Private_GetComponentCompilationUniqueEventBindingId();
+				Class ^= " " ^ EventBindingsClass;
+
+				for (EventType => EventFunction in EventBindings) {
+					if (ComponentFamilyEventBindings.existskey(EventType)) {
+						ComponentFamilyEventBindings[EventType].add([EventFunction, EventBindingsClass]);
+					} else {
+						ComponentFamilyEventBindings[EventType] = [[EventFunction, EventBindingsClass]];
+					}
+				}
+			}
+
+			// Validate props
+			for (AttributeName => AttributeValue in Attributes) {
+				declare Text[] Matches = TL::RegexMatch("""^{{{C_DefaultDirectives["mv-set:"]}}}([\w-]+)$""", AttributeName, "");
+				if (Matches.count >= 2) {
+					assert(
+						_Component.DefineProps.exists(Matches[1]),
+						"""Unknown prop `{{{Matches[1]}}}` on component with id `{{{Attributes.get("id", "")}}}`"""
+					);
+				}
+			}
+
+			Attributes["class"] = Class;
+
+			// Replace component node by a frameinstance
+			ComponentCompilation.Template = TL::Replace(ComponentCompilation.Template, MatchedComponent.Xml, """<frameinstance modelid="{{{TL::MLEncode(_Component.Path)}}}" {{{Private_OutputAttributes(Attributes)}}} />""");
+		}
+	}
+
+	// Generate the components events processing code
+	for (EventType => EventDefinition in _Component.DefineEvents) {
+		assert(EventDefinition.Get != "", """Event `{{{EventType}}}` of component `{{{_Component.Name}}}` is missing a `Get` function in `DefineEvents`""");
+		assert(EventDefinition.Reset != "", """Event `{{{EventType}}}` of component `{{{_Component.Name}}}` is missing a `Reset` function in `DefineEvents`""");
+
+		declare Text[][] BoundEvents = ComponentFamilyEventBindings.get(EventType, []);
+		declare Text ML_BoundEvents = "";
+		for (BoundEvent in BoundEvents) {
+			declare Text HasClassTest = "if";
+			if (ML_BoundEvents != "") {
+				HasClassTest = "else if";
+			}
+			ML_BoundEvents ^=
+"""
+		{{{HasClassTest}}} (Event.Component != Null && Event.Component.HasClass("{{{BoundEvent[1]}}}")) {
+			{{{Private_CallBoundFunction(BoundEvent[0], "Event")}}};
+		}
+""";
+		}
+
+		if (ML_BoundEvents != "") {
+			ComponentCompilation.ProcessComponentEvents ^=
+"""
+	for (Event in {{{Private_CallBoundFunction(EventDefinition.Get, "This")}}}) {
+		{{{ML_BoundEvents}}}
+	}
+""";
+		}
+		ComponentCompilation.ProcessComponentEvents ^=
+"""
+	{{{Private_CallBoundFunction(EventDefinition.Reset, "This")}}};
+""";
+	}
+
+	return ComponentCompilation;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Parse component instance xml and generate code for them
+K_ComponentCompilation Private_CompileStep_CompileComponentTemplates(K_ManialinkPageCompilation _Compilation, K_Component _Component) {
+	declare K_ComponentCompilation ComponentCompilation = Private_GetComponentCompilationCache(_Component.Path);
+
+	if (!ComponentCompilation.IsCompiled) {
+		ComponentCompilation.Template = _Component.Template;
+
+		// Mixins must be processed before components
+		if (_Component.Mixins.count > 0) {
+			ComponentCompilation = Private_CompileStep_CompileMixinTemplate(ComponentCompilation, _Compilation);
+		}
+
+		for (UsedComponent in _Component.Components) {
+			ComponentCompilation = Private_CompileStep_CompileComponentTemplate(ComponentCompilation, UsedComponent);
+		}
+
+		ComponentCompilation.IsCompiled = True;
+		Private_SetComponentCompilationCache(_Component.Path, ComponentCompilation);
+	}
+
+	return ComponentCompilation;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Parse component instances xml and generate code for them
+K_ManialinkPageCompilation Private_CompileStep_CompileComponentsTemplates(K_ManialinkPageCompilation _Compilation) {
+	declare K_ManialinkPageCompilation Compilation = _Compilation;
+
+	Compilation.CompiledComponents = [];
+	for (Component in Compilation.SortedComponents) {
+		Compilation.CompiledComponents[Component.Name] = Private_CompileStep_CompileComponentTemplates(_Compilation, Component);
+	}
+
+	return Compilation;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Concatenate components manialink parts
+K_ManialinkPageCompilation Private_CompileStep_ConcatenateComponents(K_ManialinkPageCompilation _Compilation) {
+	declare K_ManialinkPageCompilation Compilation = _Compilation;
+
+	for (Component in reverse Compilation.SortedComponents) {
+		declare K_ComponentCompilation CompiledComponent = Compilation.CompiledComponents.get(Component.Name, K_ComponentCompilation {});
+		if (CompiledComponent.Template != "") {
+			Compilation.ML_Templates ^=
+"""
+<framemodel id="{{{TL::MLEncode(Component.Path)}}}">
+{{{CompiledComponent.Template}}}
+</framemodel>
+""";
+		}
+
+		// Auto include component inside the manialink script
+		Compilation.ML_Script_Directives ^=
+"""
+#Include "{{{Component.Path}}}" as {{{Component.Name}}}
+""";
+
+		Compilation.ML_Script_Directives ^= Component.Script.Directives;
+		Compilation.ML_Script_Declarations ^= Component.Script.Declarations;
+		Compilation.ML_ProcessComponentsEvents ^= CompiledComponent.ProcessComponentEvents;
+	}
+
+	return Compilation;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Concatenate mixins manialink parts
+K_ManialinkPageCompilation Private_CompileStep_ConcatenateMixins(K_ManialinkPageCompilation _Compilation) {
+	declare K_ManialinkPageCompilation Compilation = _Compilation;
+
+	for (Mixin in reverse Compilation.SortedMixins) {
+		// Auto include mixin inside the manialink script
+		Compilation.ML_Script_Directives ^=
+"""
+#Include "{{{Mixin.Path}}}" as {{{Mixin.Name}}}
+""";
+
+		Compilation.ML_Script_Directives ^= Mixin.Script.Directives;
+		Compilation.ML_Script_Declarations ^= Mixin.Script.Declarations;
+	}
+
+	return Compilation;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Generate the manialink page
+Text Private_CompileStep_GenerateManialinkPage(K_ManialinkPageCompilation _Compilation) {
+	return
+"""
+<manialink version="{{{_Compilation.ManialinkVersion}}}" name="{{{TL::MLEncode(_Compilation.PageComponent.Name)}}}">
+	{{{_Compilation.ML_Templates}}}
+	<script><!--
+#Include "{{{ScriptName}}}" as {{{C_IncludeName}}}
+{{{_Compilation.ML_Script_Directives}}}
+
+declare CMlFrame[] {{{C_Prefix}}}G_ComponentInstances;
+declare CMlControl[] {{{C_Prefix}}}G_MixinInstances;
+
+Void {{{C_Prefix}}}ProcessComponentsEvents() {
+	{{{_Compilation.ML_ProcessComponentsEvents}}}
+}
+
+Void {{{C_Prefix}}}ProcessManialinkEvents() {
+	for (Event in PendingEvents) {
+		+++{{{C_Hook_OnEvent}}}+++
+		switch (Event.Type) {
+			case CMlScriptEvent::Type::KeyPress: {
+				+++{{{C_Hook_OnEvent_KeyPress}}}+++
+			}
+			case CMlScriptEvent::Type::MouseClick: {
+				+++{{{C_Hook_OnEvent_MouseClick}}}+++
+				{{{_Compilation.ML_Hooks_LocalComponentMouseEvents.get(C_Hook_OnEvent_LocalComponentMouseClick, "")}}}
+			}
+			case CMlScriptEvent::Type::MouseRightClick: {
+				+++{{{C_Hook_OnEvent_MouseRightClick}}}+++
+				{{{_Compilation.ML_Hooks_LocalComponentMouseEvents.get(C_Hook_OnEvent_LocalComponentMouseRightClick, "")}}}
+			}
+			case CMlScriptEvent::Type::MouseOver: {
+				+++{{{C_Hook_OnEvent_MouseOver}}}+++
+				{{{_Compilation.ML_Hooks_LocalComponentMouseEvents.get(C_Hook_OnEvent_LocalComponentMouseOver, "")}}}
+			}
+			case CMlScriptEvent::Type::MouseOut: {
+				+++{{{C_Hook_OnEvent_MouseOut}}}+++
+				{{{_Compilation.ML_Hooks_LocalComponentMouseEvents.get(C_Hook_OnEvent_LocalComponentMouseOut, "")}}}
+			}
+			case CMlScriptEvent::Type::EntrySubmit: {
+				+++{{{C_Hook_OnEvent_EntrySubmit}}}+++
+			}
+			case CMlScriptEvent::Type::MenuNavigation: {
+				+++{{{C_Hook_OnEvent_MenuNavigation}}}+++
+			}
+			case CMlScriptEvent::Type::PluginCustomEvent: {
+				+++{{{C_Hook_OnEvent_PluginCustomEvent}}}+++
+			}
+		}
+	}
+}
+
+Void {{{C_Prefix}}}RedrawComponents() {
+	for (ComponentInstanceId => Redraw in {{{C_IncludeName}}}::GetComponentInstancesToRedraw()) {
+		declare CMlFrame ComponentInstance = Redraw.Component;
+		declare Text[] Tags = Redraw.Tags;
+		+++{{{C_Hook_ComponentDraw}}}+++
+	}
+	{{{C_IncludeName}}}::ResetComponentInstancesToRedraw();
+}
+
+Void {{{C_Prefix}}}Yield() {
+	+++{{{C_Hook_YieldBefore}}}+++
+	{{{C_Prefix}}}ProcessComponentsEvents();
+	{{{C_Prefix}}}RedrawComponents();
+	yield;
+	+++{{{C_Hook_YieldAfter}}}+++
+	{{{C_Prefix}}}ProcessManialinkEvents();
+}
+
+{{{_Compilation.ML_Script_Declarations}}}
+{{{_Compilation.ML_Hooks}}}
+
+Void {{{C_Prefix}}}InitializeComponents() {
+	{{{C_Prefix}}}G_ComponentInstances = [];
+	Page.GetClassChildren({{{dump(C_Class_ComponentInstance)}}}, Page.MainFrame, True);
+	for (Control in Page.GetClassChildren_Result) {
+		declare CMlFrame ComponentInstance = (Control as CMlFrame);
+		{{{C_Prefix}}}G_ComponentInstances.add(ComponentInstance);
+	}
+	for (ComponentInstance in {{{C_Prefix}}}G_ComponentInstances) {
+		{{{_Compilation.ML_LocalComponentInit}}}
+		+++{{{C_Hook_AllComponentsInit}}}+++
+	}
+}
+
+Void {{{C_Prefix}}}InitializeMixins() {
+	{{{C_Prefix}}}G_MixinInstances = [];
+	Page.GetClassChildren({{{dump(C_Class_MixinInstance)}}}, Page.MainFrame, True);
+	for (Control in Page.GetClassChildren_Result) {
+		declare CMlControl MixinInstance = Control;
+		{{{C_Prefix}}}G_MixinInstances.add(MixinInstance);
+	}
+	for (MixinInstance in {{{C_Prefix}}}G_MixinInstances) {
+		{{{_Compilation.ML_LocalMixinInit}}}
+		+++{{{C_Hook_AllMixinsInit}}}+++
+	}
+}
+
+main() {
+	+++{{{C_Hook_MainInit}}}+++
+
+	{{{C_Prefix}}}InitializeComponents();
+	{{{C_Prefix}}}InitializeMixins();
+
+	+++{{{C_Hook_MainStart}}}+++
+
+	while (True) {
+		{{{C_Prefix}}}Yield();
+	}
+
+	+++{{{C_Hook_MainEnd}}}+++
+}
+	--></script>
+</manialink>
+""";
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Build a component as a manialink page
+Text ManialinkPage(K_Component _PageComponent, Integer _ManialinkVersion) {
+	declare K_ManialinkPageCompilation Compilation = K_ManialinkPageCompilation {
+		ML_Templates = "",
+		ML_Hooks = "",
+		ML_Hooks_LocalComponentMouseEvents = [],
+		ML_ProcessComponentsEvents = "",
+		ML_Script_Directives = "",
+		ML_Script_Declarations = "",
+		ML_LocalComponentInit = "",
+		ML_LocalMixinInit = "",
+		DefinedComponentHooks = Private_GetDefaultComponentHooks(),
+		DefinedMixinHooks = Private_GetDefaultMixinHooks(),
+		PageComponent = _PageComponent,
+		SortedComponents = [],
+		CompiledComponents = [],
+		SortedMixins = [],
+		MixinsProps = [],
+		ManialinkVersion = _ManialinkVersion
+	};
+
+	Compilation = Private_CompileStep_SortComponents(Compilation);
+	Compilation = Private_CompileStep_SortMixins(Compilation);
+	Compilation = Private_CompileStep_CompileComponentsTemplates(Compilation);
+	Compilation = Private_CompileStep_BindComponentsHooks(Compilation);
+	Compilation = Private_CompileStep_BindMixinsHooks(Compilation);
+	Compilation = Private_CompileStep_ConcatenateComponents(Compilation);
+	Compilation = Private_CompileStep_ConcatenateMixins(Compilation);
+	Compilation = Private_CompileStep_InjectPageComponentInstance(Compilation);
+	return Private_CompileStep_GenerateManialinkPage(Compilation);
+}
+Text ManialinkPage(K_Component _PageComponent) {
+	return ManialinkPage(_PageComponent, C_DefaultManialinkVersion);
+}

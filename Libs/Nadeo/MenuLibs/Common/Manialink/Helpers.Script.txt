@@ -1,0 +1,115 @@
+/** 
+ *	Helpers function for manialinks
+ */
+#Const Version		"2022-09-29"
+#Const ScriptName	"Libs/Nadeo/MenuLibs/Common/Manialink/Helpers.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "MathLib" as ML
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Function
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Convert a Vec2 to a `pos` attribute
+Text Pos(Vec2 _Pos) {
+	return "pos=\""^_Pos.X^" "^_Pos.Y^"\"";
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Convert a Vec3 to a `pos` and `z-index` attribute
+Text Pos(Vec3 _Pos) {
+	return "pos=\""^_Pos.X^" "^_Pos.Y^"\" z-index=\""^_Pos.Z^"\"";
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Convert a Vec2 to a `size` attribute
+Text Size(Vec2 _Size) {
+	return "size=\""^_Size.X^" "^_Size.Y^"\"";
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Skew position on X axis
+Real SkewX(Real _OffsetY, Real _Angle) {
+	return _OffsetY * ML::Tan(ML::DegToRad(_Angle));
+}
+Real SkewX(Real _PosX, Real _PosY, Real _Angle) {
+	return _PosX + SkewX(_PosY, _Angle);
+}
+Vec2 SkewX(Vec2 _Pos, Real _Angle) {
+	return <_Pos.X + SkewX(_Pos.Y, _Angle), _Pos.Y>;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Skew position on X axis and keep Y pos
+ *	
+ *	@return 	The skewed x with the untouched y for ML 'pos' parameter
+ *	@usage		pos="{{{MLHelpers::Skew(_PosX, _PosY, _Angle)}}}"
+ */ 
+Text Skew(Real _PosX, Real _PosY, Real _Angle) {
+	return SkewX(_PosX, _PosY, _Angle)^" "^_PosY;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Keep the original ratio of the asset depending on the horizontal or vertical size
+ *	
+ *	@return 	The X and Y size depending on the asset ratio and the given size parameter
+ */
+Vec2 KeepRatioFromX(Real _AssetSizeX, Real _AssetSizeY, Real _SizeX) {
+	return <_SizeX, _SizeX*_AssetSizeY/_AssetSizeX>;
+}
+Vec2 KeepRatioFromX(Vec2 _AssetSize, Real _SizeX) {
+	return <_SizeX, _SizeX*_AssetSize.Y/_AssetSize.X>;
+}
+Vec2 KeepRatioFromY(Real _AssetSizeX, Real _AssetSizeY, Real _SizeY) {
+	return <_SizeY*_AssetSizeX/_AssetSizeY, _SizeY>;
+}
+Vec2 KeepRatioFromY(Vec2 _AssetSize, Real _SizeY) {
+	return <_SizeY*_AssetSize.X/_AssetSize.Y, _SizeY>;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Keep the original ratio of the asset depending on the horizontal or vertical size
+ *	
+ *	@return 	The ML formatted text with X and Y size depending on the asset ratio and the given size parameter
+ *	@usage		size="{{{MLHelpers::KeepRatioFromX(_AssetSizeX, _AssetSizeY, _SizeX)}}}"
+ */ 
+Text MLKeepRatioFromX(Real _AssetSizeX, Real _AssetSizeY, Real _SizeX) {
+	declare Vec2 SizeWithRatio = KeepRatioFromX(_AssetSizeX, _AssetSizeY, _SizeX);
+	return SizeWithRatio.X^" "^SizeWithRatio.Y;
+}
+Text MLKeepRatioFromY(Real _AssetSizeX, Real _AssetSizeY, Real _SizeY) {
+	declare Vec2 SizeWithRatio = KeepRatioFromY(_AssetSizeX, _AssetSizeY, _SizeY);
+	return SizeWithRatio.X^" "^SizeWithRatio.Y;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get all controls that support the opacity parameter in a frame
+CMlControl[] GetControlsWithOpacitySupport(CMlFrame _Frame) {
+	declare CMlControl[] ControlsWithOpacitySupport;
+	foreach (Control in _Frame.Controls) {
+		switchtype (Control) {
+			case CMlEntry: {
+				ControlsWithOpacitySupport.add(Control);
+			}
+			case CMlFrame: {
+				declare CMlControl[] TmpControls = GetControlsWithOpacitySupport(Control as CMlFrame);
+				foreach (Control in TmpControls) {
+					ControlsWithOpacitySupport.add(Control);
+				}
+			}
+			case CMlLabel: {
+				ControlsWithOpacitySupport.add(Control);
+			}
+			case CMlQuad: {
+				ControlsWithOpacitySupport.add(Control);
+			}
+			case CMlTextEdit: {
+				ControlsWithOpacitySupport.add(Control);
+			}
+		}
+	}
+	return ControlsWithOpacitySupport;
+}

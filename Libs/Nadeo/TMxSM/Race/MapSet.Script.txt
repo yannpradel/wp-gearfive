@@ -1,0 +1,22 @@
+/** 
+ *	Utils functions for Race maps
+ */
+#Const Version		"2019-03-08"
+#Const ScriptName	"Libs/Nadeo/TMxSM/Race/MapSet.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Save waypoint times of the author
+ *	validation run
+ *
+ *	@param	_RaceWaypointTimes				The waypoint times
+ */
+Void SetAuthorRaceWaypointTimes(Integer[] _RaceWaypointTimes) {
+	declare metadata Integer[] Race_AuthorRaceWaypointTimes for Map;
+	Race_AuthorRaceWaypointTimes = _RaceWaypointTimes;
+}
+Void ResetAuthorRaceWaypointTimes() {
+	SetAuthorRaceWaypointTimes([]);
+}

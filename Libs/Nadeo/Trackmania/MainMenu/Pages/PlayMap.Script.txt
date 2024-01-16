@@ -1,0 +1,103 @@
+/**
+ *	Page: PlayMap
+ */
+#Const Version		"1.0.0"
+#Const ScriptName	"Libs/Nadeo/Trackmania/MainMenu/Pages/PlayMap.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/CMGame/Utils/EnvironmentInfo.Script.txt" as EnvironmentInfo
+#Include "Libs/Nadeo/CMGame/Utils/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/CMGame/Components/Transition.Script.txt" as Transition
+#Include "Libs/Nadeo/CMGame/Components/Navigation.Script.txt" as Navigation
+#Include "Libs/Nadeo/CMGame/Menus/Router_ML.Script.txt" as Router
+#Include "Libs/Nadeo/Trackmania/MainMenu/RoutePaths.Script.txt" as RoutePaths
+#Include "Libs/Nadeo/Trackmania/Components/TrackBrowser.Script.txt" as TrackBrowser
+#Include "Libs/Nadeo/Trackmania/MainMenu/Constants.Script.txt" as Const
+#Include "Libs/Nadeo/Trackmania/Structures/CampaignStruct.Script.txt" as CampaignStruct
+#Include "Libs/Nadeo/CMGame/Components/MenuSounds.Script.txt" as MenuSounds
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "Page_PlayMap"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the page manialink
+ *
+ *	@return														The page manialink
+ */
+Text GetManialink() {
+	//L16N [PlayMap] Title of a page where the player can select a track and play on it
+	declare Text Text_PlayMap = _("Play a track");
+
+	return MV::Create(
+C_Name, 3,
+"""
+<frameinstance modelid="{{{TrackBrowser::C_Name}}}"
+	id="frame-track-browser"
+	z-index="{{{Const::C_ZIndex_BrowserAPI}}}"
+	data-show-only-playable="1"
+/>
+""",
+"""
+#Include "Libs/Nadeo/Trackmania/MainMenu/TitleControl.Script.txt" as TitleControl
+""",
+"""
+***MainLoop***
+***
+if ({{{Router::P}}}PageIsRunning(This, "{{{RoutePaths::C_Path_PlayMap}}}")) {
+	foreach (Event in {{{Router::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case {{{Router::P}}}C_Event_EnteringRoute: {
+				declare Text[Text] Query = {{{Router::P}}}GetCurrentRouteQuery(This);
+				if (!Query.existskey("{{{RoutePaths::C_Query_LeaveClubEditioninfo}}}")) {
+					{{{TrackBrowser::P}}}SetMapTypeFilters(This, ["{{{Const::C_MapType_Race}}}"]);
+					{{{TrackBrowser::P}}}Display(This, True);
+				}
+			}
+		}
+	}
+
+	foreach (Event in {{{TrackBrowser::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case {{{TrackBrowser::P}}}C_Event_Select: {
+				declare {{{CampaignStruct::P}}}K_Map Map = Event.Track;
+				if (Map.IsPlayable && Map.CollectionName == "{{{EnvironmentInfo::C_Collection_Stadium}}}") {
+					declare Text Settings = "<root><setting name=\"S_TimeLimit\" value=\"-1\" type=\"integer\"/><setting name=\"S_ForceLapsNb\" value=\"-1\" type=\"integer\"/></root>";
+					declare Text MapUrl = Map.DownloadUrl;
+					if (MapUrl == "") MapUrl = Map.LocalFileName;
+					SendCustomEvent("{{{Const::C_Event_UpdateLoadingScreen}}}", [Map.Name]);
+					TitleControl::PlayMap(TitleControl, MapUrl, "{{{Const::C_ModeScript_PlayMap}}}", Settings);
+					{{{TrackBrowser::P}}}ReFocus(This);
+				}
+			}
+			case {{{TrackBrowser::P}}}C_Event_Exit: {
+				{{{Router::P}}}PushParent(This);
+			}
+		}
+	}
+}
+***
+""",
+[
+	Transition::ComponentV2(),
+	Navigation::ComponentV2(),
+	Router::ComponentV2(),
+	TrackBrowser::ComponentV2(),
+	MenuSounds::ComponentV2(),
+	CampaignStruct::Component()
+],
+[]
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update from the ManiaApp
+Void Yield() {
+
+}

@@ -1,0 +1,131 @@
+/**
+ *  UI module: LapsCounter client side
+ */
+#Const Version    "2023-03-23"
+#Const ScriptName "ManiaApps/Nadeo/TMxSM/Race/UIModules/LapsCounter_Client.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Client.Script.txt" as UIModules
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/LapsCounter_Common.Script.txt" as UIModules_LapsCounter_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the id of the UI module
+Text GetId() {
+	return UIModules_LapsCounter_Common::C_Id;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the type of layer of the UI module
+CUILayer::EUILayerType GetLayerType() {
+	return UIModules_LapsCounter_Common::C_LayerType;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the module manialink
+ *
+ *  @return                           The module manialink
+ */
+Text GetML() {
+	//L16N Legend display beside the lap time
+	declare Text_Lap = _("|Race|Lap");
+
+	return MV::Create(
+GetId(), 3,
+"""
+<stylesheet>
+	<style class="text-default" textfont="{{{FontManager::C_Oswald_Mono}}}" textcolor="ffffff" textsize="3" />
+</stylesheet>
+<frame z-index="-2" hidden="1" id="frame-global">
+	<frame {{{UIModules::CustomizableUIModule(UIModules_LapsCounter_Common::C_UIModuleConfig)}}}>
+		<frame id="frame-laps-counter">
+			<label halign="right" valign="top" textsize="10" class="text-default" id="label-laps-counter" />
+		</frame>
+	</frame>
+</frame>
+""",
+"""
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/ModeLibs/TrackMania/MV_Utils.Script.txt" as MV_Utils
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/Helpers_Client.Script.txt" as RaceHelpers
+""",
+"""
+***MainInit***
+***
+declare CMlFrame Frame_Global;
+declare CMlFrame Frame_LapsCounter;
+declare CMlLabel Label_LapsCounter;
+
+declare Boolean DisplayModule;
+declare Integer LapCurrent;
+declare Integer LapsTotal;
+declare Boolean IsIndependentLaps;
+***
+
+***MainStart***
+***
+Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+Frame_LapsCounter <=> (Frame_Global.GetFirstChild("frame-laps-counter") as CMlFrame);
+Label_LapsCounter <=> (Frame_LapsCounter.GetFirstChild("label-laps-counter") as CMlLabel);
+
+DisplayModule = Frame_Global.Visible;
+LapCurrent = -123;
+LapsTotal = -123;
+IsIndependentLaps = False;
+if (SplitScreenCount > 1) MV_Utils::AutoScaleSplitScreen(Frame_Global, 0.5, 1.);
+***
+
+***MainLoop***
+***
+if (PageIsVisible) {
+	declare Owner <=> MV_Utils::GetOwner(This);
+	if (Owner != Null) {
+		declare netread Boolean Net_Race_LapsCounter_IsVisible for Owner;
+		if (DisplayModule != Net_Race_LapsCounter_IsVisible) {
+			DisplayModule = Net_Race_LapsCounter_IsVisible;
+			Frame_Global.Visible = Net_Race_LapsCounter_IsVisible;
+		}
+	}
+
+	if (Owner == Null && DisplayModule) {
+		DisplayModule = False;
+		Frame_Global.Visible = DisplayModule;
+	}
+
+	if (Frame_Global.Visible) {
+		if (Owner != Null) {
+			if (
+				LapCurrent != RaceHelpers::GetPlayerLap(Owner) ||
+				LapsTotal != RaceHelpers::GetLapsNb(Teams[0]) ||
+				IsIndependentLaps != RaceHelpers::IsIndependentLaps(Teams[0])
+			) {
+				LapCurrent = RaceHelpers::GetPlayerLap(Owner);
+				LapsTotal = RaceHelpers::GetLapsNb(Teams[0]);
+				IsIndependentLaps = RaceHelpers::IsIndependentLaps(Teams[0]);
+				if (LapCurrent > 0 && LapsTotal > 0 && !IsIndependentLaps) {
+					Label_LapsCounter.Value = TL::Compose("%1 %2/%3", "{{{Text_Lap}}}", TL::ToText(LapCurrent), TL::ToText(LapsTotal));
+					Frame_LapsCounter.Visible = True;
+				} else {
+					Frame_LapsCounter.Visible = False;
+				}
+			}
+		}
+	}
+}
+***
+""",
+[
+	UIModules::Component()
+],
+[]
+	);
+}

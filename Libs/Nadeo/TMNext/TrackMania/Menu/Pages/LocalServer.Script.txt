@@ -1,0 +1,2511 @@
+/** 
+ *	Page: LocalServer
+ */
+#Const Version		"2023-06-05"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Menu/Pages/LocalServer.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/Helpers.Script.txt" as MLHelpers
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/Counter.Script.txt" as Counter
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/TextField.Script.txt" as TextField
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/ControlBlockList.Script.txt" as ControlBlockList
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Transition.Script.txt" as Transition
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Navigation.Script.txt" as Navigation
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/LoadingSpinner.Script.txt" as LoadingSpinner
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/Button.Script.txt" as Button
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Scroll.Script.txt" as Scroll
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as Const
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Router_ML.Script.txt" as Router
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/RoutePaths.Script.txt" as RoutePaths
+#Include "Libs/Nadeo/TMNext/TrackMania/API/BrowserAPI.Script.txt" as BrowserAPI
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/TrackBrowser.Script.txt" as TrackBrowser
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/CampaignStruct.Script.txt" as CampaignStruct
+#Include "Libs/Nadeo/TMNext/TrackMania/ColorPalette.Script.txt" as ColorPalette
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/MenuSounds.Script.txt" as MenuSounds
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Pages/LoadingScreen.Script.txt" as LoadingScreen
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/UserStore_ML.Script.txt" as UserStore
+#Include "Libs/Nadeo/CommonLibs/Common/Error.Script.txt" as Error
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/FormSelect.Script.txt" as FormSelect
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/ExpendableButton.Script.txt" as ExpendableButton
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "Page_LocalServer"
+#Const C_NavGroupName "navgroup-page-localserver"
+#Const C_Class_Back "class-back-button"
+
+#Const C_Time_MaxWaitTimeDuration 250
+
+#Const C_ErrorMessage_TimeDuration 5000
+#Const C_ErrorMessage_FadeTime 250
+
+#Const C_SaveMessage_TimeDuration 2000
+#Const C_SaveMessage_FadeTime 250
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the page manialink
+ *
+ *	@return														The page manialink
+ */
+Text GetManialink() {
+	//L16N [LocalServer] Text pronouced when the button to add a track is focused.
+	declare Text TTS_AddTrack = _("Add a track");
+	//L16N [LocalServer] Name of the server
+	declare Text Text_Name = _("Name");
+	//L16N [LocalServer] Number of players currently inside the server
+	declare Text Text_Players = _("Players");
+	//L16N [LocalServer] The game mode name of the server
+	declare Text Text_Mode = _("Mode");
+	//L16N [LocalServer] Setup a new local server.
+	declare Text Text_Create = _("Create");
+	//L16N [LocalServer] Number of players that are inside the server if there is 0 or 1 player only, e.g "1 player online".
+	declare Text Text_TitlePlayerListSingular = _("player online");
+	//L16N [LocalServer] Number of players that are inside the server, e.g "75 players online".
+	declare Text Text_TitlePlayerListPlural = _("players online");
+	//L16N [LocalServer] Current track playing in the server, e.g "Playing on Summer 08".
+	declare Text Text_CurrentServerMap = _("Playing on %1");
+	//L16N [LocalServer] Game mode playing in the server, e.g "Game mode: Time Attack".
+	declare Text Text_GameMode = _("Game mode:");
+	//L16N [LocalServer] Title of a page where the player can join or create a local server.
+	declare Text Text_LocalNetwork = _("Local network");
+	//L16N [LocalServer] Title of a page where the player is creating a local server.
+	declare Text Text_CreateLocalServer = _("Create local server");
+	//L16N [LocalServer] Text displayed on the local server main page when there is 0 local servers to join.
+	declare Text Text_NoLocalServer = _("No local servers found, you can create one if you want.");
+	//L16N [LocalServer] Default name for the server. %1 will be the player's name. (e.g. "Thomas's server")
+	declare Text Text_ServerNameDefault = _("%1's server");
+	//L16N [LocalServer] Message that explains the name of the file in which the settings have been set. %1 will be the file name. (e.g. Matchsettings have been saved in file: MySettings.txt)
+	declare Text Text_SaveMessage = _("Matchsettings have been saved in file: %1");
+	//L16N [LocalServer] Message that informs the player that they can load custom match settings by clicking on this button.
+	declare Text Text_BrowseMatchSettings = _("Browse match settings");
+	//L16N [LocalServer] Text that informs the player that they can set a custom server name.
+	declare Text Text_ServerName = _("Server name");
+	//L16N [LocalServer] Text that informs the player that they can save the settings with a custom name.
+	declare Text Text_SettingsName = _("Settings name");
+	//L16N [LocalServer] Text that informs the player that they can set the server password.
+	declare Text Text_Password = _("Password");
+	//L16N [LocalServer] Text that informs the player that they can set the server spectator password.
+	declare Text Text_SpectatorPassword = _("Spectator password");
+	//L16N [LocalServer] Text that informs the player that they can add comments to his server.
+	declare Text Text_Comment = _("Comment");
+	//L16N [LocalServer] Max number of players in the created server.
+	declare Text Text_MaxPlayers = _("Max players");
+	//L16N [LocalServer] User can select a custom mode script in the browser if they have one.
+	declare Text Text_CustomModeScript = _("Browse custom modes...");
+	//L16N [LocalServer] While the player is editing a track in the playlist, they can select another track to swap their positions.
+	declare Text Text_SwapMaps = _("Swap tracks");
+	//L16N [LocalServer] While the player is editing a track in the playlist, they can choose to remove it from the playlist.
+	declare Text Text_Remove = _("Remove track");
+	//L16N [LocalServer] While the player is editing a track in the playlist, they can select another track to swap their positions.
+	declare Text Text_SwapThisMap = _("Swap with this track");
+	//L16N [LocalServer] While the player is editing a track in the playlist, they can select another track to swap their positions.
+	declare Text Text_MapSwapExplication = _("Click on another track to swap its position with the selected one");
+	//L16N [LocalServer] Button to join a local server as a player.
+	declare Text Text_Join = _("Join");
+	//L16N [LocalServer] Buton to join a local server as a spectator.
+	declare Text Text_Spectate = _("Spectate");
+	//L16N [LocalServer] Text of the loadingspinner displayed during the local servers research.
+	declare Text Text_LoadingServers = _("Searching for local servers...");
+	//L16N [LocalServer] The server settings update failed
+	declare Text Text_MatchSettingsError = _("Failed to update server settings. (Error code: %1)");
+	//L16N [LocalServer] The selected game mode is not valid
+	declare Text Text_InvalidModeError = _("The selected game mode is not valid. (Error code: %1)");
+	//L16N [LocalServer] %1 will be replaced by the name of the author of the track, e.g. "by Darrek"
+	declare Text Text_AuthorName = _("By %1");
+
+	/* Variables */
+	declare Vec2 Size_TextField = <90., 10.>;
+
+	/* Scroll view commons */
+	declare Vec2 Size_Header = <0., 0.>;
+	declare Vec2 Size_Footer = <0., 0.>;
+
+	/* Servers scroll view */
+	declare Integer ColumnsNb = 1;
+	declare Integer RowsNb = 10;
+	declare Integer ElementsPerPage = ColumnsNb * RowsNb;
+	declare Vec2 Size_ServerListScrollWindow = <252., 90.>;
+	declare Vec2 Size_ServerListMargin = <0., 0.>;
+	declare Vec2 Size_ServerList = Scroll::GetElementSize(Size_ServerListScrollWindow, Size_ServerListMargin, ColumnsNb, RowsNb);
+	declare Integer ElementsNb = Scroll::GetRequiredElementsNb(Size_ServerListScrollWindow, Size_ServerList, Size_ServerListMargin, ColumnsNb);
+
+	declare Vec2 Pos_ServerName = <Size_ServerList.X * 0.5, Size_ServerList.Y * -0.5>;
+
+	declare Text Ml_ServerList = "";
+	for (I, 1, ElementsNb) {
+		Ml_ServerList ^= """
+		<frameinstance
+			modelid="frame-server-element"
+			class="{{{Scroll::C_Class_Element}}}"
+			hidden="1"
+		/>
+		""";
+	}
+
+	/* Players scroll view */
+	declare Integer ColumnsNbPlayers = 4;
+	declare Integer RowsNbPlayers = 10;
+	declare Vec2 Size_PlayerListScrollWindow = <140., 85.>;
+	declare Vec2 Size_PlayerListMargin = <0., 0.>;
+	declare Vec2 Size_PlayerList = Scroll::GetElementSize(Size_PlayerListScrollWindow, Size_PlayerListMargin, ColumnsNbPlayers, RowsNbPlayers);
+	declare Integer PlayerElementsNb = Scroll::GetRequiredElementsNb(Size_PlayerListScrollWindow, Size_PlayerList, Size_PlayerListMargin, ColumnsNbPlayers);
+
+	declare Vec2 Pos_PlayerName = <Size_PlayerList.X * 0.5, Size_PlayerList.Y * -0.5>;
+	declare Vec2 Size_PlayerName = <Size_PlayerList.X * 0.8, Size_PlayerList.Y>;
+
+	declare Text Ml_PlayerList = "";
+	for (I, 1, PlayerElementsNb) {
+		Ml_PlayerList ^= """
+		<frameinstance
+			modelid="frame-player-element"
+			class="{{{Scroll::C_Class_Element}}}"
+			hidden="1"
+		/>
+		""";
+	}
+
+	/* Maps scroll view */
+	declare Integer ColumnsNbMap = 3;
+	declare Integer RowsNbMap = 3;
+	declare Integer MapsPerPage = ColumnsNbMap * RowsNbMap;
+	declare Vec2 Size_MapListScrollWindow = <160., 100.>;
+	declare Vec2 Size_MapListMargin = <0., 0.>;
+	declare Vec2 Size_MapList = Scroll::GetElementSize(Size_MapListScrollWindow, Size_MapListMargin, ColumnsNbMap, RowsNbMap);
+	declare Integer MapElementsNb = Scroll::GetRequiredElementsNb(Size_MapListScrollWindow, Size_MapList, Size_MapListMargin, ColumnsNbMap);
+
+	declare Vec2 Pos_MapName = <Size_MapList.X * 0.55, Size_MapList.Y * -0.6>;
+	declare Vec2 Size_MapName = <Size_MapList.X * 0.8, Size_MapList.Y>;
+
+	declare Text Ml_MapList = "";
+	for (I, 1, MapElementsNb) {
+		Ml_MapList ^= """
+		<frameinstance
+			id="frame-map-^{{{I}}}"
+			modelid="frame-map-element"
+			class="{{{Scroll::C_Class_Element}}}"
+			hidden="1"
+		/>
+		""";
+	}
+
+	return MV::Create(
+C_Name, 3,
+"""
+<stylesheet>
+	<style class="quad-base" halign="center" valign="center"/>
+	<style class="label-base" halign="center" valign="center2" textsize="4" textfont="{{{FontManager::C_GameFontRegular}}}" textcolor="FFF"/>
+	<style class="label-serverlist" halign="left" valign="center2" textsize="3" textprefix="$t$i" textfont="{{{FontManager::C_GameFontSemiBold}}}" textcolor="FFF"/>
+	<style class="label-servertitle" halign="left" valign="center2" textsize="4" textprefix="$t$i" textfont="{{{FontManager::C_GameFontExtraBold}}}" textcolor="FFF"/>
+</stylesheet>
+
+<framemodel id="frame-server-element">
+	<quad id="quad-bg" size="{{{Size_ServerList.X}}} {{{Size_ServerList.Y}}}" image="{{{Const::C_ImageUrl_LocalNetwork_LineServer}}}" colorize="000" opacity="0.2" z-index="-1"/>
+	<quad size="{{{Size_ServerList.X}}} {{{Size_ServerList.Y}}}" opacity="0" scriptevents="1" class="{{{Scroll::C_Class_ActivationZone}}}" z-index="0"/>
+	<label id="label-name" opacity="0.4" size="70 3" class="label-serverlist" halign ="left" pos="8.5 {{{Pos_ServerName.Y-0.5}}}" filter-profanities="OnlyIfNotTranslated" z-index="1"/>
+	<label id="label-mode" opacity="0.4" size="70 3" class="label-serverlist" halign="left" pos="118.75 {{{Pos_ServerName.Y-0.5}}}" z-index="1"/>
+	<label id="label-player-number" opacity="0.4" size="15 3" class="label-serverlist" halign="right" pos="243.75 {{{Pos_ServerName.Y-0.5}}}" z-index="1"/>
+</framemodel>
+<framemodel id="frame-player-element">
+	<quad size="{{{Size_PlayerList.X}}} {{{Size_PlayerList.Y}}}" opacity="0" scriptevents="1" class="{{{Scroll::C_Class_ActivationZone}}}" z-index="-1"/>
+	<quad id="quad-bg" size="{{{Size_PlayerList.X}}} {{{Size_PlayerList.Y}}}" image="{{{Const::C_ImageUrl_LocalNetwork_PlayerBox}}}" colorize="{{{ColorPalette::C_Color_DarkBlue}}}" opacity=".6" z-index="0"/>
+	<label id="label-name" size="{{{Size_PlayerName.X}}} {{{Size_PlayerName.Y}}}" textsize="2" class="label-base" textprefix="$t$i" textfont="{{{FontManager::C_GameFontSemiBold}}}" textcolor="FFF" pos="{{{Pos_PlayerName.X}}} {{{Pos_PlayerName.Y-0.25}}}" z-index="1"/>
+</framemodel>
+<framemodel id="frame-map-element">
+	<frame id="frame-map-infos">
+		<quad size="{{{Size_MapList.X}}} {{{Size_MapList.Y + 3}}}" opacity="0" scriptevents="1" class="{{{Scroll::C_Class_ActivationZone}}}" z-index="-1"/>
+		<quad id="quad-bg" size="{{{Size_MapList.X + 3}}} {{{Size_MapList.Y}}}" image="{{{Const::C_ImageUrl_LocalNetwork_Boxmap}}}" colorize="000" alphamask="{{{Const::C_ImageUrl_LocalNetwork_Boxmap_Mask}}}" opacity="0.3" z-index="0"/>
+		<frameinstance id="control-block-list-track-thumbnail" modelid="{{{ControlBlockList::C_Name}}}" data-type="{{{ControlBlockList::C_Type_Quad}}}" data-size="{{{Size_MapList.X + 3}}} {{{Size_MapList.Y}}}" data-alphamask="{{{Const::C_ImageUrl_LocalNetwork_Boxmap_Mask}}}" data-keepratio="Clip" z-index="2" />
+		<quad id="quad-overlay" size="{{{Size_MapList.X + 3}}} {{{Size_MapList.Y}}}" image="{{{Const::C_ImageUrl_LocalNetwork_Boxmap}}}" colorize="000" alphamask="{{{Const::C_ImageUrl_LocalNetwork_Boxmap_Mask}}}" opacity="0.3" z-index="3"/>
+		<quad id="quad-thumbnail-overlay" size="{{{Size_MapList.X + 3}}} {{{Size_MapList.Y}}}" image="{{{Const::C_ImageUrl_LocalNetwork_Boxmap}}}" colorize="111" alphamask="{{{Const::C_ImageUrl_LocalNetwork_Boxmap_Mask}}}" opacity="0.5" z-index="3"/>
+		<quad id="quad-image-add" size="{{{Size_MapList.X-14.}}} {{{Size_MapList.Y-14.}}}" pos="{{{Size_MapList.X * 0.55}}} {{{Size_MapList.Y * -0.5}}}" class="quad-base" keepratio="Fit" image="{{{Const::C_ImageUrl_Icon_Plus_Oblique}}}" tts_alttext="{{{TTS_AddTrack}}}" hidden="1" z-index="3" colorize="FFF"/>
+		<quad id="quad-focus-contour" hidden="1" size="{{{Size_MapList.X + 3}}} {{{Size_MapList.Y}}}" image="{{{Const::C_ImageUrl_LocalNetwork_Boxmap_Contour}}}" colorize="FFF" z-index="4"/>
+	</frame>
+	<frame id="frame-current-map-edition" z-index="3" hidden="1">
+		<quad id="button-delete-map" z-index="1" image="{{{Const::C_ImageUrl_Icon_Bin_Oblique}}}" size="7 7" pos="49 -6" class="quad-base" colorize="FFF" opacity="0.5" scriptevents="1"/>
+		<quad id="quad-select-contour" z-index="2" size="{{{Size_MapList.X + 3}}} {{{Size_MapList.Y}}}" image="{{{Const::C_ImageUrl_LocalNetwork_Boxmap_Contour}}}" colorize="{{{ColorPalette::C_Color_GreenOne}}}"/>
+	</frame>
+	<frame id="frame-map-edition" z-index="3" hidden="1">
+		<label id="label-swap" size="{{{Size_MapName.X}}} {{{Size_MapName.Y}}}" class="label-base" textsize="3" textprefix="$t$i" textfont="{{{FontManager::C_GameFontExtraBold}}}" pos="{{{Pos_MapName.X}}} {{{Pos_MapName.Y+3}}}" textcolor="{{{ColorPalette::C_Color_GreenOne}}}" text="{{{Text_SwapThisMap}}}"/>	
+		<quad id="quad-select-contour" z-index="2" size="{{{Size_MapList.X + 3}}} {{{Size_MapList.Y}}}" image="{{{Const::C_ImageUrl_LocalNetwork_Boxmap_Contour}}}" colorize="{{{ColorPalette::C_Color_GreenOne}}}"/>
+	</frame>
+	<frame id="frame-map-names" z-index="4">
+		<label id="label-author" size="{{{Size_MapName.X}}} {{{Size_MapName.Y}}}" class="label-base" textsize="3" textprefix="$t$i" textfont="{{{FontManager::C_GameFontSemiBold}}}" pos="{{{Pos_MapName.X}}} {{{Pos_MapName.Y}}}" textcolor="FFF"/>	
+		<frameinstance id="control-block-list-track-name" modelid="{{{ControlBlockList::C_Name}}}" data-type="{{{ControlBlockList::C_Type_Label}}}" data-size="{{{Size_MapName.X}}} {{{Size_MapName.Y}}}" data-textsize="3" data-textsize-fitlabel-min="1" data-textsize-fitlabel-step="0.5" data-textfont="{{{FontManager::C_GameFontExtraBold}}}" pos="{{{Pos_MapName.X}}} {{{Pos_MapName.Y+5.}}}" data-filter-profanities="OnlyIfNotTranslated" data-halign="center" data-valign="center2" />
+	</frame>
+</framemodel>
+
+<frameinstance modelid="{{{BrowserAPI::C_Name}}}" id="frame-browser" z-index="{{{Const::C_ZIndex_BrowserAPI}}}" hidden="1"/>
+<frameinstance modelid="{{{TrackBrowser::C_Name}}}" 
+	id="frame-track-browser" 
+	z-index="{{{Const::C_ZIndex_BrowserAPI}}}"
+	data-multi-select="1"
+	data-show-only-my-local-tracks="1"
+	data-show-only-playable="1"
+/>
+
+<frame id="frame-global">
+	<frameinstance id="frame-loading-spinner" modelid="{{{LoadingSpinner::C_Name}}}" data-label="{{{Text_LoadingServers}}}" z-index="3"/>
+
+	<frame id="frame-server-list" hidden="1">
+		<label pos="5 55" halign="center" valign="center2" textfont="{{{FontManager::C_GameFontExtraBold}}}" size="160 10" textsize="10" textprefix="$t$i" text="{{{Text_LocalNetwork}}}" textcolor="FFF"/>
+		<frameinstance
+			id="button-create-server"
+			modelid="{{{ExpendableButton::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			pos="151 -73"
+			z-index="1"
+			data-text="{{{Text_Create}}}"
+			data-styles="{{{ExpendableButton::C_Style_SizeExpendable}}} {{{ExpendableButton::C_Style_AlignCenter}}} {{{ExpendableButton::C_Style_PageNext}}}"
+			data-nav-inputs="select;cancel;up;left"
+			data-nav-targets="_;_;frame-server-list-scroll;button-back-server-list"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{ExpendableButton::C_NavZone}}}"
+		/>
+
+		<frame id="frame-server-categories" pos="{{{Size_ServerListScrollWindow.X * -0.5}}} 43">
+			<quad z-index="-1" class="quad-base" size="{{{Size_ServerList.X}}} {{{Size_ServerList.Y}}}" image="{{{Const::C_ImageUrl_LocalNetwork_LineServer}}}"  halign="left" pos="9. {{{Pos_ServerName.Y-0.5}}}" colorize="000" opacity="0.2"/>
+			<label id="label-name" text="{{{Text_Name}}}" size="70 5" class="label-servertitle" pos="18.5 {{{Pos_ServerName.Y-1}}}" textprefix="$i$t" italicslope=".2"/>
+			<label id="label-mode" text="{{{Text_Mode}}}" size="70 5" class="label-servertitle" halign="left" pos="128.75 {{{Pos_ServerName.Y-1}}}" textprefix="$i$t" italicslope=".2"/>
+			<label id="label-player-number" text="{{{Text_Players}}}" size="50 5" class="label-servertitle" valuetype="Ml_Integer" halign="right" pos="254.75 {{{Pos_ServerName.Y-1}}}" textprefix="$i$t" italicslope=".2"/>
+		</frame>
+
+		<label id="label-no-servers-found" pos="5 -10" class="label-base" textfont="{{{FontManager::C_GameFontExtraBold}}}" size="200 10" textsize="5" textprefix="$i" text="{{{Text_NoLocalServer}}}" autonewline="1" hidden="1"/>
+
+		<frameinstance modelid="{{{Scroll::C_Name}}}" data-scroll-parent="frame-server-list-scroll" z-index="1" />
+		<frame
+			pos="{{{Size_ServerListScrollWindow.X * -0.5 + 7}}} 30"
+			data-elements-per-line="{{{ColumnsNb}}}"
+			data-elements-per-page="{{{ElementsPerPage}}}"
+			data-skew="-10"
+			data-element-size="{{{Size_ServerList.X}}} {{{Size_ServerList.Y}}}"
+			data-margin-size="{{{Size_ServerListMargin.X}}} {{{Size_ServerListMargin.Y}}}"
+			data-window-size="{{{Size_ServerListScrollWindow.X}}} {{{Size_ServerListScrollWindow.Y}}}"
+			data-header-height="{{{Size_Header.Y}}}"
+			data-scrollpadding="15"
+			data-footer-height="{{{Size_Footer.Y}}}"
+			data-scroll-indicator="1"
+			data-scroll-indicator-x-offset="-10."
+			data-scroll-indicator-y-offset="-20."
+			data-scroll-indicator-image="{{{Const::C_ImageUrl_Icon_Arrow_Bottom_Oblique}}}"
+			data-scroll-indicator-colorize="FFFFFF"
+			data-scroll-indicator-size="18"
+			class="{{{Scroll::C_Class_Window}}} {{{Navigation::C_Class}}}"
+			data-nav-group="{{{C_NavGroupName}}}"
+			id="frame-server-list-scroll"
+		>
+			<quad z-index="-1" scriptevents="1" class="{{{Scroll::C_Class_ScrollEvent}}}" />
+			{{{Ml_ServerList}}}
+		</frame>
+
+		<frameinstance modelid="{{{Button::C_Name}}}" id="button-refresh" pos="140 38"
+			data-size="22 11"
+			data-iconcolor="FFF" data-iconfocuscolor="{{{ColorPalette::C_Color_GreenOne}}}"
+			data-icon="{{{Const::C_ImageUrl_Icon_Refresh}}}" data-iconfocus="{{{Const::C_ImageUrl_Icon_Refresh}}}"
+			data-bgempty="1"
+			data-iconsize="11 11"
+			data-halign="center" data-valign="center"
+			class="{{{Navigation::C_Class}}} {{{MenuSounds::C_Class}}}"
+			data-nav-inputs="select;cancel;left;down"
+			data-nav-targets="_;_;frame-server-list-scroll;button-create-server"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+			data-menusounds-selectsound="SelectRefresh"
+		/>
+		<frameinstance
+			id="button-back-server-list"
+			modelid="{{{ExpendableButton::C_Name}}}"
+			class="{{{Navigation::C_Class}}} {{{C_Class_Back}}}"
+			pos="-151.5 -73"
+			z-index="1"
+			data-styles="{{{ExpendableButton::C_Style_SizeExpendable}}} {{{ExpendableButton::C_Style_AlignCenter}}} {{{ExpendableButton::C_Style_PageBack}}}"
+			data-nav-inputs="select;cancel;up;right"
+			data-nav-targets="_;_;frame-server-list-scroll;button-create-server"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{ExpendableButton::C_NavZone}}}"
+		/>
+	</frame>
+	<frame id="frame-player-list" hidden="1">
+		<quad size="320 180" fullscreen="1" class="quad-base" z-index="-2" opacity=".3" bgcolor="{{{ColorPalette::C_Color_DarkBlue}}}" />
+		<label id="label-server-name" textsize="10" size="160 1" textcolor="FFF" class="label-base" pos="5 55" textfont="{{{FontManager::C_GameFontExtraBold}}}" textprefix="$i$t" italicslope=".2"/>
+
+		<frame pos="-100 0">
+			<frameinstance id="control-block-list-track-thumbnail" modelid="{{{ControlBlockList::C_Name}}}" data-type="{{{ControlBlockList::C_Type_Quad}}}" data-size="95 60" pos="8 5" data-alphamask="{{{Const::C_ImageUrl_LocalNetwork_CurrentMap_Mask}}}" data-keepratio="Clip" data-halign="center" data-valign="center" />
+			<frameinstance id="control-block-list-track-name" modelid="{{{ControlBlockList::C_Name}}}" data-type="{{{ControlBlockList::C_Type_Label}}}" data-size="120 1" data-halign="left" data-valign="center2" pos="-40 -33" data-textfont="{{{FontManager::C_GameFontExtraBold}}}" data-textprefix="$i$t" data-textsize="4" data-filter-profanities="Always" />
+			<label id="label-server-map-by" size="30 1" class="label-base" halign="left" hidden="1" text="{{{_("|AuthoredBy|By")}}}" pos="-41 -40" textfont="{{{FontManager::C_GameFontExtraBold}}}" textprefix="$i$t" textcolor="FFF"/>
+			<label id="label-server-map-author" hidden="1" size="70 1" class="label-base" halign="left" pos="5 -40" textfont="{{{FontManager::C_GameFontExtraBold}}}" textprefix="$i$t" textcolor="{{{ColorPalette::C_Color_GreenOne}}}"/>
+			<label id="label-game-mode" size="70 1" class="label-base" halign="left" text="{{{Text_GameMode}}}" pos="-42 -50" textfont="{{{FontManager::C_GameFontExtraBold}}}" textprefix="$i$t" textcolor="FFF"/>
+			<label id="label-server-mode" size="70 1" class="label-base" halign="left" pos="10 -50" textfont="{{{FontManager::C_GameFontExtraBold}}}" textprefix="$i$t" textcolor="{{{ColorPalette::C_Color_GreenOne}}}"/>
+		</frame>
+	
+		<label id="label-server-nb-players-online" size="20 1" class="label-base" halign="right" pos="60 40" textfont="{{{FontManager::C_GameFontExtraBold}}}" textprefix="$i$t" textcolor="{{{ColorPalette::C_Color_GreenOne}}}"/>
+		<label id="label-server-players" text="{{{Text_TitlePlayerListPlural}}}" size="50 1" class="label-base" halign="left" pos="60 40" textfont="{{{FontManager::C_GameFontExtraBold}}}" textprefix="$i$t" textcolor="FFF"/>
+		<frameinstance modelid="{{{Scroll::C_Name}}}" data-scroll-parent="frame-player-list-scroll" z-index="1" />
+		<frame
+			pos="5 35"
+			data-elements-per-line="{{{ColumnsNbPlayers}}}"
+			data-elements-per-page="{{{ElementsPerPage}}}"
+			data-element-size="{{{Size_PlayerList.X}}} {{{Size_PlayerList.Y}}}"
+			data-margin-size="{{{Size_PlayerListMargin.X}}} {{{Size_PlayerListMargin.Y}}}"
+			data-window-size="{{{Size_PlayerListScrollWindow.X}}} {{{Size_PlayerListScrollWindow.Y}}}"
+			data-header-height="{{{Size_Header.Y}}}"
+			data-footer-height="{{{Size_Footer.Y}}}"
+			data-scroll-indicator="1"
+			data-scroll-indicator-x-offset="-15."
+			data-scroll-indicator-y-offset="-12."
+			data-scroll-indicator-image="{{{Const::C_ImageUrl_Icon_Arrow_Bottom_Oblique}}}"
+			data-scroll-indicator-colorize="FFFFFF"
+			data-scroll-indicator-size="12"
+			data-scrollpadding="15."
+			data-skew="-10."
+			data-skew-valign="{{{Scroll::C_SkewVAlign_Top}}}"
+			class="{{{Scroll::C_Class_Window}}} {{{Navigation::C_Class}}}"
+			data-nav-group="{{{C_NavGroupName}}}"
+			id="frame-player-list-scroll"
+		>
+			<quad z-index="-1" scriptevents="1" class="{{{Scroll::C_Class_ScrollEvent}}}" />
+			{{{Ml_PlayerList}}}
+		</frame>
+		<frame id="frame-password" pos="-25 -73" z-index="3">
+			<quad id="quad-lock" image="{{{Const::C_ImageUrl_Icon_Lock_Oblique}}}" colorize="FFF" size="8 8" halign="right" valign="center" pos="{{{-Size_TextField.X/2}}} 0"/>
+			<frameinstance
+				id="textfield-password"
+				modelid="{{{TextField::C_Name}}}"
+				class="{{{Navigation::C_Class}}}"
+				data-size="{{{Size_TextField.X}}} {{{Size_TextField.Y}}}"
+				data-placeholder="{{{Text_Password}}}"
+				data-bgopacityunfocus="0.4"
+				data-bgcolorfocus="{{{ColorPalette::C_Color_DarkBlue}}}"
+				data-bgcolorunfocus="{{{ColorPalette::C_Color_DarkBlue}}}"
+				data-contourcolorfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-contouropacityunfocus=".0"
+				data-contouropacityfocus="1."
+				data-textprefix="$i"
+				data-textsize="4."
+				data-textformat="password"
+				data-textcolorunfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-halign="center" data-valign="center"
+				data-nav-inputs="select;cancel;up;left;right"
+				data-nav-targets="_;_;frame-player-list-scroll;button-back-player-list;button-spectate"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{TextField::C_NavZone}}}"
+			/>
+		</frame>
+		<frameinstance
+			id="button-join"
+			modelid="{{{ExpendableButton::C_Name}}}"
+			class="{{{Navigation::C_Class}}} {{{MenuSounds::C_Class}}}"
+			pos="151 -73"
+			z-index="1"
+			data-text="{{{Text_Join}}}"
+			data-styles="{{{ExpendableButton::C_Style_SizeExpendable}}} {{{ExpendableButton::C_Style_AlignCenter}}} {{{ExpendableButton::C_Style_PageNext}}}"
+			data-nav-inputs="select;cancel;up;left"
+			data-nav-targets="_;_;frame-player-list-scroll;button-spectate"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{ExpendableButton::C_NavZone}}}"
+			data-menusounds-selectsound="PlayButtonSelect"
+		/>
+		<frameinstance
+			id="button-spectate"
+			modelid="{{{ExpendableButton::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			pos="60 -73"
+			z-index="1"
+			data-text="{{{Text_Spectate}}}"
+			data-styles="{{{ExpendableButton::C_Style_SizeExpendable}}} {{{ExpendableButton::C_Style_AlignCenter}}}"
+			data-halign="right"
+			data-nav-inputs="select;cancel;up;left;right"
+			data-nav-targets="_;_;frame-player-list-scroll;textfield-password;button-join"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{ExpendableButton::C_NavZone}}}"
+		/>
+		<frameinstance
+			id="button-back-player-list"
+			modelid="{{{ExpendableButton::C_Name}}}"
+			class="{{{Navigation::C_Class}}} {{{C_Class_Back}}}"
+			pos="-151.5 -73"
+			z-index="1"
+			data-styles="{{{ExpendableButton::C_Style_SizeExpendable}}} {{{ExpendableButton::C_Style_AlignCenter}}} {{{ExpendableButton::C_Style_PageBack}}}"
+			data-nav-inputs="select;cancel;up;right"
+			data-nav-targets="_;_;frame-player-list-scroll;textfield-password"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{ExpendableButton::C_NavZone}}}"
+		/>
+	</frame>
+	<frame id="frame-create-server" hidden="1">
+		<frame id="frame-escape-move"
+			z-index="2"
+			hidden="1"
+			data-nav-inputs="select;cancel"
+			data-nav-targets="_;_"
+			data-nav-zone="quad-hitbox"
+			data-nav-group="{{{C_NavGroupName}}}"
+			class="{{{Navigation::C_Class}}} {{{MenuSounds::C_Class}}}"
+			data-menusounds-focussound="{{{MenuSounds::P}}}C_Sound_Silent"
+			data-menusounds-selectsound="BackButtonSelect"
+			>
+			<quad id="quad-hitbox" class="quad-base {{{Navigation::C_Class_ActivationZone}}}" size="320 180" fullscreen="1" scriptevents="1"/>
+		</frame>
+		<label pos="5 55" halign="center" valign="center2" textfont="{{{FontManager::C_GameFontExtraBold}}}" size="160 10" textsize="10" textprefix="$t$i" text="{{{Text_CreateLocalServer}}}" textcolor="FFF"/>
+		
+		<frame id="frame-menu-map" z-index="3">
+			<label id="label-maps-message" hidden="1" textsize="4" text="{{{Text_MapSwapExplication}}}" textfont="{{{FontManager::C_GameFontSemiBold}}}" textprefix="$i" italicslope=".2" textcolor="FFF" size="175 2" pos="0 -73" halign="center" valign="center2" />
+			<frameinstance modelid="{{{Scroll::C_Name}}}" data-scroll-parent="frame-map-list-scroll" z-index="1" />
+			<frame
+				pos="{{{Size_MapListScrollWindow.X * -0.5 + 70}}} 40"
+				data-elements-per-line="{{{ColumnsNbMap}}}"
+				data-elements-per-page="{{{MapsPerPage}}}"
+				data-element-size="{{{Size_MapList.X}}} {{{Size_MapList.Y}}}"
+				data-margin-size="{{{Size_MapListMargin.X}}} {{{Size_MapListMargin.Y}}}"
+				data-window-size="{{{Size_MapListScrollWindow.X}}} {{{Size_MapListScrollWindow.Y}}}"
+				data-header-height="{{{Size_Header.Y}}}"
+				data-footer-height="{{{Size_Footer.Y}}}"
+				data-scroll-indicator="1"
+				data-scrollpadding="15."
+				data-skew="-10."
+				data-scrollbar-xoffset="4."
+				data-scroll-indicator-x-offset="-10."
+				data-scroll-indicator-y-offset="-13."
+				data-scroll-indicator-image="{{{Const::C_ImageUrl_Icon_Arrow_Bottom_Oblique}}}"
+				data-scroll-indicator-colorize="FFFFFF"
+				data-scroll-indicator-size="15"
+				data-enable-prescroll="0"
+				class="{{{Scroll::C_Class_Window}}} {{{Navigation::C_Class}}}"
+				data-nav-group="{{{C_NavGroupName}}}"
+				id="frame-map-list-scroll"
+			>
+				<quad z-index="-1" scriptevents="1" class="{{{Scroll::C_Class_ScrollEvent}}}" />
+				{{{Ml_MapList}}}
+			</frame>
+		</frame>
+
+		<frame id="frame-server-infos" pos="15 0">
+			<frameinstance
+				id="textfield-server-name" pos="{{{MLHelpers::Skew(-100., 34.3, 10.)}}}"
+				modelid="{{{TextField::C_Name}}}"
+				class="{{{Navigation::C_Class}}}"
+				data-size="{{{Size_TextField.X}}} {{{Size_TextField.Y}}}"
+				data-placeholder="{{{Text_ServerName}}}"
+				data-bgopacityunfocus="0.4"
+				data-bgcolorfocus="{{{ColorPalette::C_Color_DarkBlue}}}"
+				data-bgcolorunfocus="{{{ColorPalette::C_Color_DarkBlue}}}"
+				data-contourcolorfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-contouropacityunfocus=".0"
+				data-contouropacityfocus="1."
+				data-textsize="4."
+				data-textcolorunfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-halign="center" data-valign="center"
+				data-nav-inputs="select;cancel;down;right"
+				data-nav-targets="_;_;frame-select-mode;frame-map-list-scroll"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{TextField::C_NavZone}}}"
+			/>
+			<frame id="frame-menu-gamemode" pos="{{{MLHelpers::Skew(-100., 23.5, 10.)}}}" z-index="1">
+				<frameinstance
+					id="frame-select-mode" pos="{{{-Size_TextField.X/2}}} 0"
+					modelid="{{{FormSelect::C_Name}}}"
+					class="{{{Navigation::C_Class}}}"
+					data-size="{{{Size_TextField.X}}} {{{Size_TextField.Y}}}"
+					data-scale-options="1"
+					data-fontname="{{{FontManager::C_GameFontSemiBold}}}"
+					data-color-background="{{{ColorPalette::C_Color_DarkBlue}}}"
+					data-color-text="FFF"
+					data-custom-navigation="1"
+					data-halign="center" data-valign="center"
+					data-nav-inputs="select;cancel;up;down;right"
+					data-nav-targets="_;_;textfield-server-name;textfield-matchsettings-name;button-mode-settings"
+					data-nav-group="{{{C_NavGroupName}}}"
+					data-nav-zone="{{{FormSelect::C_NavZone}}}"
+				/>
+				<frameinstance
+					id="button-mode-settings" pos="{{{Size_TextField.X/2}}} 0"
+					modelid="{{{Button::C_Name}}}"
+					data-image="{{{Const::C_ImageUrl_Icon_Settings_Key}}}"
+					data-imagefocus="{{{Const::C_ImageUrl_Icon_Settings_Key}}}"
+					data-bgcolor="FFF"
+					data-focuscolor="FFF"
+					data-opacityunfocus="0.5"
+					data-size="{{{Size_TextField.Y}}} {{{Size_TextField.Y}}}"
+					data-halign="left" data-valign="center"
+					class="{{{Navigation::C_Class}}}"
+					data-nav-inputs="select;cancel;up;down;right;left"
+					data-nav-targets="_;_;textfield-server-name;textfield-matchsettings-name;frame-map-list-scroll;frame-select-mode"
+					data-nav-group="{{{C_NavGroupName}}}"
+					data-nav-zone="{{{Button::C_NavZone}}}"
+				/>
+			</frame>
+			<frameinstance
+				id="textfield-matchsettings-name" pos="{{{MLHelpers::Skew(-100., 12.8, 10.)}}}"
+				modelid="{{{TextField::C_Name}}}"
+				class="{{{Navigation::C_Class}}}"
+				data-size="{{{Size_TextField.X}}} {{{Size_TextField.Y}}}"
+				data-placeholder="{{{Text_SettingsName}}}"
+				data-bgopacityunfocus="0.4"
+				data-bgcolorfocus="{{{ColorPalette::C_Color_DarkBlue}}}"
+				data-bgcolorunfocus="{{{ColorPalette::C_Color_DarkBlue}}}"
+				data-contourcolorfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-contouropacityunfocus=".0"
+				data-contouropacityfocus="1."
+				data-textsize="4."
+				data-textcolorunfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-halign="center" data-valign="center"
+				data-nav-inputs="select;cancel;up;down;right"
+				data-nav-targets="_;_;frame-select-mode;button-import-matchsettings;button-save-matchsettings"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{TextField::C_NavZone}}}"
+			/>
+			<frameinstance
+				id="button-save-matchsettings" pos="{{{MLHelpers::Skew(-100.+Size_TextField.X/2, 12.8, 10.)}}}"
+				modelid="{{{Button::C_Name}}}" z-index="2" 
+				class="{{{Navigation::C_Class}}}"
+				data-image="{{{Const::C_ImageUrl_Icon_Settings_Save_Inc}}}"
+				data-imagefocus="{{{Const::C_ImageUrl_Icon_Settings_Save_Inc}}}"
+				data-bgcolor="FFF"
+				data-focuscolor="FFF"
+				data-opacityunfocus="0.5"
+				data-size="12 12"
+				data-halign="left" data-valign="center"
+				data-nav-inputs="select;cancel;up;down;left;right"
+				data-nav-targets="_;_;frame-select-mode;button-import-matchsettings;textfield-matchsettings-name;frame-map-list-scroll"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+				data-nav-locked="1"
+				hidden="1"
+			/>
+			<frameinstance
+				id="button-import-matchsettings" pos="{{{MLHelpers::Skew(-100., 3., 10.)}}}"
+				modelid="{{{Button::C_Name}}}"
+				class="{{{Navigation::C_Class}}}"
+				data-text="{{{Text_BrowseMatchSettings}}}"
+				data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+				data-textsize="3"
+				data-opacityunfocus=".5" data-opacity="1."
+				data-textitalicslope=".2"
+				data-texthalign="right"
+				data-textxpos="0.8"
+				data-size="78 10"
+				data-bgcolor="000"
+				data-bgempty="1"
+				data-icon="{{{Const::C_ImageUrl_Icon_Glass_Plus}}}"
+				data-iconfocus="{{{Const::C_ImageUrl_Icon_Glass_Plus}}}"
+				data-iconcolortype="{{{Button::C_ColorType_Colorize}}}"
+				data-iconsize="7 7"
+				data-iconxpos=".95"
+				data-iconcolor="FFF" data-iconfocuscolor="FFF"
+				data-valign="center" data-halign="center"
+				data-nav-inputs="select;cancel;up;down;right"
+				data-nav-targets="_;_;textfield-matchsettings-name;counter-max-players;frame-map-list-scroll"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+			/>
+			<label id="label-save-message" pos="{{{MLHelpers::Skew(-100., -6., 10.)}}}"
+				textsize="3"
+				textfont="{{{FontManager::C_GameFontRegular}}}"
+				textprefix="$i"
+				italicslope=".2"
+				textcolor="FFF"
+				size="120 2"
+				opacity="0."
+				halign="center" valign="center2"
+			/>
+			<frame id="frame-counter-max-players" pos="{{{MLHelpers::Skew(-100., -12., 10.)}}}">
+				<label id="label-max-players" pos="{{{-Size_TextField.X/2}}} 0" textprefix="$t$i" text="{{{Text_MaxPlayers}}}" textfont="{{{FontManager::C_GameFontExtraBold}}}" textsize="3" halign="left" valign="center" z-index="2" opacity=".5"/>
+				<frameinstance
+					id="counter-max-players"
+					modelid="{{{Counter::C_Name}}}"
+					class="{{{Navigation::C_Class}}}"
+					data-opacityunfocus="0.5"
+					data-value="64"
+					data-minvalue="2"
+					data-maxvalue="100"
+					data-iconsize="6 6"
+					data-iconcolor="{{{ColorPalette::C_Color_White}}}"
+					data-halign="left" data-valign="center"
+					data-nav-inputs="select;cancel;up;down;right"
+					data-nav-targets="_;_;button-import-matchsettings;textfield-server-password;frame-map-list-scroll"
+					data-nav-group="{{{C_NavGroupName}}}"
+					data-nav-zone="{{{Counter::C_NavZone}}}"
+				/>
+			</frame>
+			<frameinstance
+				id="textfield-server-password" pos="{{{MLHelpers::Skew(-100., -22.3, 10.)}}}"
+				modelid="{{{TextField::C_Name}}}"
+				class="{{{Navigation::C_Class}}}"
+				data-size="{{{Size_TextField.X}}} {{{Size_TextField.Y}}}"
+				data-placeholder="{{{Text_Password}}}"
+				data-bgopacityunfocus="0.4"
+				data-bgcolorfocus="{{{ColorPalette::C_Color_DarkBlue}}}"
+				data-bgcolorunfocus="{{{ColorPalette::C_Color_DarkBlue}}}"
+				data-contourcolorfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-contouropacityunfocus=".0"
+				data-contouropacityfocus="1."
+				data-textformat="password"
+				data-textprefix="$i"
+				data-textsize="4."
+				data-textcolorunfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-halign="center" data-valign="center"
+				data-nav-inputs="select;cancel;up;down;right"
+				data-nav-targets="_;_;counter-max-players;textfield-server-spectator-password;frame-map-list-scroll"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{TextField::C_NavZone}}}"
+			/>
+			<frameinstance
+				id="textfield-server-spectator-password" pos="{{{MLHelpers::Skew(-100., -33.3, 10.)}}}"
+				modelid="{{{TextField::C_Name}}}"
+				class="{{{Navigation::C_Class}}}"
+				data-size="{{{Size_TextField.X}}} {{{Size_TextField.Y}}}"
+				data-placeholder="{{{Text_SpectatorPassword}}}"
+				data-bgopacityunfocus="0.4"
+				data-bgcolorfocus="{{{ColorPalette::C_Color_DarkBlue}}}"
+				data-bgcolorunfocus="{{{ColorPalette::C_Color_DarkBlue}}}"
+				data-contourcolorfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-contouropacityunfocus=".0"
+				data-contouropacityfocus="1."
+				data-textprefix="$i"
+				data-textsize="4."
+				data-textformat="password"
+				data-textcolorunfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-halign="center" data-valign="center"
+				data-nav-inputs="select;cancel;up;down;right"
+				data-nav-targets="_;_;textfield-server-password;textfield-server-comment;frame-map-list-scroll"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{TextField::C_NavZone}}}"
+			/>
+
+			<frameinstance 
+				modelid="{{{TextField::C_Name}}}" id="textfield-server-comment"
+				pos="{{{MLHelpers::Skew(-100., -49.3, 10.)}}}"
+				class="{{{Navigation::C_Class}}}"
+				data-size="{{{Size_TextField.X+1.6}}} {{{Size_TextField.Y*2.}}}"
+				data-placeholder="{{{Text_Comment}}}"
+				data-bgopacityunfocus="0.4"
+				data-bgcolorfocus="{{{ColorPalette::C_Color_GreenFour}}}"
+				data-bgcolorunfocus="{{{ColorPalette::C_Color_GreenFour}}}"
+				data-contourcolorfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-contouropacityunfocus=".0"
+				data-contouropacityfocus="1."
+				data-autonewline="1" data-maxline="3"
+				data-textfieldtype="{{{TextField::C_TextFieldType_TextEdit}}}"
+				data-textcolorunfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-textsize="4."
+				data-halign="center" data-valign="center"
+				data-nav-inputs="select;cancel;up;down;right"
+				data-nav-targets="_;_;textfield-server-spectator-password;button-back-match-settings;frame-map-list-scroll"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{TextField::C_NavZone}}}"
+			/>
+		</frame>
+
+		<frameinstance
+			id="button-create-built-server"
+			modelid="{{{ExpendableButton::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			pos="151 -73"
+			z-index="1"
+			data-text="{{{_("Create")}}}"
+			data-styles="{{{ExpendableButton::C_Style_SizeExpendable}}} {{{ExpendableButton::C_Style_AlignCenter}}} {{{ExpendableButton::C_Style_PageNext}}}"
+			data-nav-inputs="select;cancel;up;left"
+			data-nav-targets="_;_;frame-map-list-scroll;button-back-match-settings"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{ExpendableButton::C_NavZone}}}"
+		/>
+		<frameinstance
+			id="button-back-match-settings"
+			modelid="{{{ExpendableButton::C_Name}}}"
+			class="{{{Navigation::C_Class}}} {{{C_Class_Back}}}"
+			pos="-151.5 -73"
+			z-index="1"
+			data-styles="{{{ExpendableButton::C_Style_SizeExpendable}}} {{{ExpendableButton::C_Style_AlignCenter}}} {{{ExpendableButton::C_Style_PageBack}}}"
+			data-nav-inputs="select;cancel;up;right"
+			data-nav-targets="_;_;textfield-server-comment;button-create-built-server"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{ExpendableButton::C_NavZone}}}"
+		/>
+	</frame>
+	<label id="label-error-message" textsize="4" textfont="{{{FontManager::C_GameFontSemiBold}}}" textprefix="$i$t" italicslope=".2" textcolor="{{{ColorPalette::C_Color_ErrorRed}}}" size="175 2" pos="-4 -73" opacity="0." halign="center" valign="center2" />
+</frame>
+""",
+"""
+#Include "ColorLib" as CL
+#Include "TextLib" as TL
+#Include "MathLib" as ML
+#Include "TimeLib" as TiL
+#Include "Libs/Nadeo/CommonLibs/Common/Task.Script.txt" as Task
+#Include "Libs/Nadeo/CommonLibs/Common/MainUser.Script.txt" as MainUser
+#Include "Libs/Nadeo/CommonLibs/Common/ReportContext.Script.txt" as ReportContext
+#Include "Libs/Nadeo/TMNext/TrackMania/Config.Script.txt" as Config
+#Include "Libs/Nadeo/TMNext/TrackMania/RBAC.Script.txt" as RBAC
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/TitleControl.Script.txt" as TitleControl
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Overlays/ControllerInfo_ML.Script.txt" as ControllerInfo
+
+#Struct K_ServerInfo {
+	Text ServerName;
+	Text ServerLogin;
+	Text JoinLink;
+	Text[] PlayerNames;
+	Integer PlayerCount;
+	Integer MaxPlayerCount;
+	Text[] ChallengeNames;
+	Text[] ChallengeIds;
+	Text ModeName;
+	Boolean IsPrivate;
+	Boolean IsPrivateForSpectator;
+}
+
+#Struct K_JoinSettings {
+	Text ServerLogin;
+	Text JoinLink;
+	Boolean IsSpectator;
+	Text Password;
+}
+
+#Struct K_ServerSettings {
+	Text ServerName;
+	Text ServerComment;
+	Integer MaxPlayerCount;
+	Text Password;
+	Text PasswordSpectators;
+}
+
+#Struct K_PageControls {
+	CMlFrame Button_ModeSettings;
+	CMlFrame Frame_SelectModes;
+	CMlFrame Frame_EscapeMove;
+	CMlFrame Frame_CurrentScroll;
+	CMlFrame Frame_Scroll_ServerList;
+	CMlFrame Frame_LoadingSpinner;
+	CMlFrame CurrentEditingMap;
+	CMlFrame CurrentFocusedMap;
+	CMlLabel Label_NoServerFound;
+	CMlLabel Label_MapSwapExplication;
+	CMlFrame Frame_ButtonSave;
+	CMlFrame TextField_MatchSettingsName;
+	CMlFrame Frame_ButtonJoin;
+	CMlLabel Label_ServerBy;
+	CMlLabel Label_ServerGameMode;
+	CMlLabel Label_ServerModeName;
+	CMlFrame Frame_ButtonSpectate;
+	CMlLabel Label_ServerCurrentMapAuthor;
+}
+
+#Struct K_State_LocalServer {
+	Integer Type;
+	K_ServerInfo[] ServerList;
+	K_ServerInfo CurrentServer;
+	Integer MapToHandleIndex;
+	Boolean CheckLocalServers;
+	K_JoinSettings JoinSettings;
+	Boolean JoinRequest;
+	K_ServerSettings ServerSettings;
+	{{{CampaignStruct::P}}}K_Map[] SelectedMaps;
+	Text[Integer] MapFilesToFetch;
+	Task::K_Task Task_MapList;
+	Ident MatchSettingsId;
+	Integer MaxTimeToCheckServerList;
+	Boolean HasSetNavigation;
+	Boolean IsEditingMaps;
+	Task::K_Task Task_Map;
+	K_PageControls Controls;
+	Text[Integer] ModeNames;
+	Boolean IsSelectingCustomMode;
+}
+
+#Const C_StateType_None -1
+#Const C_StateType_ServerList 0
+#Const C_StateType_PlayerList 1
+#Const C_StateType_MatchSettings 2
+#Const C_StateType_Browsing 3
+#Const C_StateType_TrackBrowsing 4
+
+#Const Text_TempMatchSettingsPath "TmpMatchSettings"
+
+#Const C_Name_Multichoice "HandleMapForServer"
+
+#Const C_ChoiceList_Map [
+	"{{{_("Move")}}}",
+	"{{{_("Remove")}}}"
+]
+
+#Const C_MapToHandleIndex_Null -1
+
+#Const C_PlayersNb_Min 1
+#Const C_PlayersNb_Max 255
+#Const C_PlayersNb_Default 10
+
+#Const C_ModeNames {{{dump(Const::C_ModeNames)}}}
+#Const C_ModeNames_ScriptNames {{{dump(Const::C_ModeNames_ScriptNames)}}}
+#Const C_BaseScriptName {{{dump(Const::C_BaseScriptName)}}}
+#Const C_BaseScriptName_ToReplace {{{dump(Const::C_BaseScriptName_ToReplace)}}}
+""",
+"""
+// Get the MatchSettings instance saved in the state
+CMatchSettings GetMatchSettingsFromState(K_State_LocalServer _State, CMatchSettingsManager _MatchSettingsManager) {
+	if (_MatchSettingsManager == Null) return Null;
+	
+	if (_State.MatchSettingsId != NullId) {
+		// Temporory matchsettings are added in the `MatchSettings_Temp` array immediatly after their creation
+		// However they are added to the `MatchSettings` array only after a `yield`
+		// So we have to check both `MatchSettings_Temp` and `MatchSettings` arrays
+		// See : /trackmania-next/tmnext/-/issues/3658#note_184952
+		if (_MatchSettingsManager.MatchSettings_Temp.existskey(_State.MatchSettingsId)) {
+			return _MatchSettingsManager.MatchSettings_Temp[_State.MatchSettingsId];
+		}
+		if (_MatchSettingsManager.MatchSettings.existskey(_State.MatchSettingsId)) {
+			return _MatchSettingsManager.MatchSettings[_State.MatchSettingsId];
+		}
+	}
+
+	return Null;
+}
+CMatchSettings GetMatchSettingsFromState(K_State_LocalServer _State) {
+	return GetMatchSettingsFromState(_State, ParentApp.MatchSettingsManager);
+}
+
+// Save a MatchSettings instance in the state
+K_State_LocalServer SetMatchSettingsInState(K_State_LocalServer _State, CMatchSettingsManager _MatchSettingsManager, CMatchSettings _MatchSettings) {
+	if (_MatchSettingsManager == Null) return _State;
+
+	declare K_State_LocalServer State = _State;
+
+	// Save the new matchsettings id before any action on the `MatchSettingsManager.MatchSettings` array
+	declare Ident NewMatchSettingsId = NullId;
+	if (_MatchSettings != Null) {
+		NewMatchSettingsId = _MatchSettings.Id;
+	}
+
+	// If the previous matchsettings instance is a temporary matchsettings
+	// and its not the same instance as the new one, then delete it
+	if (
+		State.MatchSettingsId != NullId &&
+		State.MatchSettingsId != NewMatchSettingsId &&
+		_MatchSettingsManager.MatchSettings_Temp.existskey(State.MatchSettingsId)
+	) {
+		_MatchSettingsManager.MatchSettings_Remove(_MatchSettingsManager.MatchSettings_Temp[State.MatchSettingsId]);
+	}
+
+	State.MatchSettingsId = NewMatchSettingsId;
+
+	return State;
+}
+K_State_LocalServer SetMatchSettingsInState(K_State_LocalServer _State, CMatchSettings _MatchSettings) {
+	return SetMatchSettingsInState(_State, ParentApp.MatchSettingsManager, _MatchSettings);
+}
+
+Void UpdateReportContext(K_State_LocalServer _State) {
+	declare Text Step = "";
+	switch (_State.Type) {
+		case C_StateType_ServerList: Step = "ServerList";
+		case C_StateType_PlayerList: Step = "PlayerList";
+		case C_StateType_MatchSettings: Step = "MatchSettings";
+		case C_StateType_Browsing: Step = "Browsing";
+		case C_StateType_TrackBrowsing: Step = "TrackBrowsing";
+	}
+	declare Text ModeName = "";
+	declare Text MatchSettingsFileName = "";
+	declare CMatchSettings MatchSettings = GetMatchSettingsFromState(_State);
+	if (MatchSettings != Null) {
+		ModeName = MatchSettings.ScriptModeName;
+		MatchSettingsFileName = MatchSettings.FileName;
+	}
+	ReportContext::SetLocalServerSettings(
+		System,
+		Step,
+		_State.ServerSettings.ServerName,
+		_State.ServerSettings.ServerComment,
+		_State.ServerSettings.MaxPlayerCount,
+		ModeName,
+		MatchSettingsFileName
+	);
+	ReportContext::SetLocalServerSettingsResetMaps(System);
+	foreach (Map in _State.SelectedMaps) {
+		ReportContext::SetLocalServerSettingsAddMap(
+			System,
+			Map.Uid,
+			Map.Name,
+			Map.AuthorLogin,
+			Map.AuthorDisplayName,
+			Map.SubmitterAccountId,
+			Map.LocalFileName,
+			Map.DownloadUrl,
+			Map.ThumbnailUrl,
+			Map.UploadTimestamp,
+			Map.IsPlayable,
+			Map.CollectionName,
+			Map.CreatedWithSimpleEditor,
+			Map.CreatedWithGamepadEditor
+		);
+	}
+}
+
+Void SaveMessage(Text _Message) {
+	declare Label_SaveMessage <=> (Page.GetFirstChild("label-save-message") as CMlLabel);
+
+	Label_SaveMessage.Value = _Message;
+	AnimMgr.Flush(Label_SaveMessage);
+	AnimMgr.Add(Label_SaveMessage, "<a opacity=\"1.\" />", 50, CAnimManager::EAnimManagerEasing::QuadOut);
+	AnimMgr.Add(Label_SaveMessage, "<a opacity=\"0.\" />", Now+{{{C_SaveMessage_TimeDuration}}}, {{{C_SaveMessage_FadeTime}}}, CAnimManager::EAnimManagerEasing::QuadOut);
+}
+
+Void ErrorMessage(Text _Message) {
+	declare Label_ErrorMessage <=> (Page.GetFirstChild("label-error-message") as CMlLabel);
+
+	Label_ErrorMessage.Value = _Message;
+	AnimMgr.Flush(Label_ErrorMessage);
+	AnimMgr.Add(Label_ErrorMessage, "<a opacity=\"1.\" />", 50, CAnimManager::EAnimManagerEasing::QuadOut);
+	AnimMgr.Add(Label_ErrorMessage, "<a opacity=\"0.\" />", Now+{{{C_ErrorMessage_TimeDuration}}}, {{{C_ErrorMessage_FadeTime}}}, CAnimManager::EAnimManagerEasing::QuadOut);
+}
+
+Void ErrorMessage_MatchSettingsUnavailable() {
+	ErrorMessage(TL::Compose("{{{Text_MatchSettingsError}}}", {{{dump(Error::C_Code_LocalServer_MatchSettingsCreationFailed)}}}));
+}
+Void ErrorMessage_MatchSettingsInvalidMode() {
+	ErrorMessage(TL::Compose("{{{Text_InvalidModeError}}}", {{{dump(Error::C_Code_LocalServer_MatchSettingsInvalidMode)}}}));
+}
+
+Void FocusCurrentMapEdition(CMlFrame _Frame_Map, Boolean _IsFocused) {
+	if (_Frame_Map == Null) return;
+	declare CMlFrame Frame_CurrentMapEdition = (_Frame_Map.GetFirstChild("frame-current-map-edition") as CMlFrame);
+	declare CMlFrame Frame_MapNames = (_Frame_Map.GetFirstChild("frame-map-names") as CMlFrame);
+	declare Quad_Focus <=> (_Frame_Map.GetFirstChild("quad-focus-contour") as CMlQuad);
+	declare Quad_Overlay <=> (_Frame_Map.GetFirstChild("quad-thumbnail-overlay") as CMlQuad);
+
+	Frame_CurrentMapEdition.Visible = _IsFocused;
+	Frame_MapNames.Visible = !_IsFocused;
+	Quad_Overlay.Visible = !_IsFocused;
+	Quad_Focus.Visible = False;
+}
+
+K_State_LocalServer FocusScrollElement(CMlFrame _Frame_CurrentScroll, CMlControl _Control, Boolean _IsFocused, K_State_LocalServer _State) {
+	if (_Control == Null || !_Control.HasClass("{{{Scroll::C_Class_Element}}}") || _Frame_CurrentScroll == Null) return _State;
+	declare K_State_LocalServer State = _State;
+
+	declare Frame_Control = (_Control as CMlFrame);
+	declare Quad_BG <=> (Frame_Control.GetFirstChild("quad-bg") as CMlQuad);
+	declare Quad_Focus <=> (Frame_Control.GetFirstChild("quad-focus-contour") as CMlQuad);
+	declare Quad_ImageAdd <=> (Frame_Control.GetFirstChild("quad-image-add") as CMlQuad);
+	declare Label_Name <=> (Frame_Control.GetFirstChild("label-name") as CMlLabel);
+	declare Label_PlayerNumber <=> (Frame_Control.GetFirstChild("label-player-number") as CMlLabel);
+	declare Label_Mode <=> (Frame_Control.GetFirstChild("label-mode") as CMlLabel);
+	declare CMlFrame Frame_MapEdition = (Frame_Control.GetFirstChild("frame-map-edition") as CMlFrame);
+	declare CMlFrame Frame_MapNames = (Frame_Control.GetFirstChild("frame-map-names") as CMlFrame);
+	declare Quad_Overlay <=> (Frame_Control.GetFirstChild("quad-thumbnail-overlay") as CMlQuad);
+
+	switch (_Frame_CurrentScroll.ControlId) {
+		case "frame-server-list-scroll": {
+			if (_IsFocused) {
+				Quad_BG.Opacity = 0.7;
+				Label_PlayerNumber.TextColor = CL::Hex6ToRgb("{{{ColorPalette::C_Color_GreenOne}}}");
+				Label_Name.Opacity = 1.;
+				Label_PlayerNumber.Opacity = 1.;
+				Label_Mode.Opacity = 1.;
+			} else {
+				Quad_BG.Opacity = 0.2;
+				Label_PlayerNumber.TextColor = CL::Hex3ToRgb("FFF");
+				Label_Name.Opacity = 0.4;
+				Label_PlayerNumber.Opacity = 0.4;
+				Label_Mode.Opacity = 0.4;
+			}
+		}
+
+		case "frame-player-list-scroll": {
+			if (_IsFocused) {
+				Quad_BG.Opacity = 1.;
+			} else {
+				Quad_BG.Opacity = 0.6;
+			}
+		}
+		
+		case "frame-map-list-scroll": {
+			if (State.IsEditingMaps) {
+				State.Controls.CurrentFocusedMap = Frame_Control;
+				declare Text CurrentMapName for State.Controls.CurrentEditingMap;
+				if (CurrentMapName != {{{ControlBlockList::P}}}GetTextValue((Frame_Control.GetFirstChild("control-block-list-track-name") as CMlFrame))) {
+					if (!Quad_ImageAdd.Visible) {
+						Quad_Focus.Visible = False;
+						Quad_Overlay.Visible = !_IsFocused;
+						Frame_MapEdition.Visible = _IsFocused;
+						Frame_MapNames.Visible = !_IsFocused;
+					} else {
+						Frame_MapEdition.Visible = False;
+						Quad_Overlay.Visible = True;
+						Frame_MapNames.Visible = True;
+					}
+				}
+			} else {
+				Quad_Overlay.Visible = True;
+				Frame_MapNames.Visible = True;
+				Frame_MapEdition.Visible = False;
+				Quad_Focus.Visible = _IsFocused;
+				if (_IsFocused) {
+					if (Quad_ImageAdd.Visible) {
+						Quad_ImageAdd.TTS_Focus();
+					} else {
+						{{{ControlBlockList::P}}}TTS_Focus((Frame_Control.GetFirstChild("control-block-list-track-name") as CMlFrame));
+					}
+				}
+			}
+
+		}
+	}
+	return State;
+}
+
+Void Focus(CMlControl _To) {
+	if ({{{Transition::P}}}IsInTransition(This) || (_To != Null && _To.ControlId == "frame-escape-move")) return;
+
+	declare Focused_Control = {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}");
+	if (Focused_Control != Null) {
+		{{{Navigation::P}}}Unfocus(This, Focused_Control);
+		if ({{{Button::P}}}IsButton((Focused_Control as CMlFrame))) {
+			{{{Button::P}}}Unfocus(This, (Focused_Control as CMlFrame));
+		} else if ({{{TextField::P}}}IsTextField((Focused_Control as CMlFrame))) {
+			{{{TextField::P}}}Unfocus(This, (Focused_Control as CMlFrame));
+		} else if ({{{Counter::P}}}IsCounter((Focused_Control as CMlFrame))) {
+			{{{Counter::P}}}Unfocus((Focused_Control as CMlFrame));
+		} else if ({{{Scroll::P}}}IsScroll((Focused_Control as CMlFrame))) {
+			{{{Scroll::P}}}Unfocus(This, (Focused_Control as CMlFrame));
+		} else if ({{{FormSelect::P}}}IsFormSelect(This, Focused_Control)) {
+			{{{FormSelect::P}}}Focus(This, False, Focused_Control.Id);
+		} else if ({{{ExpendableButton::P}}}IsButton(Focused_Control)) {
+			{{{ExpendableButton::P}}}Unfocus(This, (Focused_Control as CMlFrame));
+		}
+	}
+
+	if (_To != Null) {
+		{{{Navigation::P}}}Focus(This, _To);
+		if ((_To is CMlFrame)) {
+			if ({{{Button::P}}}IsButton((_To as CMlFrame))) {
+				{{{Button::P}}}Focus(This, (_To as CMlFrame));
+			} else if ({{{TextField::P}}}IsTextField((_To as CMlFrame))) {
+				{{{TextField::P}}}Focus(This, (_To as CMlFrame));
+			} else if ({{{Counter::P}}}IsCounter((_To as CMlFrame))) {
+				{{{Counter::P}}}Focus((_To as CMlFrame));
+			} else if ({{{Scroll::P}}}IsScroll((_To as CMlFrame))) {
+				{{{Scroll::P}}}Focus(This, (_To as CMlFrame));
+			} else if ({{{FormSelect::P}}}IsFormSelect(This, _To)) {
+				{{{FormSelect::P}}}Focus(This, True, _To.Id);
+			} else if ({{{ExpendableButton::P}}}IsButton(_To)) {
+				{{{ExpendableButton::P}}}Focus(This, (_To as CMlFrame));
+			}
+		}
+	}
+}
+
+Void UpdateServerUI(CMlFrame _Frame_Server, K_ServerInfo _ServerInfo) {
+	if (_Frame_Server == Null) return;
+
+	declare Label_ServerName <=> (_Frame_Server.GetFirstChild("label-name") as CMlLabel);
+	declare Label_PlayerNumber <=> (_Frame_Server.GetFirstChild("label-player-number") as CMlLabel);
+	declare Label_Mode <=> (_Frame_Server.GetFirstChild("label-mode") as CMlLabel);
+	
+	_Frame_Server.Visible = _ServerInfo.ServerName != "";
+
+	Label_ServerName.Value = _ServerInfo.ServerName;
+	Label_PlayerNumber.Value = ""^_ServerInfo.PlayerCount;
+	if (_ServerInfo.MaxPlayerCount > 0) {
+		Label_PlayerNumber.Value ^= "/"^_ServerInfo.MaxPlayerCount;
+	}
+
+	declare Text ModeName = _ServerInfo.ModeName;
+	declare Text ScriptName = TL::Replace(C_BaseScriptName, C_BaseScriptName_ToReplace, ModeName);
+	if (C_ModeNames_ScriptNames.exists(ScriptName)) ModeName = C_ModeNames_ScriptNames.keyof(ScriptName);
+	Label_Mode.Value = ModeName;
+}
+
+Void UpdatePlayerListUI(CMlFrame _Frame_Player, Text _PlayerInfo) {
+	if (_Frame_Player != Null) {
+		(_Frame_Player.GetFirstChild("label-name") as CMlLabel).Value = _PlayerInfo;
+	}
+}
+
+Void UpdateMapListUI(CMlFrame _Frame_Map, {{{CampaignStruct::P}}}K_Map _Map, K_State_LocalServer _State) {
+	if (_Frame_Map == Null) return;
+	declare CMlFrame ControlBlockList_TrackName = (_Frame_Map.GetFirstChild("control-block-list-track-name") as CMlFrame);
+	declare CMlFrame ControlBlockList_TrackThumbnail = (_Frame_Map.GetFirstChild("control-block-list-track-thumbnail") as CMlFrame);
+	declare AuthorName = "";
+
+	{{{ControlBlockList::P}}}SetOwnerAndTextValue(This, ControlBlockList_TrackName, _Map.AuthorLogin, _Map.Name, False);
+	if (_Map.AuthorDisplayName != "") {
+		AuthorName = TL::Compose("{{{Text_AuthorName}}}", _Map.AuthorDisplayName);
+		{{{ControlBlockList::P}}}SetTTSAltText(
+			This,
+			ControlBlockList_TrackName,
+			TL::Compose("%2 "^TL::GetTranslatedText("{{{Text_AuthorName}}}"), _Map.AuthorDisplayName, {{{ControlBlockList::P}}}GetTextValue(ControlBlockList_TrackName)),
+			TL::Compose("%2 "^TL::GetTranslatedText("{{{Text_AuthorName}}}"), _Map.AuthorDisplayName, {{{ControlBlockList::P}}}C_DefaultTextValueBlocked),
+			False
+		);
+	} else {
+		{{{ControlBlockList::P}}}SetTTSAltText(This, ControlBlockList_TrackName, "", "", False);
+	}
+	{{{ControlBlockList::P}}}Redraw(This, ControlBlockList_TrackName);
+	(_Frame_Map.GetFirstChild("label-author") as CMlLabel).Value = AuthorName;
+	{{{ControlBlockList::P}}}SetOwnerAndImageUrl(This, ControlBlockList_TrackThumbnail, _Map.AuthorLogin, _Map.ThumbnailUrl);
+	ControlBlockList_TrackThumbnail.Visible = True;
+	_Frame_Map.GetFirstChild("quad-overlay").Visible = _Map.ThumbnailUrl != "";
+	_Frame_Map.GetFirstChild("quad-image-add").Visible = False;
+	
+	if (_State.Controls.CurrentEditingMap != Null && _State.Controls.CurrentEditingMap.ControlId == _Frame_Map.ControlId) {
+		declare Text CurrentMapName for _State.Controls.CurrentEditingMap; 
+		declare CMlFrame Frame_CurrentMapEdition = (_Frame_Map.GetFirstChild("frame-current-map-edition") as CMlFrame);
+		if (!Frame_CurrentMapEdition.Visible && CurrentMapName == _Map.Name) {
+			FocusCurrentMapEdition(_State.Controls.CurrentEditingMap, True);
+		} else if (Frame_CurrentMapEdition.Visible && CurrentMapName != _Map.Name) {
+			FocusCurrentMapEdition(_State.Controls.CurrentEditingMap, False);
+		}
+	}
+}
+
+Void InitMapListAddButton(CMlFrame _Frame_Map) {
+	if (_Frame_Map == Null) return;
+	{{{ControlBlockList::P}}}SetOwnerAndTextValue(This, (_Frame_Map.GetFirstChild("control-block-list-track-name") as CMlFrame), "", "");
+	(_Frame_Map.GetFirstChild("label-author") as CMlLabel).Value = "";
+	_Frame_Map.GetFirstChild("quad-image-add").Visible = True;
+	_Frame_Map.GetFirstChild("quad-overlay").Visible = False;
+	declare CMlFrame ControlBlockList_TrackThumbnail = (_Frame_Map.GetFirstChild("control-block-list-track-thumbnail") as CMlFrame);
+	{{{ControlBlockList::P}}}SetOwnerAndImageUrl(This, ControlBlockList_TrackThumbnail, "", "");
+	ControlBlockList_TrackThumbnail.Visible = False;
+}
+
+K_State_LocalServer Mutation_UpdateServerList(K_State_LocalServer _State) {
+	declare State = _State;
+
+	State.ServerList = [];
+	declare Text[] PlayerNameList;
+	declare Text[] ChallengeNameList;
+	declare Text[] ChallengeIdList;
+	foreach (Server in TitleControl.LocalServers_CurrentTitle) {
+		if (!(Server is CServerInfo)) continue;
+		PlayerNameList = [];
+		foreach (Name in Server.PlayerNames) {
+			PlayerNameList.add(Name);
+		}
+		ChallengeNameList = [];
+		foreach (Name in Server.ChallengeNames) {
+			ChallengeNameList.add(Name);
+		}
+		ChallengeIdList = [];
+		foreach (Id in Server.ChallengeIds) {
+			ChallengeIdList.add(Id);
+		}
+		State.ServerList.add(K_ServerInfo {
+			ServerName = Server.ServerName,
+			ServerLogin = Server.ServerLogin,
+			JoinLink = Server.JoinLink,
+			PlayerNames = PlayerNameList,
+			PlayerCount = Server.PlayerCount,
+			MaxPlayerCount = Server.MaxPlayerCount,
+			ChallengeNames = ChallengeNameList,
+			ChallengeIds = ChallengeIdList,
+			ModeName = Server.ModeName,
+			IsPrivate = Server.IsPrivate,
+			IsPrivateForSpectator = Server.IsPrivateForSpectator
+		});
+	}
+	State.CheckLocalServers = False;
+	return State;
+}
+
+K_State_LocalServer Action_GetServerList(K_State_LocalServer _State, K_PageControls _PageControls) {
+	declare State = _State;
+	State.ServerList = [];
+
+	_PageControls.Label_NoServerFound.Hide();
+	{{{Scroll::P}}}SetElementsTotal(This, _PageControls.Frame_Scroll_ServerList, 0);
+	{{{LoadingSpinner::P}}}StartAnimation(This, _PageControls.Frame_LoadingSpinner, "{{{Text_LoadingServers}}}");
+
+	while (!TitleControl.IsReady) yield;
+	TitleControl.DiscoverLocalServers();
+	State.CheckLocalServers = True;
+	return State;
+}
+
+K_State_LocalServer Action_JoinServer(K_State_LocalServer _State, Boolean _IsSpectator) {
+	declare State = _State;
+
+	foreach (LocalServer in TitleControl.LocalServers_CurrentTitle) {
+		if (LocalServer == Null || !(LocalServer is CServerInfo)) continue;
+		if (LocalServer.ServerLogin == _State.CurrentServer.ServerLogin) {
+			while (!TitleControl.IsReady) yield;
+			TitleControl.GetServerInfo(LocalServer);
+			State.JoinSettings.IsSpectator = _IsSpectator;
+			State.JoinRequest = True;
+		}
+	}
+
+	if (!State.JoinRequest) {
+		//L16N Message displayed when a player tries to join a server that does not exist anymore
+		ErrorMessage(_("Server doesn't exist anymore"));
+	}
+	return State;
+}
+
+K_State_LocalServer EditScriptSettings(K_State_LocalServer _State) {
+	declare K_State_LocalServer State = _State;
+
+	declare CMatchSettings MatchSettings = GetMatchSettingsFromState(State);
+	if (MatchSettings != Null) {
+		if (MatchSettings.ScriptModeName != "" && MatchSettings.ScriptModeName_Check(MatchSettings.ScriptModeName)) {
+			ParentApp.MatchSettingsManager.MatchSettings_EditScriptSettings(MatchSettings);
+		} else {
+			ErrorMessage_MatchSettingsInvalidMode();
+		}
+	} else {
+		ErrorMessage_MatchSettingsUnavailable();
+	}
+
+	UpdateReportContext(State);
+
+	return State;
+}
+
+K_State_LocalServer SaveMatchSettings(K_State_LocalServer _State, Text _FileName, Boolean _ShowSaveMessage) {
+	declare K_State_LocalServer State = _State;
+
+	declare CMatchSettings MatchSettings = GetMatchSettingsFromState(_State);
+	if (MatchSettings == Null) {
+		ErrorMessage_MatchSettingsUnavailable();
+	}
+	// The user wants to save the matchsettings file with a specific name and
+	// it was not saved on disk yet or under a different name
+	else if (_FileName != "" && MatchSettings.FileName != _FileName) {
+		declare CMatchSettings SavedMatchSettings = ParentApp.MatchSettingsManager.MatchSettings_SaveAs(_FileName, MatchSettings);
+		if (SavedMatchSettings != Null) {
+			State = SetMatchSettingsInState(State, SavedMatchSettings);
+			MatchSettings = GetMatchSettingsFromState(State);
+			if (_ShowSaveMessage) SaveMessage(TL::Compose("{{{Text_SaveMessage}}}", MatchSettings.FileName));
+		} else {
+			ErrorMessage_MatchSettingsUnavailable();
+		}
+	}
+	// The user wants to save the matchsettings file but did not give a proper name
+	else if (_FileName == "" || MatchSettings.FileName == "") {
+		declare CMatchSettings SavedMatchSettings = ParentApp.MatchSettingsManager.MatchSettings_SaveAs(Text_TempMatchSettingsPath^"_"^TiL::GetCurrent(), MatchSettings);
+		if (SavedMatchSettings != Null) {
+			State = SetMatchSettingsInState(State, SavedMatchSettings);
+			MatchSettings = GetMatchSettingsFromState(State);
+			if (_ShowSaveMessage) SaveMessage(TL::Compose("{{{Text_SaveMessage}}}", MatchSettings.FileName));
+		} else {
+			ErrorMessage_MatchSettingsUnavailable();
+		}
+	} 
+	// The user save a matchsettings file that is already on disk
+	else {
+		ParentApp.MatchSettingsManager.MatchSettings_Save(MatchSettings);
+		if (_ShowSaveMessage) SaveMessage(TL::Compose("{{{Text_SaveMessage}}}", MatchSettings.FileName));
+	}
+
+	UpdateReportContext(State);
+
+	return State;
+}
+K_State_LocalServer SaveMatchSettings(K_State_LocalServer _State, Text _FileName) {
+	return SaveMatchSettings(_State, _FileName, True);
+}
+
+Boolean IsMapValid(K_State_LocalServer _State, Text _MapFileName) {
+	declare CMatchSettings MatchSettings = GetMatchSettingsFromState(_State);
+	if (MatchSettings == Null) {
+		ErrorMessage_MatchSettingsUnavailable();
+		return False;
+	}
+	if (MatchSettings.ScriptModeName == "") {
+		//L16N Message displayed when the user tries to select a track without selecting a mode beforehand
+		ErrorMessage(_("Select a mode to check track compatibility"));
+		return False;
+	}
+	if (!MatchSettings.Playlist_FileExists(_MapFileName)) {
+		//L16N %1 will be replaced by the name of a track, e.g. "Track 'T01' not found!"
+		ErrorMessage(TL::Compose(_("Track '%1' not found"), "$<"^_MapFileName^"$>"));
+		return False;
+	}
+	if (!MatchSettings.Playlist_FileMatchesMode(_MapFileName)) {
+		//L16N %1 will be replaced by the name of a track, e.g. "The track 'T01' is not compatible with the selected game mode"
+		ErrorMessage(TL::Compose(_("The track '%1' is not compatible with the selected game mode"), "$<"^_MapFileName^"$>"));
+		return False;
+	}
+	foreach (Map in _State.SelectedMaps) {
+		if (Map.LocalFileName == _MapFileName) {
+			//L16N %1 will be replaced by the name of a track, e.g. "The track 'T01' is already in the playlist"
+			ErrorMessage(TL::Compose(_("The track '%1' is already in the playlist"), "$<"^_MapFileName^"$>"));
+			return False;
+		}
+	}
+	
+	return True;	
+}
+
+K_State_LocalServer CreateLocalServer(K_State_LocalServer _State) {
+	declare CMatchSettings MatchSettings = GetMatchSettingsFromState(_State);
+	if (MatchSettings == Null) {
+		ErrorMessage_MatchSettingsUnavailable();
+		return _State;
+	} else if (MatchSettings.ScriptModeName == "" || !MatchSettings.ScriptModeName_Check(MatchSettings.ScriptModeName)) {
+		ErrorMessage_MatchSettingsInvalidMode();
+		return _State;
+	} else if (MatchSettings.Playlist.count <= 0) {
+		ErrorMessage(_("You need to add at least 1 track to the playlist"));
+		return _State;
+	}
+
+	declare K_State_LocalServer State = _State;
+
+	TitleControl::WaitIsReady(TitleControl);
+	if (State.ServerSettings.ServerName == "") State.ServerSettings.ServerName = TL::GetTranslatedText(TL::Compose("{{{Text_ServerNameDefault}}}", LocalUser.Name));
+	if (TitleControl::IsRoyalScript(MatchSettings.ScriptModeName)) {
+		SendCustomEvent("{{{Const::C_Event_UpdateLoadingScreen}}}", [State.ServerSettings.ServerName, "{{{LoadingScreen::C_Background_Royal}}}"]);
+	} else {
+		SendCustomEvent("{{{Const::C_Event_UpdateLoadingScreen}}}", [State.ServerSettings.ServerName]);
+	}
+	TitleControl::CreateServer(
+		TitleControl, 
+		State.ServerSettings.ServerName,
+		State.ServerSettings.ServerComment,
+		State.ServerSettings.MaxPlayerCount,
+		State.ServerSettings.Password,
+		State.ServerSettings.PasswordSpectators,
+		MatchSettings,
+		True
+	);
+
+	return State;
+}
+
+K_State_LocalServer RemoveMapFromPlaylist(K_State_LocalServer _State, Integer _Index) {
+	declare K_State_LocalServer State = _State;
+
+	declare CMatchSettings MatchSettings = GetMatchSettingsFromState(State);
+	if (MatchSettings != Null) {
+		MatchSettings.Playlist_Remove(_Index);
+		State.SelectedMaps.removekey(_Index);
+	} else {
+		ErrorMessage_MatchSettingsUnavailable();
+	}
+
+	UpdateReportContext(State);
+
+	return State;
+}
+
+K_State_LocalServer SyncMatchSettings(K_State_LocalServer _State) {
+	declare K_State_LocalServer State = _State;
+
+	declare CMatchSettings MatchSettings = GetMatchSettingsFromState(State);
+	if (MatchSettings != Null) {
+		while (MatchSettings.Playlist.count > 0) {
+			MatchSettings.Playlist_Remove(0);
+		}
+		foreach (Map in State.SelectedMaps) {
+			MatchSettings.Playlist_Add(Map.LocalFileName);
+		}
+	} else {
+		ErrorMessage_MatchSettingsUnavailable();
+	}
+
+	UpdateReportContext(State);
+
+	return State;
+}
+
+Void SetControllerInfos(Boolean _EditMapsModeEnabled) {
+	if (_EditMapsModeEnabled) {
+		if ({{{UserStore::P}}}IsOfflineMode()) {
+			ControllerInfo::SetButtons(["A" => "{{{Text_SwapMaps}}}", "{{{Const::C_NavInput_ProfileWidget}}}" => "{{{Const::C_Text_ProfileWidget}}}", "B" => _("Back"), "Action2" => "{{{Text_Remove}}}"]);
+		} else {
+			ControllerInfo::SetButtons(["A" => "{{{Text_SwapMaps}}}", "{{{Const::C_NavInput_ProfileWidget}}}" => "{{{Const::C_Text_ProfileWidget}}}", "{{{Const::C_NavInput_ClubWidget}}}" => "{{{Const::C_Text_ClubWidget}}}", "B" => _("Back"), "Action2" => "{{{Text_Remove}}}"]);
+		}
+	} else {
+		if ({{{UserStore::P}}}IsOfflineMode()) {
+			ControllerInfo::SetButtons(["A" => _("Select"), "{{{Const::C_NavInput_ProfileWidget}}}" => "{{{Const::C_Text_ProfileWidget}}}", "B" => _("Back")]);
+		} else {
+			ControllerInfo::SetButtons(["A" => _("Select"), "{{{Const::C_NavInput_ProfileWidget}}}" => "{{{Const::C_Text_ProfileWidget}}}", "{{{Const::C_NavInput_ClubWidget}}}" => "{{{Const::C_Text_ClubWidget}}}", "B" => _("Back")]);
+		}
+	}
+}
+
+Void SetControllerInfos() {
+	SetControllerInfos(False);
+}
+
+K_State_LocalServer EditModeEnabled(Boolean _Enabled, K_State_LocalServer _State) {
+	declare K_State_LocalServer State = _State;
+
+	State.IsEditingMaps = _Enabled;
+	State.Controls.Frame_EscapeMove.Visible = _Enabled;
+	State.Controls.Label_MapSwapExplication.Visible = _Enabled;
+	
+	if (State.Controls.CurrentEditingMap != Null) {
+		declare CMlControl FocusedControl = {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}");
+		FocusCurrentMapEdition(State.Controls.CurrentEditingMap, _Enabled);
+		if (!_Enabled) {
+			declare Text CurrentMapName for State.Controls.CurrentEditingMap;
+			CurrentMapName = "";
+			if (!{{{Scroll::P}}}IsFocused(State.Controls.Frame_CurrentScroll)) Focus(State.Controls.Frame_CurrentScroll);
+			// Unfocus current editing map frame
+			State = FocusScrollElement(State.Controls.Frame_CurrentScroll, State.Controls.CurrentEditingMap, False, State);
+			State.Controls.CurrentEditingMap = Null;
+			// Re Focus current focused map frame
+			if (State.Controls.CurrentFocusedMap != Null)	State = FocusScrollElement(State.Controls.Frame_CurrentScroll, State.Controls.CurrentFocusedMap, True, State);
+		}
+	}
+
+	SetControllerInfos(_Enabled);
+	return State;
+}
+
+K_State_LocalServer SwapMapsPosition(K_State_LocalServer _State, Integer _OldPositionIndex, Integer _NewPositionIndex) {
+	declare K_State_LocalServer State = _State;
+
+	declare {{{CampaignStruct::P}}}K_Map MapToMove = State.SelectedMaps[_OldPositionIndex];
+	declare {{{CampaignStruct::P}}}K_Map MapToReplace = State.SelectedMaps[_NewPositionIndex];
+	State.SelectedMaps[_NewPositionIndex] = MapToMove;
+	State.SelectedMaps[_OldPositionIndex] = MapToReplace;
+
+	State = SyncMatchSettings(State);
+
+	return State;
+}
+
+K_State_LocalServer Cancel(K_State_LocalServer _State) {
+	declare State = _State;
+
+	switch(_State.Type) {
+		case C_StateType_ServerList: {
+			{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_Local}}}");
+		}
+		case C_StateType_PlayerList: {
+			State.Type = C_StateType_ServerList;
+		}
+		case C_StateType_MatchSettings: {
+			if (State.IsEditingMaps) {
+				State = EditModeEnabled(False, State);
+			} else {
+				State.Type = C_StateType_ServerList;
+			}
+		}
+		case C_StateType_Browsing, C_StateType_TrackBrowsing: {
+			State.Type = C_StateType_MatchSettings;
+		}
+	}
+
+	return State;
+}
+
+K_State_LocalServer Select(K_State_LocalServer _State, K_PageControls _PageControls, CMlControl _Control) {
+	if (_Control == Null || {{{Transition::P}}}IsInTransition(This)) return _State;
+	declare State = _State;
+	State.MapToHandleIndex = C_MapToHandleIndex_Null;
+
+	switch (_Control.ControlId) {
+		case "button-refresh": {
+			State.HasSetNavigation = False;
+			State.MaxTimeToCheckServerList = Now + {{{C_Time_MaxWaitTimeDuration}}};
+			State = Action_GetServerList(State, _PageControls);
+		}
+		case "button-join": {
+			if (!{{{UserStore::P}}}HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_FindLocalServer)) {
+				{{{Router::P}}}SetParentPath(This, "{{{RoutePaths::C_Path_ClubEditionInfo}}}", {{{Router::P}}}GetCurrentRoutePath(This));
+				{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_ClubEditionInfo}}}", [
+					"{{{RoutePaths::C_Query_Message}}}" => RBAC::GetGamePermissionMessage(RBAC::C_GamePermissionMessage_FindLocalServer)
+				]);
+			} else {
+				State = Action_JoinServer(State, False);
+			}
+		}
+		case "button-spectate": {
+			if (!{{{UserStore::P}}}HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_FindLocalServer)) {
+				{{{Router::P}}}SetParentPath(This, "{{{RoutePaths::C_Path_ClubEditionInfo}}}", {{{Router::P}}}GetCurrentRoutePath(This));
+				{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_ClubEditionInfo}}}", [
+					"{{{RoutePaths::C_Query_Message}}}" => RBAC::GetGamePermissionMessage(RBAC::C_GamePermissionMessage_FindLocalServer)
+				]);
+			} else {
+				State = Action_JoinServer(State, True);
+			}
+		}
+		case "button-create-server": { 
+			if (!{{{UserStore::P}}}HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_CreateLocalServer)) {
+				{{{Router::P}}}SetParentPath(This, "{{{RoutePaths::C_Path_ClubEditionInfo}}}", {{{Router::P}}}GetCurrentRoutePath(This));
+				{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_ClubEditionInfo}}}", [
+					"{{{RoutePaths::C_Query_Message}}}" => RBAC::GetGamePermissionMessage(RBAC::C_GamePermissionMessage_CreateLocalServer)
+				]);
+			} else {
+				State.Type = C_StateType_MatchSettings;
+			}
+		}
+		case "button-import-matchsettings": {
+			State.Type = C_StateType_Browsing;
+			//L16N Name of a browser to browse through matchsettings files
+			{{{BrowserAPI::P}}}SetCurrentBrowser(This, {{{BrowserAPI::C_BrowserType_List}}}, _("Matchsettings browser"), [{{{BrowserAPI::C_DataType_MatchSettings}}}], "");
+		}
+		case "button-save-matchsettings": {
+			State = SaveMatchSettings(State, {{{TextField::P}}}GetValue(State.Controls.TextField_MatchSettingsName));
+		}
+		case "button-mode-settings": {
+			State = EditScriptSettings(State);
+		}
+		case "button-create-built-server": {
+			State = CreateLocalServer(State);
+		}
+		case "frame-escape-move": {
+			if (State.IsEditingMaps) {
+				State = EditModeEnabled(False, State);
+			}
+		}
+		case "frame-select-mode": {
+			{{{FormSelect::P}}}DisplayOptions(This, _Control.Id, True);
+			{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", False);
+		}
+	}
+
+	if (_Control.HasClass("{{{C_Class_Back}}}")) State = Cancel(State);
+
+	return State;
+}
+
+K_State_LocalServer UpdateCurrentScrollFrame(K_State_LocalServer _State, CMlFrame _Frame_Scroll, Boolean _IsFocused, Integer _ScrollElementCount) {
+	declare K_State_LocalServer State = _State;
+	State.Controls.Frame_CurrentScroll = _Frame_Scroll;
+	if (_Frame_Scroll != Null) {
+		{{{Scroll::P}}}SetElementsTotal(This, _Frame_Scroll, _ScrollElementCount);
+		if (_IsFocused) Focus(_Frame_Scroll);
+	}
+	return State;
+}
+
+K_State_LocalServer SelectMode(K_State_LocalServer _State, CMlFrame _Frame_Scroll, Text _Mode, Boolean _UpdateModeSelect) {
+	declare CMatchSettings MatchSettings = GetMatchSettingsFromState(_State);
+	if (MatchSettings == Null) {
+		ErrorMessage_MatchSettingsUnavailable();
+		return _State;
+	}
+
+	declare K_State_LocalServer State = _State;
+	
+	// Normalize path separator
+	declare Text NormalizedMode = TL::Replace(_Mode, "\\", "/");
+	
+	// If the selected mode is not valid, select the default mode instead
+	if (NormalizedMode == "" || !MatchSettings.ScriptModeName_Check(NormalizedMode)) {
+		NormalizedMode = TL::Replace(C_ModeNames_ScriptNames.get(C_ModeNames[0]), "{{{Const::C_BasePath}}}", "{{{Const::C_BasePath_ToReplaceForMatchSettings}}}");
+	}
+
+	if (NormalizedMode != "" && MatchSettings.ScriptModeName_Check(NormalizedMode)) {
+		MatchSettings.ScriptModeName_Set(NormalizedMode);
+	} else {
+		ErrorMessage_MatchSettingsInvalidMode();
+		return State;
+	}
+
+	// Remove maps incompatible with the mode
+	declare Integer Key = 0;
+	declare Boolean MapRemoved = False;
+	while (State.SelectedMaps.existskey(Key)) {
+		if (!MatchSettings.Playlist_FileMatchesMode(State.SelectedMaps[Key].LocalFileName)) {
+			State = RemoveMapFromPlaylist(State, Key);
+			MapRemoved = True;
+		} else {
+			Key += 1;
+		}
+	}
+	if (MapRemoved) {
+		State = UpdateCurrentScrollFrame(State, _Frame_Scroll, False, State.SelectedMaps.count+1);
+		Focus(State.Controls.Frame_SelectModes);
+	}
+
+	if (_UpdateModeSelect) {
+		declare Text DefaultModeScriptName = TL::Replace(MatchSettings.ScriptModeName, "{{{Const::C_BasePath_ToReplaceForMatchSettings}}}", "{{{Const::C_BasePath}}}");
+
+		// It is one of the default game modes (Time Attack, Rounds, ...)
+		if (
+			C_ModeNames_ScriptNames.exists(DefaultModeScriptName) && 
+			State.ModeNames.exists(C_ModeNames_ScriptNames.keyof(DefaultModeScriptName))
+		) {
+			{{{FormSelect::P}}}Select(This, State.Controls.Frame_SelectModes.Id, State.ModeNames.keyof(C_ModeNames_ScriptNames.keyof(DefaultModeScriptName)));
+		}
+		// It is a custom game mode that is not listed in the `FormSelect` yet
+		else if (!State.ModeNames.exists(MatchSettings.ScriptModeName)) {
+			State.ModeNames[State.ModeNames.count - 1] = MatchSettings.ScriptModeName;
+			State.ModeNames[State.ModeNames.count] = "{{{Text_CustomModeScript}}}";
+			{{{FormSelect::P}}}SetOptions(This, State.Controls.Frame_SelectModes.Id, State.ModeNames);
+			{{{FormSelect::P}}}Select(This, State.Controls.Frame_SelectModes.Id, State.ModeNames.count - 2);
+		} 
+		// It is a custom game mode already listed in the `FormSelect`
+		else {
+			{{{FormSelect::P}}}Select(This, State.Controls.Frame_SelectModes.Id, State.ModeNames.keyof(MatchSettings.ScriptModeName));
+		}
+	}
+
+	State.Controls.Button_ModeSettings.Visible = MatchSettings != Null && MatchSettings.ScriptModeName != "";
+	{{{Navigation::P}}}Lock(State.Controls.Button_ModeSettings, !State.Controls.Button_ModeSettings.Visible);
+	if (
+		!State.Controls.Button_ModeSettings.Visible &&
+		{{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}") == State.Controls.Button_ModeSettings
+	) {
+		Focus(State.Controls.Frame_SelectModes);
+	}
+
+	return State;
+}
+
+Void SetMatchsettingsFileName(K_State_LocalServer _State, Text _FileName) {
+	declare Text FileName = TL::Trim(_FileName);
+	declare Text FileNameLowerCase = TL::ToLowerCase(FileName);
+	if (
+		FileNameLowerCase != "" && (
+			FileNameLowerCase == ".txt" ||
+			FileNameLowerCase == ".xml" || (
+				!TL::EndsWith(".txt", FileNameLowerCase) &&
+				!TL::EndsWith(".xml", FileNameLowerCase)
+			)
+		)
+	) {
+		FileName ^= ".txt";
+	}
+	{{{TextField::P}}}SetValue(This, _State.Controls.TextField_MatchSettingsName, FileName);
+	{{{Button::P}}}SetVisibilityAndNavigation(_State.Controls.Frame_ButtonSave, FileName != "");
+	if (
+		{{{Navigation::P}}}IsLocked(_State.Controls.Frame_ButtonSave) &&
+		{{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}") == _State.Controls.Frame_ButtonSave
+	) {
+		Focus(_State.Controls.TextField_MatchSettingsName);
+	}
+}
+
+K_State_LocalServer RefreshMatchSettingsFiles(K_State_LocalServer _State) {
+	declare K_State_LocalServer State = _State;
+	// Refreshing files will delete and recreate elements of the `MatchSettings_File` and `MatchSettings` arrays with new ids
+	// We must update the matchsettings in the state to point to the new id if needed
+	declare CMatchSettings MatchSettings = GetMatchSettingsFromState(State);
+	declare Text FileName = "";
+	if (MatchSettings != Null) {
+		FileName = MatchSettings.FileName;
+	}
+	ParentApp.MatchSettingsManager.MatchSettings_RefreshFiles();
+	if (FileName != "") {
+		State = SetMatchSettingsInState(State, ParentApp.MatchSettingsManager.MatchSettings_FindFile(FileName));
+	}
+	return State;
+}
+
+K_State_LocalServer LoadMatchSettings(K_State_LocalServer _State, CMlFrame _Frame_Scroll_MapList, CMatchSettings _MatchSettings) {
+	declare K_State_LocalServer State = _State;
+
+	if (_MatchSettings == Null) {
+		//L16N Message displayed when loading a matchsettings file that is not valid
+		ErrorMessage(_("The matchsettings is not valid"));
+	} else {
+		State = SetMatchSettingsInState(State, _MatchSettings);
+		declare CMatchSettings LoadedMatchSettings = GetMatchSettingsFromState(State);
+		if (LoadedMatchSettings != Null) {
+			// The matchsettings may have been modified in memory reload from file
+			ParentApp.MatchSettingsManager.MatchSettings_ReloadFromFile(LoadedMatchSettings);
+
+			State = SelectMode(State, _Frame_Scroll_MapList, LoadedMatchSettings.ScriptModeName, True);
+
+			// Display the loaded matchsettings in the corresponding form field
+			SetMatchsettingsFileName(State, LoadedMatchSettings.FileName);
+			
+			// Remove previous maps
+			State.SelectedMaps = [];
+
+			State.MapFilesToFetch = [];
+			foreach (Map in LoadedMatchSettings.Playlist) {
+				// `Map.Name` is actually the full file path and not the name of the map
+				// We also check if the map is not already in the playlist because
+				// the `CreateServer()` function will throw an error if the same map
+				// is present several times
+				if (Map.FileExists && !State.MapFilesToFetch.exists(Map.Name)) {
+					State.MapFilesToFetch[State.MapFilesToFetch.count] = Map.Name;
+				}
+			}
+			if (State.MapFilesToFetch.count > 0) {
+				declare Integer BrowserFilter = {{{Const::C_BrowserFilter_UserData}}};
+				if (Config::HasFeature(Config::C_Feature_DebugBrowserAllData)) BrowserFilter = {{{Const::C_BrowserFilter_AllData}}};
+				State.Task_MapList = Task::DestroyAndCreate(State.Task_MapList, DataFileMgr, DataFileMgr.Map_GetFilteredGameList(BrowserFilter, "", True, True, True));
+			} else {
+				State = SyncMatchSettings(State);
+				{{{Scroll::P}}}SetElementsTotal(This, _Frame_Scroll_MapList, State.SelectedMaps.count+1);
+			}
+		} else {
+			ErrorMessage_MatchSettingsUnavailable();
+		}
+	}
+
+	UpdateReportContext(State);
+
+	return State;
+}
+
+K_State_LocalServer LoadMatchSettings(K_State_LocalServer _State, CMlFrame _Frame_Scroll_MapList, Text _FilePath) {
+	declare K_State_LocalServer State = _State;
+
+	// Refresh files before trying to load them to be sure the user did not delete them from outside of the game
+	State = RefreshMatchSettingsFiles(State);
+	State = LoadMatchSettings(State, _Frame_Scroll_MapList, ParentApp.MatchSettingsManager.MatchSettings_FindFile(_FilePath));
+
+	return State;
+}
+
+K_State_LocalServer InitState(
+	K_State_LocalServer _PreviousState,
+	CMlFrame[Text] _TextField_List,
+	CMlFrame _Frame_Scroll_MapList,
+	CMlFrame _Frame_Scroll_PlayerList,
+	CMlFrame _Counter_MaxPlayers,
+	K_PageControls _PageControls
+) {
+	{{{Scroll::P}}}SetElementsTotal(This, _PageControls.Frame_Scroll_ServerList, 0);
+	{{{Scroll::P}}}SetElementsTotal(This, _Frame_Scroll_MapList, 0);
+	{{{Scroll::P}}}SetElementsTotal(This, _Frame_Scroll_PlayerList, 0);
+
+	declare K_State_LocalServer State = K_State_LocalServer {
+		Type = C_StateType_ServerList,
+		ServerList = [],
+		CurrentServer = K_ServerInfo {},
+		CheckLocalServers = False,
+		JoinSettings = K_JoinSettings {},
+		JoinRequest = False,
+		ServerSettings = K_ServerSettings {
+			MaxPlayerCount = C_PlayersNb_Default
+		},
+		MatchSettingsId = _PreviousState.MatchSettingsId,
+		SelectedMaps = [],
+		MaxTimeToCheckServerList = -1,
+		HasSetNavigation = False,
+		IsEditingMaps = False,
+		Controls = _PageControls,
+		ModeNames = C_ModeNames,
+		IsSelectingCustomMode = False,
+		Task_MapList = Task::Destroy(_PreviousState.Task_MapList),
+		Task_Map = Task::Destroy(_PreviousState.Task_Map)
+	};
+	
+	// Initialize a new matchsettings
+	ParentApp.MatchSettingsManager.MatchSettings_RefreshFiles();
+	State = SetMatchSettingsInState(State, ParentApp.MatchSettingsManager.MatchSettings_CreateTemp());
+	
+	// Initialize create server form values
+	{{{TextField::P}}}SetValue(This, _TextField_List["textfield-server-name"], State.ServerSettings.ServerName);
+	SetMatchsettingsFileName(State, "");
+	{{{Counter::P}}}SetValue(_Counter_MaxPlayers, State.ServerSettings.MaxPlayerCount);
+	{{{TextField::P}}}SetValue(This, _TextField_List["textfield-server-password"], State.ServerSettings.Password);
+	{{{TextField::P}}}SetValue(This, _TextField_List["textfield-server-spectator-password"], State.ServerSettings.Password);
+	{{{TextField::P}}}SetValue(This, _TextField_List["textfield-server-comment"], State.ServerSettings.ServerComment);
+	_PageControls.Frame_EscapeMove.Visible = State.IsEditingMaps;
+	
+	// Initialize create server mode selection
+	State.ModeNames[State.ModeNames.count] = "{{{Text_CustomModeScript}}}";
+	{{{FormSelect::P}}}SetOptions(This, State.Controls.Frame_SelectModes.Id, State.ModeNames);
+	declare Text SelectedModeScript = C_ModeNames_ScriptNames.get(C_ModeNames[0]);
+	declare Text SelectedScriptForMatchSettings = TL::Replace(SelectedModeScript, "{{{Const::C_BasePath}}}", "{{{Const::C_BasePath_ToReplaceForMatchSettings}}}");
+	State = SelectMode(State, _Frame_Scroll_MapList, SelectedScriptForMatchSettings, True);
+
+	// Update label and button positions
+	_PageControls.Label_ServerCurrentMapAuthor.RelativePosition_V3.X = _PageControls.Label_ServerBy.RelativePosition_V3.X + ML::Min(_PageControls.Label_ServerBy.Size.X, _PageControls.Label_ServerBy.ComputeWidth(_PageControls.Label_ServerBy.Value));
+	_PageControls.Label_ServerModeName.RelativePosition_V3.X = _PageControls.Label_ServerGameMode.RelativePosition_V3.X + ML::Min(_PageControls.Label_ServerGameMode.Size.X, _PageControls.Label_ServerGameMode.ComputeWidth(_PageControls.Label_ServerGameMode.Value)) + 1;
+	_PageControls.Frame_ButtonSpectate.RelativePosition_V3.X = _PageControls.Frame_ButtonJoin.RelativePosition_V3.X - {{{ExpendableButton::P}}}GetWidth(_PageControls.Frame_ButtonJoin) - 1;
+	
+	return State;
+}
+
+***MainInit***
+***
+declare K_State_LocalServer State;
+declare K_PageControls PageControls;
+declare CMlFrame Frame_Global;
+declare CMlFrame Frame_ServerList;
+declare CMlFrame Frame_ButtonCreate;
+declare CMlFrame Frame_ButtonRefresh;
+declare CMlFrame Frame_PlayerList;
+declare CMlFrame Frame_Scroll_PlayerList;
+declare CMlFrame Frame_Default;
+declare CMlLabel Label_ServerName;
+declare CMlLabel Label_ServerNbPlayersOnline;
+declare CMlLabel Label_ServerPlayers;
+declare CMlFrame ControlBlockList_ServerCurrentMapName;
+declare CMlFrame ControlBlockList_ServerCurrentMapThumbnail;
+declare CMlFrame TextField_Password;
+declare CMlFrame Frame_CreateServer;
+declare CMlFrame Frame_Browser;
+declare CMlFrame Frame_Scroll_MapList;
+declare CMlFrame Frame_ServerInfos;
+declare CMlFrame Frame_ButtonBuildServer;
+declare CMlFrame Frame_ButtonBackServerList;
+declare CMlFrame Frame_ButtonBackPlayerList;
+declare CMlFrame TextField_Focused;
+declare CMlFrame[Text] TextField_List;
+declare CMlFrame TextField_ServerName;
+declare CMlFrame TextField_ServerPassword;
+declare CMlFrame TextField_ServerSpectatorPassword;
+declare CMlFrame TextField_ServerComment;
+declare CMlFrame Counter_MaxPlayers;
+declare CMlLabel Label_PlayersNb;
+declare CMlLabel Label_MaxPlayers;
+declare Integer StateCurrentType;
+***
+
+***MainStart***
+***
+Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+Frame_CreateServer <=> (Frame_Global.GetFirstChild("frame-create-server") as CMlFrame);
+Frame_ServerList <=> (Frame_Global.GetFirstChild("frame-server-list") as CMlFrame);
+Frame_ButtonCreate <=> (Frame_ServerList.GetFirstChild("button-create-server") as CMlFrame);
+Frame_ButtonRefresh <=> (Frame_ServerList.GetFirstChild("button-refresh") as CMlFrame);
+Frame_PlayerList <=> (Frame_Global.GetFirstChild("frame-player-list") as CMlFrame);
+Frame_ButtonBackPlayerList <=> (Frame_PlayerList.GetFirstChild("button-back-player-list") as CMlFrame);
+Frame_Scroll_PlayerList <=> (Frame_PlayerList.GetFirstChild("frame-player-list-scroll") as CMlFrame);
+Frame_Browser <=> (Page.GetFirstChild("frame-browser") as CMlFrame);
+Frame_Scroll_MapList <=> (Frame_CreateServer.GetFirstChild("frame-map-list-scroll") as CMlFrame);
+Frame_ServerInfos <=> (Frame_CreateServer.GetFirstChild("frame-server-infos") as CMlFrame);
+Frame_ButtonBuildServer <=> (Frame_Global.GetFirstChild("button-create-built-server") as CMlFrame);
+Frame_ButtonBackServerList <=> (Frame_Global.GetFirstChild("button-back-server-list") as CMlFrame);
+ControlBlockList_ServerCurrentMapName <=> (Frame_PlayerList.GetFirstChild("control-block-list-track-name") as CMlFrame);
+Label_ServerName <=> (Frame_PlayerList.GetFirstChild("label-server-name") as CMlLabel);
+Label_ServerNbPlayersOnline <=> (Frame_PlayerList.GetFirstChild("label-server-nb-players-online") as CMlLabel);
+Label_ServerPlayers <=> (Frame_PlayerList.GetFirstChild("label-server-players") as CMlLabel);
+Label_MaxPlayers <=> (Frame_Global.GetFirstChild("label-max-players") as CMlLabel);
+Counter_MaxPlayers <=> (Frame_Global.GetFirstChild("counter-max-players") as CMlFrame);
+ControlBlockList_ServerCurrentMapThumbnail <=> (Frame_PlayerList.GetFirstChild("control-block-list-track-thumbnail") as CMlFrame);
+TextField_Password <=> (Frame_PlayerList.GetFirstChild("textfield-password") as CMlFrame);
+TextField_ServerComment <=> (Frame_CreateServer.GetFirstChild("textfield-server-comment") as CMlFrame);
+TextField_ServerName <=> (Frame_CreateServer.GetFirstChild("textfield-server-name") as CMlFrame);
+TextField_ServerPassword <=> (Frame_CreateServer.GetFirstChild("textfield-server-password") as CMlFrame);
+TextField_ServerSpectatorPassword <=> (Frame_CreateServer.GetFirstChild("textfield-server-spectator-password") as CMlFrame);
+
+PageControls = K_PageControls {
+	Button_ModeSettings = (Frame_Global.GetFirstChild("button-mode-settings") as CMlFrame),
+	Frame_SelectModes = (Frame_Global.GetFirstChild("frame-select-mode") as CMlFrame),
+	Frame_EscapeMove = (Frame_Global.GetFirstChild("frame-escape-move") as CMlFrame),
+	Frame_Scroll_ServerList = (Frame_ServerList.GetFirstChild("frame-server-list-scroll") as CMlFrame),
+	Frame_LoadingSpinner = (Frame_Global.GetFirstChild("frame-loading-spinner") as CMlFrame),
+	Frame_CurrentScroll = (Frame_ServerList.GetFirstChild("frame-server-list-scroll") as CMlFrame),
+	CurrentEditingMap = Null,
+	CurrentFocusedMap = Null,
+	Label_NoServerFound = (Frame_Global.GetFirstChild("label-no-servers-found") as CMlLabel),
+	Label_MapSwapExplication = (Frame_Global.GetFirstChild("label-maps-message") as CMlLabel),
+	Frame_ButtonSave = (Frame_Global.GetFirstChild("button-save-matchsettings") as CMlFrame),
+	TextField_MatchSettingsName = (Frame_CreateServer.GetFirstChild("textfield-matchsettings-name") as CMlFrame),
+	Label_ServerCurrentMapAuthor = (Frame_PlayerList.GetFirstChild("label-server-map-author") as CMlLabel),
+	Frame_ButtonSpectate = (Frame_PlayerList.GetFirstChild("button-spectate") as CMlFrame),
+	Label_ServerGameMode = (Frame_PlayerList.GetFirstChild("label-game-mode") as CMlLabel),
+	Label_ServerModeName = (Frame_PlayerList.GetFirstChild("label-server-mode") as CMlLabel),
+	Label_ServerBy = (Frame_PlayerList.GetFirstChild("label-server-map-by") as CMlLabel),
+	Frame_ButtonJoin = (Frame_PlayerList.GetFirstChild("button-join") as CMlFrame)
+};
+
+TextField_List = [
+	"textfield-password" => (Frame_PlayerList.GetFirstChild("textfield-password") as CMlFrame),
+	"textfield-matchsettings-name" => (Frame_CreateServer.GetFirstChild("textfield-matchsettings-name") as CMlFrame),
+	"textfield-server-name" => (Frame_ServerInfos.GetFirstChild("textfield-server-name") as CMlFrame),
+	"textfield-server-password" => (Frame_ServerInfos.GetFirstChild("textfield-server-password") as CMlFrame),
+	"textfield-server-spectator-password" => (Frame_ServerInfos.GetFirstChild("textfield-server-spectator-password") as CMlFrame),
+	"textfield-server-comment" => (Frame_ServerInfos.GetFirstChild("textfield-server-comment") as CMlFrame)
+];
+
+Frame_Default = Frame_ButtonCreate;
+StateCurrentType = C_StateType_None;
+{{{Scroll::P}}}SetElementsTotal(This, Frame_Scroll_MapList, 0);
+{{{Scroll::P}}}SetElementsTotal(This, PageControls.Frame_Scroll_ServerList, 0);
+
+State = InitState(State, TextField_List, Frame_Scroll_MapList, Frame_Scroll_PlayerList, Counter_MaxPlayers, PageControls);
+***
+
+***MainLoop***
+***
+foreach (Event in {{{Router::P}}}GetPendingEvents(This)) {
+	switch (Event.Type) {
+		case {{{Router::P}}}C_Event_EnteringRoute: {
+			State = InitState(State, TextField_List, Frame_Scroll_MapList, Frame_Scroll_PlayerList, Counter_MaxPlayers, PageControls);
+			State.HasSetNavigation = False;
+			State.MaxTimeToCheckServerList = Now + {{{C_Time_MaxWaitTimeDuration}}};
+			State = Action_GetServerList(State, PageControls);
+			Focus(Frame_Default);
+			{{{Scroll::P}}}LockNavigation(This, True);
+			SetControllerInfos();
+			UpdateReportContext(State);
+		}
+		case {{{Router::P}}}C_Event_LeavingRoute: {
+			if (State.IsEditingMaps) State = EditModeEnabled(False, State);
+			{{{Scroll::P}}}LockNavigation(This, False);
+		}
+	}
+}
+
+if ({{{Router::P}}}PageIsRunning(This, "{{{RoutePaths::C_Path_LocalServer}}}")) {
+	if (State.Type != C_StateType_Browsing && State.Type != C_StateType_TrackBrowsing && !ParentApp.MatchSettingsManager.MatchSettings_EditScriptSettings_Ongoing) {
+		foreach (Event in {{{Navigation::P}}}GetPendingEvents(This)) {
+			switch (Event.Type) {
+				case {{{Navigation::P}}}C_EventType_NavigateInput: {
+					if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName}}}")) {
+						if (Event.Input == CMlScriptEvent::EMenuNavAction::Select) {
+							State = Select(State, PageControls, Event.To);
+						} else if (Event.Input == CMlScriptEvent::EMenuNavAction::Cancel) {
+							State = Cancel(State);
+						} else {
+							Focus(Event.To);
+						}
+					}
+				}
+				case {{{Navigation::P}}}C_EventType_NavigateMouse: {
+					if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName}}}")) {
+						if (Event.Mouse == CMlScriptEvent::Type::MouseClick) {
+							State = Select(State, PageControls, Event.To);
+						} else if (Event.Mouse == CMlScriptEvent::Type::MouseOver) {
+							Focus(Event.To);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	foreach (Event in {{{Counter::P}}}PendingEvents) {
+		switch (Event.Type) {
+			case {{{Counter::P}}}C_EventType_Update: {
+				if (Event.Counter.ControlId == Counter_MaxPlayers.ControlId) {
+					State.ServerSettings.MaxPlayerCount = {{{Counter::P}}}GetValue(Counter_MaxPlayers);
+				}
+			}
+		}
+	}
+
+	foreach (Event in PendingEvents) {
+		switch (Event.Type) {
+			case CMlScriptEvent::Type::MouseOver: {
+				if (Event.ControlId == "button-delete-map") {
+					{{{MenuSounds::P}}}PlaySound(This, {{{MenuSounds::P}}}C_Sound_Focus);
+					AnimMgr.Add(Event.Control, "<anim scale=\"1.2\"/>", 200, CAnimManager::EAnimManagerEasing::QuadOut);
+					(Event.Control as CMlQuad).Opacity = 1.;
+				}
+			}
+			case CMlScriptEvent::Type::MouseOut: {
+				if (Event.ControlId == "button-delete-map") {
+					AnimMgr.Add(Event.Control, "<anim scale=\"1.\"/>", 200, CAnimManager::EAnimManagerEasing::QuadOut);
+					(Event.Control as CMlQuad).Opacity = 0.5;
+				}
+			}
+			case CMlScriptEvent::Type::MouseClick: {
+				if (Event.ControlId == "button-delete-map") {
+					{{{MenuSounds::P}}}PlaySound(This, {{{MenuSounds::P}}}C_Sound_Select);
+					State = RemoveMapFromPlaylist(State, State.MapToHandleIndex);
+					State.MapToHandleIndex = C_MapToHandleIndex_Null;
+					State = UpdateCurrentScrollFrame(State, Frame_Scroll_MapList, False, State.SelectedMaps.count+1);
+					State = EditModeEnabled(False, State);
+				}
+			}
+		}
+	}
+
+	foreach (Event in {{{TextField::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case {{{TextField::P}}}C_EventType_Update: {
+				if (Event.Control != Null) {
+					switch (Event.Control.ControlId) {
+						case "textfield-password": State.JoinSettings.Password = Event.Value;
+						case "textfield-server-name": State.ServerSettings.ServerName = Event.Value;
+						case "textfield-server-password": State.ServerSettings.Password = Event.Value;
+						case "textfield-server-spectator-password": State.ServerSettings.PasswordSpectators = Event.Value;
+						case "textfield-server-comment": State.ServerSettings.ServerComment = Event.Value;
+						case "textfield-matchsettings-name": {
+							SetMatchsettingsFileName(State, Event.Value);
+						}
+					}
+					UpdateReportContext(State);
+				}
+			}
+		}
+	}
+
+	foreach (Event in {{{Counter::P}}}PendingEvents) {
+		switch (Event.Type) {
+			case {{{Counter::P}}}C_EventType_FocusUpdated: {
+				if (Event.Counter.ControlId == Counter_MaxPlayers.ControlId) {
+					declare Real Opacity = {{{Counter::P}}}GetOpacityUnfocus(Event.Counter);
+					if ({{{Counter::P}}}IsFocused(Event.Counter)) Opacity = 1.;
+					AnimMgr.Flush(Label_MaxPlayers);
+					AnimMgr.Add(Label_MaxPlayers, "<anim opacity=\""^Opacity^"\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+				}
+			}
+		}
+	}
+
+	if (State.Type == C_StateType_TrackBrowsing) {
+		foreach (Event in {{{TrackBrowser::P}}}GetPendingEvents(This)) {
+			switch (Event.Type) {
+				case {{{TrackBrowser::P}}}C_Event_MultiSelect: {
+					declare CMatchSettings MatchSettings = GetMatchSettingsFromState(State);
+					if (MatchSettings != Null) {
+						foreach (MapInfo in Event.MultiTracks) {
+							if (IsMapValid(State, MapInfo.LocalFileName)) {
+								State.SelectedMaps.add(MapInfo);
+								MatchSettings.Playlist_Add(MapInfo.LocalFileName);
+							}
+						}
+					} else {
+						ErrorMessage_MatchSettingsUnavailable();
+					}
+					State.Type = C_StateType_MatchSettings;
+				}
+				case {{{TrackBrowser::P}}}C_Event_Exit: State = Cancel(State);
+			}
+		}
+	}
+
+	if (State.Type == C_StateType_Browsing) {
+		foreach (Event in {{{BrowserAPI::P}}}GetPendingEvents(This)) {
+			switch (Event.Type) {
+				case {{{BrowserAPI::P}}}C_EventType_Select: {
+					switch (Event.DataType) {
+						case {{{BrowserAPI::P}}}C_DataType_Script: {
+							State = SelectMode(State, Frame_Scroll_MapList, Event.Data, True);
+							State.Type = C_StateType_MatchSettings;
+							State.IsSelectingCustomMode = False;
+						}
+						case {{{BrowserAPI::P}}}C_DataType_MatchSettings: {
+							State = LoadMatchSettings(State, Frame_Scroll_MapList, Event.Data);
+							State.Type = C_StateType_MatchSettings;
+						}
+					}
+				}
+				case {{{BrowserAPI::P}}}C_EventType_Cancel: {
+					// If the user did not select any game mode, select the previous game mode
+					if (State.IsSelectingCustomMode) {
+						State.IsSelectingCustomMode = False;
+						declare CMatchSettings MatchSettings = GetMatchSettingsFromState(State);
+						if (MatchSettings != Null) {
+							State = SelectMode(State, Frame_Scroll_MapList, MatchSettings.ScriptModeName, True);
+						}
+					}
+					State = Cancel(State);
+				}
+			}
+		}
+	}
+
+	foreach (Event in {{{Scroll::P}}}GetPendingEvents(This)) {
+		if (
+			Event.Scroll != Null &&
+			State.Controls.Frame_CurrentScroll != Null &&
+			Event.Scroll.ControlId == State.Controls.Frame_CurrentScroll.ControlId &&
+			State.Type != C_StateType_Browsing &&
+			State.Type != C_StateType_TrackBrowsing
+		) {
+			switch (Event.Type) {
+				case {{{Scroll::P}}}C_EventType_Update: {
+					if (State.Type == C_StateType_ServerList) {
+						ReportContext::SetLocalServerListReset(System);
+					}
+					foreach (Key => Frame_Element in Event.ElementsVisible) {
+						Frame_Element.Visible = True;
+						switch (State.Type) {
+							case C_StateType_ServerList: {
+								if (State.ServerList.existskey(Key)) {
+									declare Server = State.ServerList[Key];
+								UpdateServerUI(Frame_Element, Server);
+									ReportContext::SetLocalServerListAdd(
+										System,
+										Server.ServerName,
+										Server.ServerLogin,
+										Server.JoinLink,
+										Server.PlayerNames,
+										Server.PlayerCount,
+										Server.MaxPlayerCount,
+										Server.ModeName,
+										Server.IsPrivate
+									);
+								} else {
+									Frame_Element.Visible = False;
+								}
+							}
+							case C_StateType_PlayerList: {
+								if (State.CurrentServer.PlayerNames.existskey(Key)) {
+									UpdatePlayerListUI(Frame_Element, State.CurrentServer.PlayerNames[Key]);
+								}	else {
+									UpdatePlayerListUI(Frame_Element, "");
+								}
+							}
+							case C_StateType_MatchSettings: {
+								if (Key == 0) {
+									InitMapListAddButton(Frame_Element);
+								} else if (State.SelectedMaps.existskey(Key-1)) {
+									UpdateMapListUI(Frame_Element, State.SelectedMaps[Key-1], State);
+								}
+							}
+						}
+					}
+					foreach (Key => Frame_Element in Event.ElementsHidden) {
+						Frame_Element.Visible = False;
+					}
+				}
+				case {{{Scroll::P}}}C_EventType_Focus: {
+					if (Event.From != Null) State = FocusScrollElement(State.Controls.Frame_CurrentScroll, Event.From, False, State);
+					if (Event.To != Null && Event.IsMouse) {
+						declare CMlControl CurrentFocus = {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}");
+						if (CurrentFocus != State.Controls.Frame_CurrentScroll) {
+							Focus(State.Controls.Frame_CurrentScroll);
+						}
+					}
+					if ({{{Scroll::P}}}IsFocused(State.Controls.Frame_CurrentScroll)) {
+						State = FocusScrollElement(State.Controls.Frame_CurrentScroll, Event.To, True, State);
+					}
+				}
+				case {{{Scroll::P}}}C_EventType_ReachLimit: {
+					if ({{{Scroll::P}}}IsFocused(State.Controls.Frame_CurrentScroll)) {
+						if (Event.NavAction == CMlScriptEvent::EMenuNavAction::Right) {
+							switch (State.Type) {
+								case C_StateType_ServerList: {
+									State = FocusScrollElement(State.Controls.Frame_CurrentScroll, Event.From, False, State);
+									Focus(Frame_ButtonRefresh);
+									{{{MenuSounds::P}}}PlayFocusSound(This, Frame_ButtonRefresh);
+								}
+							}
+						} else if (Event.NavAction == CMlScriptEvent::EMenuNavAction::Down) {
+							switch (State.Type) {
+								case C_StateType_ServerList: {
+									State = FocusScrollElement(State.Controls.Frame_CurrentScroll, Event.From, False, State);
+									Focus(Frame_ButtonCreate);
+									{{{MenuSounds::P}}}PlayFocusSound(This, Frame_ButtonCreate);
+								}
+								case C_StateType_MatchSettings: {
+									if (!State.IsEditingMaps) {
+										State = FocusScrollElement(State.Controls.Frame_CurrentScroll, Event.From, False, State);
+										Focus(Frame_ButtonBuildServer);
+										{{{MenuSounds::P}}}PlayFocusSound(This, Frame_ButtonBuildServer);
+									}
+								}
+								case C_StateType_PlayerList: {
+									State = FocusScrollElement(State.Controls.Frame_CurrentScroll, Event.From, False, State);
+									Focus(PageControls.Frame_ButtonJoin);
+									{{{MenuSounds::P}}}PlayFocusSound(This, PageControls.Frame_ButtonJoin);
+								}
+							}
+						} else if (Event.NavAction == CMlScriptEvent::EMenuNavAction::Left) {
+							switch (State.Type) {
+								case C_StateType_MatchSettings: {
+									if (!State.IsEditingMaps) {
+										State = FocusScrollElement(State.Controls.Frame_CurrentScroll, Event.From, False, State);
+										Focus(State.Controls.Button_ModeSettings);
+									}
+								}
+							}
+						}
+					}
+				}
+				case {{{Scroll::P}}}C_EventType_Select: {
+					switch (State.Type) {
+						case C_StateType_ServerList: {
+							if (State.ServerList.existskey(Event.ToKey)) {
+								State.CurrentServer = State.ServerList[Event.ToKey];
+								State.Type = C_StateType_PlayerList;
+							}
+						}
+						case C_StateType_MatchSettings: {
+							if (Event.ToKey == 0 && !State.IsEditingMaps) {
+								declare CMatchSettings MatchSettings = GetMatchSettingsFromState(State);
+								if (MatchSettings == Null) {
+									ErrorMessage_MatchSettingsUnavailable();
+								} else if (MatchSettings.ScriptModeName == "") {
+									ErrorMessage(_("Select a mode before adding tracks"));
+								} else {
+									State.Type = C_StateType_TrackBrowsing;
+									State.MapToHandleIndex = C_MapToHandleIndex_Null;
+									declare Text DefaultModeScriptName = TL::Replace(MatchSettings.ScriptModeName, "{{{Const::C_BasePath_ToReplaceForMatchSettings}}}", "{{{Const::C_BasePath}}}");
+									if (TitleControl::IsRoyalScript(MatchSettings.ScriptModeName)) {
+										{{{TrackBrowser::P}}}SetMapTypeFilters(This, ["{{{Const::C_MapType_Royal}}}"]);
+									} else if (TitleControl::IsRaceScript(DefaultModeScriptName)) {
+										{{{TrackBrowser::P}}}SetMapTypeFilters(This, ["{{{Const::C_MapType_Race}}}"]);
+									} else {
+										{{{TrackBrowser::P}}}SetMapTypeFilters(This, []);
+									}
+								}
+							} else {
+								if (State.IsEditingMaps && Event.ToKey != 0 && State.MapToHandleIndex != C_MapToHandleIndex_Null && State.MapToHandleIndex != Event.ToKey-1) {
+									State = SwapMapsPosition(State, State.MapToHandleIndex, Event.ToKey-1);
+									State = UpdateCurrentScrollFrame(State, Frame_Scroll_MapList, False, State.SelectedMaps.count+1);
+									State.MapToHandleIndex = C_MapToHandleIndex_Null;
+									State = EditModeEnabled(False, State);
+								} else if (!State.IsEditingMaps) {
+									if (State.SelectedMaps.existskey(Event.ToKey-1)) {
+										State.Controls.CurrentEditingMap = Event.To;
+										declare Text CurrentMapName for State.Controls.CurrentEditingMap;
+										CurrentMapName = {{{ControlBlockList::P}}}GetTextValue((State.Controls.CurrentEditingMap.GetFirstChild("control-block-list-track-name") as CMlFrame));
+										State = EditModeEnabled(True, State);
+										State = FocusScrollElement(Frame_Scroll_MapList, Event.To, True, State);
+										State.MapToHandleIndex = Event.ToKey-1;
+									}
+								}
+							}
+						}
+					}
+				}
+				case {{{Scroll::P}}}C_EventType_Cancel: {
+					State = Cancel(State);
+				}
+				case {{{Scroll::P}}}C_EventType_NavAction: {
+					if (State.IsEditingMaps && Event.NavAction == CMlScriptEvent::EMenuNavAction::Action2) {
+						{{{MenuSounds::P}}}PlaySound(This, {{{MenuSounds::P}}}C_Sound_Select);
+						State = RemoveMapFromPlaylist(State, State.MapToHandleIndex);
+						State.MapToHandleIndex = C_MapToHandleIndex_Null;
+						State = UpdateCurrentScrollFrame(State, Frame_Scroll_MapList, False, State.SelectedMaps.count+1);
+						State = EditModeEnabled(False, State);
+					}
+				}
+			}
+		}
+	}
+
+	foreach (Event in {{{FormSelect::P}}}GetPendingEvents(This)) {
+		if (Event.Id == State.Controls.Frame_SelectModes.Id) {
+			if (Event.Type == {{{FormSelect::P}}}C_EventType_Select) {
+				if (State.ModeNames.existskey(Event.SelectedIndex)) {
+					if (C_ModeNames.existskey(Event.SelectedIndex)) {
+						declare Text SelectedModeScript = C_ModeNames_ScriptNames.get(C_ModeNames[Event.SelectedIndex]);
+						declare Text SelectedScriptForMatchSettings = TL::Replace(SelectedModeScript, "{{{Const::C_BasePath}}}", "{{{Const::C_BasePath_ToReplaceForMatchSettings}}}");
+						State = SelectMode(State, Frame_Scroll_MapList, SelectedScriptForMatchSettings, False);
+					} else if (State.ModeNames[Event.SelectedIndex] == "{{{Text_CustomModeScript}}}") {
+						State.Type = C_StateType_Browsing;
+						State.IsSelectingCustomMode = True;
+						//L16N Name of a browser to browse through game mode script files
+						{{{BrowserAPI::P}}}SetCurrentBrowser(This, {{{BrowserAPI::C_BrowserType_List}}}, _("Mode script browser"), [{{{BrowserAPI::C_DataType_Script}}}], "\\Modes\\TrackMania\\");
+					} else {
+						State = SelectMode(State, Frame_Scroll_MapList, State.ModeNames[Event.SelectedIndex], False);
+					}
+				}
+			} else if (Event.Type == {{{FormSelect::P}}}C_EventType_HideOptions) {
+				{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", True);
+			} else if (Event.Type == {{{FormSelect::P}}}C_EventType_RequestToggle) {
+				if (Event.DisplayingOptions && !{{{Navigation::P}}}GroupIsEnabled(This, "{{{C_NavGroupName}}}")) {
+					{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", True);
+					{{{FormSelect::P}}}DisplayOptions(This, Event.Id, False);
+				}
+			}
+		}
+	}
+
+	if (Task::IsInitialized(State.Task_MapList)) {
+		State.Task_MapList = Task::Update(State.Task_MapList);
+		if (!Task::IsRunning(State.Task_MapList)) {
+			declare CTaskResult_MapList SourceTask = Task::GetSourceTask_MapList(State.Task_MapList);
+			if (Task::IsSuccess(State.Task_MapList) && SourceTask != Null) {
+				// Maps in `SourceTask.MapInfos` are sorted by name
+				// but we want to keep the order from the matchsettings playlist
+				declare {{{CampaignStruct::P}}}K_Map[Integer] SortedMaps;
+				foreach (MapInfo in SourceTask.MapInfos) {
+					while (State.MapFilesToFetch.exists(MapInfo.FileName)) {
+						SortedMaps[State.MapFilesToFetch.keyof(MapInfo.FileName)] = {{{CampaignStruct::P}}}K_Map {
+							Uid = MapInfo.MapUid,
+							Name = MapInfo.Name,
+							AuthorLogin = MapInfo.AuthorLogin,
+							AuthorTime = MapInfo.TMObjective_AuthorTime,
+							GoldTime = MapInfo.TMObjective_GoldTime,
+							SilverTime = MapInfo.TMObjective_SilverTime,
+							BronzeTime = MapInfo.TMObjective_BronzeTime,
+							ThumbnailUrl = "file://Thumbnails/MapUid/"^MapInfo.MapUid,
+							IsPlayable = MapInfo.IsPlayable,
+							LocalFileName = MapInfo.FileName
+						};
+						State.MapFilesToFetch.remove(MapInfo.FileName);
+					}
+					if (State.MapFilesToFetch.count <= 0) break;
+				}
+				SortedMaps = SortedMaps.sortkey();
+				foreach (Map in SortedMaps) {
+					State.SelectedMaps.add(Map);
+				}
+			}
+			State = SyncMatchSettings(State);
+			{{{Scroll::P}}}SetElementsTotal(This, Frame_Scroll_MapList, State.SelectedMaps.count+1);
+			State.Task_MapList = Task::Destroy(State.Task_MapList);
+		}
+	}
+
+	if (Task::IsInitialized(State.Task_Map)) {
+		State.Task_Map = Task::Update(State.Task_Map);
+		if (!Task::IsRunning(State.Task_Map)) {
+			declare CTaskResult_NSMap SourceTask = Task::GetSourceTask_NSMap(State.Task_Map);
+			if (Task::IsSuccess(State.Task_Map) && SourceTask != Null) {
+				if (SourceTask.Map.AuthorDisplayName != "") {
+					PageControls.Label_ServerCurrentMapAuthor.Value = SourceTask.Map.AuthorDisplayName;
+					PageControls.Label_ServerCurrentMapAuthor.Visible = True;
+					PageControls.Label_ServerBy.Visible = True;
+				}
+				{{{ControlBlockList::P}}}SetOwnerAndTextValue(This, ControlBlockList_ServerCurrentMapName, SourceTask.Map.AuthorWebServicesUserId, TL::Compose("{{{Text_CurrentServerMap}}}", SourceTask.Map.Name));
+				if (Http.IsValidUrl(SourceTask.Map.ThumbnailUrl)) {
+					{{{ControlBlockList::P}}}SetOwnerAndImageUrl(This, ControlBlockList_ServerCurrentMapThumbnail, SourceTask.Map.AuthorWebServicesUserId, SourceTask.Map.ThumbnailUrl);
+					ControlBlockList_ServerCurrentMapThumbnail.Visible = True;
+				}
+			}
+			State.Task_Map = Task::Destroy(State.Task_Map);
+		}
+	}
+
+	if (State.CheckLocalServers && TitleControl.LocalServers_CurrentTitle.count > 0) {
+		declare Boolean IsServerInfo = True;
+		foreach (ServerInfo in TitleControl.LocalServers_CurrentTitle) {
+			IsServerInfo = (ServerInfo is CServerInfo);
+			if (!IsServerInfo) break;
+		}
+		if (IsServerInfo) {
+			State = Mutation_UpdateServerList(State);
+			{{{Scroll::P}}}SetElementsTotal(This, State.Controls.Frame_CurrentScroll, State.ServerList.count);
+			{{{Scroll::P}}}LockNavigation(This, False);
+			{{{Navigation::P}}}Lock(PageControls.Frame_Scroll_ServerList, False);
+			{{{Navigation::P}}}ChangeControlTarget(This, Frame_ButtonCreate, "up", PageControls.Frame_Scroll_ServerList.ControlId);
+			{{{Navigation::P}}}ChangeControlTarget(This, Frame_ButtonBackServerList, "up", PageControls.Frame_Scroll_ServerList.ControlId);
+		}
+	}
+
+	if (State.MaxTimeToCheckServerList != -1 && !State.HasSetNavigation) {
+		{{{Navigation::P}}}ChangeControlTarget(This, Frame_ButtonCreate, "up", Frame_ButtonRefresh.ControlId);
+		{{{Navigation::P}}}ChangeControlTarget(This, Frame_ButtonBackServerList, "up", Frame_ButtonRefresh.ControlId);
+		{{{Navigation::P}}}Lock(PageControls.Frame_Scroll_ServerList, True);
+		State.HasSetNavigation = True;
+	}
+
+	if (State.MaxTimeToCheckServerList != -1 && (State.ServerList.count > 0 || Now >= State.MaxTimeToCheckServerList)) {
+		if (State.ServerList.count > 0) {
+			{{{Scroll::P}}}LockNavigation(This, False);
+			{{{Navigation::P}}}Lock(PageControls.Frame_Scroll_ServerList, False);
+			{{{Navigation::P}}}ChangeControlTarget(This, Frame_ButtonCreate, "up", PageControls.Frame_Scroll_ServerList.ControlId);
+			{{{Navigation::P}}}ChangeControlTarget(This, Frame_ButtonBackServerList, "up", PageControls.Frame_Scroll_ServerList.ControlId);
+			PageControls.Label_NoServerFound.Hide();
+		} else {
+			{{{Scroll::P}}}SetElementsTotal(This, PageControls.Frame_Scroll_ServerList, 0);
+			PageControls.Label_NoServerFound.Show();
+		}
+		State.MaxTimeToCheckServerList = -1;
+		{{{LoadingSpinner::P}}}StopAnimation(This, PageControls.Frame_LoadingSpinner);
+	}
+
+	if (State.JoinRequest && TitleControl.GetServerInfo_Result != Null && (TitleControl.GetServerInfo_Result is CServerInfo)) {
+		if (TitleControl::IsRoyalScript(TitleControl.GetServerInfo_Result.ModeName)) {
+			SendCustomEvent("{{{Const::C_Event_UpdateLoadingScreen}}}", [TitleControl.GetServerInfo_Result.ServerName, "{{{LoadingScreen::C_Background_Royal}}}"]);
+		} else {
+			SendCustomEvent("{{{Const::C_Event_UpdateLoadingScreen}}}", [TitleControl.GetServerInfo_Result.ServerName]);
+		}
+		TitleControl::Join_GetServerInfo_Result(TitleControl, State.JoinSettings.IsSpectator, State.JoinSettings.Password);
+		State.JoinRequest = False;
+	}
+	
+	if (StateCurrentType != State.Type) {
+		Frame_ServerList.Visible = State.Type == C_StateType_ServerList;
+		Frame_PlayerList.Visible = State.Type == C_StateType_PlayerList;
+		Frame_CreateServer.Visible = State.Type == C_StateType_MatchSettings;
+		Frame_Browser.Visible = State.Type == C_StateType_Browsing;
+
+		switch (State.Type) {
+			case C_StateType_ServerList: {
+				State.MaxTimeToCheckServerList = Now + {{{C_Time_MaxWaitTimeDuration}}};
+				State = Action_GetServerList(State, PageControls);
+				State = UpdateCurrentScrollFrame(State, PageControls.Frame_Scroll_ServerList, False, State.ServerList.count);
+				State.JoinRequest = False;
+				State.JoinSettings = K_JoinSettings {};
+				Focus(Frame_ButtonCreate);
+			}
+			case C_StateType_PlayerList: {
+				{{{Scroll::P}}}LockNavigation(This, False);
+				declare Frame_Password = (Frame_PlayerList.GetFirstChild("frame-password") as CMlFrame);
+				Label_ServerName.Value = State.CurrentServer.ServerName;
+				Label_ServerNbPlayersOnline.Value = TL::ToText(State.CurrentServer.PlayerNames.count);
+				if (State.CurrentServer.PlayerNames.count > 1) Label_ServerPlayers.Value = "{{{Text_TitlePlayerListPlural}}}";
+				else Label_ServerPlayers.Value = "{{{Text_TitlePlayerListSingular}}}";
+				if (State.CurrentServer.ChallengeNames.count > 0) {
+					{{{ControlBlockList::P}}}SetOwnerAndTextValue(This, ControlBlockList_ServerCurrentMapName, "", TL::Compose("{{{Text_CurrentServerMap}}}", State.CurrentServer.ChallengeNames[0]));
+				} else {
+					{{{ControlBlockList::P}}}SetOwnerAndTextValue(This, ControlBlockList_ServerCurrentMapName, "", "");
+				}
+				declare Text ThumbnailUrl = "";
+				if (State.CurrentServer.ChallengeIds.count > 0) ThumbnailUrl = "file://Thumbnails/MapUid/"^State.CurrentServer.ChallengeIds[0];
+				if (ThumbnailUrl != "" && Http.IsValidUrl(ThumbnailUrl)) {
+					{{{ControlBlockList::P}}}SetOwnerAndImageUrl(This, ControlBlockList_ServerCurrentMapThumbnail, "", ThumbnailUrl);
+					ControlBlockList_ServerCurrentMapThumbnail.Visible = True;
+				} else {
+					{{{ControlBlockList::P}}}SetOwnerAndImageUrl(This, ControlBlockList_ServerCurrentMapThumbnail, "", "");
+					ControlBlockList_ServerCurrentMapThumbnail.Visible = False;
+				}
+				PageControls.Label_ServerCurrentMapAuthor.Visible = False;
+				PageControls.Label_ServerBy.Visible = False;
+				State.Task_Map = Task::Destroy(State.Task_Map);
+				if (State.CurrentServer.ChallengeIds.count > 0) {
+					State.Task_Map = Task::Create(DataFileMgr, DataFileMgr.Map_NadeoServices_GetFromUid(MainUser::GetMainUserId(), State.CurrentServer.ChallengeIds[0]));
+				}
+				declare Text ModeName = State.CurrentServer.ModeName;
+				declare Text ScriptName = TL::Replace(C_BaseScriptName, C_BaseScriptName_ToReplace, ModeName);
+				if (C_ModeNames_ScriptNames.exists(ScriptName)) ModeName = C_ModeNames_ScriptNames.keyof(ScriptName);
+				PageControls.Label_ServerModeName.Value = ModeName;
+				State.JoinSettings.ServerLogin = State.CurrentServer.ServerLogin;
+				State.JoinSettings.JoinLink = State.CurrentServer.JoinLink;
+				Frame_Password.Visible = State.CurrentServer.IsPrivate || State.CurrentServer.IsPrivateForSpectator;
+				{{{TextField::P}}}SetVisibilityAndNavigation(TextField_Password, Frame_Password.Visible);
+				State = UpdateCurrentScrollFrame(State, Frame_Scroll_PlayerList, False, State.CurrentServer.PlayerNames.count);
+				{{{Navigation::P}}}Lock(Frame_Scroll_PlayerList, State.CurrentServer.PlayerCount <= 0);
+				Focus(PageControls.Frame_ButtonJoin);
+			}
+			case C_StateType_MatchSettings: {
+				{{{Scroll::P}}}LockNavigation(This, False);
+				State = SyncMatchSettings(State);
+				State = UpdateCurrentScrollFrame(State, Frame_Scroll_MapList, False, State.SelectedMaps.count+1);
+				Focus(Frame_Scroll_MapList);
+				{{{BrowserAPI::P}}}FocusBrowser(This, False, False);
+			}
+			case C_StateType_Browsing: {
+				{{{Scroll::P}}}LockNavigation(This, False);
+				State = UpdateCurrentScrollFrame(State, Null, False, 0);
+				{{{BrowserAPI::P}}}FocusBrowser(This, True);
+			}
+			case C_StateType_TrackBrowsing: {
+				{{{Scroll::P}}}LockNavigation(This, True);
+				State = UpdateCurrentScrollFrame(State, Null, False, 0);
+			}
+		}
+
+		// Need to display the track browser after the Scroll::LockNavigation() to unlock or lock the track browser scroll correctly
+		{{{TrackBrowser::P}}}Display(This, State.Type == C_StateType_TrackBrowsing, False);
+		if (State.Type == C_StateType_Browsing || State.Type == C_StateType_TrackBrowsing) {
+			{{{Router::P}}}LockOverlay(This, "{{{RoutePaths::C_Path_OverlayName_ProfileWidget}}}", True);
+			{{{Router::P}}}LockOverlay(This, "{{{RoutePaths::C_Path_OverlayName_ClubWidget}}}", True);
+		} else {
+			{{{Router::P}}}LockOverlay(This, "{{{RoutePaths::C_Path_OverlayName_ProfileWidget}}}", False);
+			{{{Router::P}}}LockOverlay(This, "{{{RoutePaths::C_Path_OverlayName_ClubWidget}}}", False);
+			SetControllerInfos();
+		}
+
+		StateCurrentType = State.Type;
+		UpdateReportContext(State);
+	}
+}
+***
+""",
+[
+	Counter::Component(), 
+	Transition::ComponentV2(), 
+	LoadingSpinner::ComponentV2(), 
+	TextField::ComponentV2(),
+	Navigation::ComponentV2(), 
+	Button::ComponentV2(),
+	ExpendableButton::ComponentV2(),
+	Scroll::ComponentV2(), 
+	Router::ComponentV2(), 
+	TrackBrowser::ComponentV2(), 
+	BrowserAPI::ComponentV2(), 
+	MenuSounds::ComponentV2(), 
+	CampaignStruct::Component(),
+	UserStore::ComponentV2(),
+	FormSelect::ComponentV2(),
+	ControlBlockList::ComponentV2()
+],
+[]
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update from the ManiaApp
+Void Yield() {
+
+}

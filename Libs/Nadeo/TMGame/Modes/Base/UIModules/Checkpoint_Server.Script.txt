@@ -1,0 +1,188 @@
+/**
+ *  UI module: Checkpoint server side
+ */
+#Const Version    "1.0.0"
+#Const ScriptName "Libs/Nadeo/TMGame/Modes/Base/UIModules/Checkpoint_Server.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/CMGame/Utils/Utils.Script.txt" as Utils
+#Include "Libs/Nadeo/CMGame/Modes/UIModules_Common.Script.txt" as UIModules_Common
+#Include "Libs/Nadeo/TMGame/Modes/Base/UIModules/Checkpoint_Common.Script.txt" as UIModules_Checkpoint_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const UIModules_Checkpoint_Common::C_RankMode_BestRace as C_RankMode_BestRace
+#Const UIModules_Checkpoint_Common::C_RankMode_CurrentRace as C_RankMode_CurrentRace
+#Const UIModules_Checkpoint_Common::C_RankMode_Self as C_RankMode_Self
+#Const UIModules_Checkpoint_Common::C_RankMode_Ghost as C_RankMode_Ghost
+
+#Const UIModules_Checkpoint_Common::C_Target_Everyone as C_Target_Everyone
+#Const UIModules_Checkpoint_Common::C_Target_Players as C_Target_Players
+#Const UIModules_Checkpoint_Common::C_Target_None as C_Target_None
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the id of the UI module
+Text GetId() {
+	return UIModules_Checkpoint_Common::C_Id;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the configuration of the UI module
+UIModules_Common::K_ModuleConfig GetConfig() {
+	return UIModules_Checkpoint_Common::C_UIModuleConfig;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Module visibility
+ *
+ *	@param	_Target										Group that must display the module
+ */
+Void SetVisibleFor(Integer _Target) {
+	declare netwrite Integer Net_Race_Checkpoint_VisibilityTarget for Teams[0];
+	Net_Race_Checkpoint_VisibilityTarget = _Target;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Checkpoint race time diff visibility
+ *
+ *	@param	_Display									True to show
+ *																		False to hide
+ */
+Void SetVisibilityTimeDiff(Boolean _Display) {
+	declare netwrite Boolean Net_Race_Checkpoint_VisibilityRaceTimeDiff for Teams[0];
+	Net_Race_Checkpoint_VisibilityRaceTimeDiff = _Display;
+}
+/** Overload the legacy `SetVisibilityTimeDiff(Boolean _Display)` function
+ *	with a name that better reflects its use
+ */
+Void SetVisibilityRaceTimeDiff(Boolean _Display) {
+	SetVisibilityTimeDiff(_Display);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Checkpoint lap time diff visibility
+ *
+ *	@param	_Display									True to show
+ *																		False to hide
+ */
+Void SetVisibilityLapTimeDiff(Boolean _Display) {
+	declare netwrite Boolean Net_Race_Checkpoint_VisibilityLapTimeDiff for Teams[0];
+	Net_Race_Checkpoint_VisibilityLapTimeDiff = _Display;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update both race and lap time diff visibility
+Void SetVisibilityTimeDiff(Boolean _RaceTimeDiff, Boolean _LapTimeDiff) {
+	SetVisibilityRaceTimeDiff(_RaceTimeDiff);
+	SetVisibilityLapTimeDiff(_LapTimeDiff);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Select how the checkpoint ranking
+ *	will be computed
+ *	- C_RankMode_BestRace: compared to the other players best race
+ *	- C_RankMode_CurrentRace: compared to the other players current race
+ *	- C_RankMode_Self: compared to the player's best race
+ *	- C_RankMode_Ghost: compared to the ghosts' best race
+ *
+ *	@param	_RankMode									The mode to use
+ */
+Void SetRankMode(Integer _RankMode) {
+	declare netwrite Integer Net_Race_Checkpoint_RankMode for Teams[0];
+	Net_Race_Checkpoint_RankMode = _RankMode;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the current rank mode
+Integer GetRankMode() {
+	declare netwrite Integer Net_Race_Checkpoint_RankMode for Teams[0];
+	return Net_Race_Checkpoint_RankMode;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Switch automatically to the Finish
+ *	UISequence on the client when they
+ *	crosses the finish line to avoid the
+ *	delay from the server
+ */
+Void SetAutoUISequenceFinish(Boolean _Enabled) {
+	declare netwrite Boolean Net_Race_Checkpoint_AutoUISequenceFinish for Teams[0];
+	Net_Race_Checkpoint_AutoUISequenceFinish = _Enabled;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Use the waypoint event or the RaceWaypointTimes
+ *	array as source for the checkpoint time
+ */
+Void SetUseWaypointEvent(Boolean _UseWaypointEvent) {
+	declare netwrite Boolean Net_Race_Checkpoint_UseWaypointEvent for Teams[0];
+	Net_Race_Checkpoint_UseWaypointEvent = _UseWaypointEvent;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// The ghosts used to compute the player's rank at the checkpoint
+Void SetGhostsForRanking(CPlayer _Player, CGhost[] _Ghosts) {
+	declare CUIConfig UI <=> UIManager.GetUI(_Player);
+	if (UI != Null) {
+		declare netwrite Integer[][] Net_Race_Checkpoint_GhostsTimes for UI;
+		Net_Race_Checkpoint_GhostsTimes = [];
+		foreach (Ghost in _Ghosts) {
+			Net_Race_Checkpoint_GhostsTimes.add(Utils::ToScriptArray(Ghost.Result.Checkpoints));
+		}
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Show or hide the UI
+ *
+ *	@param	_Player										The player to update
+ *	@param	_Display									True to show
+ *																		False to hide
+ */
+Void SetVisibility(CPlayer _Player, Boolean _Display) {
+	if (_Player == Null) return;
+
+	declare netwrite Boolean Net_Race_Checkpoint_IsVisible for _Player;
+	Net_Race_Checkpoint_IsVisible = _Display;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Initialize a player
+ *
+ *	@param	_Player										The player to initialize
+ */
+Void InitializePlayer(CPlayer _Player) {
+	if (_Player == Null) return;
+
+	SetVisibility(_Player, False);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Unload the library
+Void Unload() {
+	foreach (Player in AllPlayers) {
+		InitializePlayer(Player);
+	}
+
+	SetRankMode(C_RankMode_BestRace);
+	SetVisibilityRaceTimeDiff(True);
+	SetVisibilityLapTimeDiff(True);
+	SetVisibleFor(C_Target_Everyone);
+	SetAutoUISequenceFinish(False);
+	SetUseWaypointEvent(False);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Load the library
+Void Load() {
+	Unload();
+}

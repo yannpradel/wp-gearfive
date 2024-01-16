@@ -1,0 +1,12 @@
+/**
+ *	Get information about the environments
+ */
+#Const Version		"1.0.0"
+#Const ScriptName	"Libs/Nadeo/CMGame/Utils/EnvironmentInfo.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Collection_Stadium "Stadium"
+
+#Const C_SkinType_CarSport "Models/CarSport"

@@ -1,0 +1,112 @@
+/**
+ *	Structures for Http
+ */
+#Const Version		"2022-03-18"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Structures/HttpStruct.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_ComponentName "lib-http-struct"
+#Const P "LibHttpStruct_"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct LibHttpStruct_K_HttpMedia {
+	Text buttonBackgroundUrl;
+	Text buttonForegroundUrl;
+	Text decalUrl;
+	Text popUpBackgroundUrl;
+	Text popUpImageUrl;
+	Text liveButtonBackgroundUrl;
+	Text liveButtonForegroundUrl;
+}
+
+#Struct LibHttpStruct_K_HttpSeason {
+	Text uid;
+	Text name;
+	Integer startTimestamp;
+	Integer startDate;
+	Integer endTimestamp;
+	Integer endDate;
+	Integer relativeStart;
+	Integer relativeEnd;
+	Integer campaignId;
+	Boolean active;
+}
+
+#Struct LibHttpStruct_K_HttpCategory {
+	Integer position;
+	Integer length;
+	Text name;
+}
+
+#Struct LibHttpStruct_K_HttpMap {
+	Integer id;
+	Integer position;
+	Text mapUid;
+}
+
+#Struct LibHttpStruct_K_HttpCampaign {
+	Integer id;
+	Text seasonUid;
+	Text name;
+	Text color;
+	Integer useCase;
+	Integer clubId;
+	Text leaderboardGroupUid;
+	Boolean published;
+	Integer publicationTimestamp;
+	Integer editionTimestamp;
+	LibHttpStruct_K_HttpMap[] playlist;
+	LibHttpStruct_K_HttpSeason[] latestSeasons;
+	LibHttpStruct_K_HttpCategory[] categories;
+	LibHttpStruct_K_HttpMedia media;
+}
+
+#Struct LibHttpStruct_K_HttpDailyMap {
+	Integer campaignId;
+	Text mapUid;
+	Integer day;
+	Integer monthDay;
+	Text seasonUid;
+	Integer relativeStart; //< If negative, the map started
+	Integer relativeEnd; //< If negative, the map ended
+}
+
+#Struct LibHttpStruct_K_HttpMonthlyCampaign {
+	Integer year;
+	Integer month;
+	Integer lastDay;
+	LibHttpStruct_K_HttpDailyMap[] days;
+	LibHttpStruct_K_HttpMedia media;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the manialink component
+Text Component() {
+	return MV::Component(
+		C_ComponentName,
+		"""
+		""",
+		"""
+{{{dumptype(LibHttpStruct_K_HttpMedia)}}}
+{{{dumptype(LibHttpStruct_K_HttpSeason)}}}
+{{{dumptype(LibHttpStruct_K_HttpCategory)}}}
+{{{dumptype(LibHttpStruct_K_HttpMap)}}}
+{{{dumptype(LibHttpStruct_K_HttpCampaign)}}}
+{{{dumptype(LibHttpStruct_K_HttpDailyMap)}}}
+{{{dumptype(LibHttpStruct_K_HttpMonthlyCampaign)}}}
+		""",
+		"""
+		""",
+[],
+[]
+	);
+}

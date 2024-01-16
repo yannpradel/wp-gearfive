@@ -1,0 +1,28 @@
+/**
+ *	Common constants between maniascript modules and projects
+ */
+#Const Version		"1.0.0"
+#Const ScriptName	"Libs/Nadeo/CMGame/Utils/Constants.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Audio files
+#Const C_JsonFilePath_AudioCommon "file://Media/Config/Nadeo/CMGame/Utils/AudioManager/AudioCommon.json"
+#Const C_JsonFilePath_AudioMenu "file://Media/Config/Nadeo/CMGame/Utils/AudioManager/AudioMenu.json"
+#Const C_JsonFilePath_AudioGame "file://Media/Config/Nadeo/CMGame/Utils/AudioManager/AudioGame.json"
+
+#Const C_PadInputCharacters ["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]
+
+#Const C_Nadeo_Login "Nadeo"
+
+#Const C_Training_TrackName "Training"
+//L16N Track and campaign name to train to the basics of Trackmania
+#Const C_Training_TranslatedName _("Training")
+
+#Const C_Season_Names [
+	"Winter" => _("|Season|Winter"),
+	"Spring" => _("|Season|Spring"),
+	"Summer" => _("|Season|Summer"),
+	"Fall" => _("|Season|Fall")
+]

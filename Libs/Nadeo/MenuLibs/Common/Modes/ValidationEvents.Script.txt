@@ -1,0 +1,50 @@
+/** 
+ *	Events for the Race validation mode
+ */
+#Const Version		"2018-11-08"
+#Const ScriptName	"Libs/Nadeo/MenuLibs/TrackMania/Race/ValidationEvents.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_ValidationEvent {
+	Text Type;
+	Text[] Data;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Clear the array of pending events
+Void ClearEvents(CSmMode _Mode) {
+	declare K_ValidationEvent[] ValidationRace_PendingEvents for _Mode;
+	ValidationRace_PendingEvents = [];
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Convert a CUIConfig event to a K_ValidationEvent
+ *	and add it to the pending events array
+ *	if it's compatible
+ */
+Void AddEvent(CSmMode _Mode, CUIConfigEvent _Event) {
+	switch (_Event.Type) {
+		case CUIConfigEvent::EType::OnLayerCustomEvent: {
+			declare K_ValidationEvent ValidationEvent;
+			ValidationEvent.Type = _Event.CustomEventType;
+			declare Text[] Data;
+			foreach (Value in _Event.CustomEventData) {
+				ValidationEvent.Data.add(Value);
+			}
+			declare K_ValidationEvent[] ValidationRace_PendingEvents for _Mode;
+			ValidationRace_PendingEvents.add(ValidationEvent);
+		}
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the pending events
+K_ValidationEvent[] GetPendingEvents(CSmMode _Mode) {
+	declare K_ValidationEvent[] ValidationRace_PendingEvents for _Mode;
+	return ValidationRace_PendingEvents;
+}

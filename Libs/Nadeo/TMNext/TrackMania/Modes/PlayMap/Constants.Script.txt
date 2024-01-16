@@ -1,0 +1,20 @@
+/** 
+ *	Constants of the PlayMap mode
+ */
+#Const Version		"2020-07-31"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Modes/PlayMap/Constants.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_ZIndex_PauseMenu 2
+#Const C_ZIndex_EndRaceMenu 1
+
+#Const C_InputPriority_PauseMenu 2
+#Const C_InputPriority_EndRaceMenu 1
+
+#Const C_RaceMenu_Size <128., 10.>
+
+#Const C_Event_SaveReplay "playmap-endracemenu-save-replay"
+#Const C_Event_Improve "playmap-endracemenu-improve"
+#Const C_Event_Quit "playmap-endracemenu-quit"

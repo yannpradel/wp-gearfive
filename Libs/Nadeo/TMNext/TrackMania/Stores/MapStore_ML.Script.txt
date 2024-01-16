@@ -1,0 +1,176 @@
+/** 
+ *	Component for the MapStore
+ */
+#Const Version		"2023-05-31"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Stores/MapStore_ML.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/CommonLibs/Common/Store_ML.Script.txt" as Store
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/TMNext/TrackMania/API/MapAPI.Script.txt" as MapAPI
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/CampaignStruct.Script.txt" as CampaignStruct
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_CurrentMap {
+	Integer Status;
+	Integer ErrorCode;
+	Integer ErrorCodeHttp;
+	Boolean IsMapUploadedToNS; // NS : NadeoServices, meaning can we use this map with LIVE API
+	Boolean IsFavorite;
+	Text Uid;
+}
+
+#Struct K_FavoriteMapsPager {
+	CampaignStruct::LibCampaignStruct_K_Map[Integer] Maps;
+	Integer Offset;
+	Integer Total;
+}
+
+#Struct K_State {
+	K_FavoriteMapsPager FavoriteMapsPager;
+	K_CurrentMap CurrentMap;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_State_Null K_State {
+	FavoriteMapsPager = K_FavoriteMapsPager {
+		Maps = [],
+		Offset = 0,
+		Total = 0
+	},
+	CurrentMap = K_CurrentMap {
+		Status = 0,
+		ErrorCode = 0,
+		ErrorCodeHttp = 0,
+		IsMapUploadedToNS = False,
+		IsFavorite = False,
+		Uid = ""
+	}
+}
+
+#Const C_ComponentName "lib-map-store"
+#Const P "TMNext_MapStore::"
+#Const Q "TMNext_MapStore"
+#Const C_StoreId "map"
+
+#Const C_Action_GetMap "TMNext_MapStore_Action_GetMap"
+#Const C_Action_LoadFavoriteMaps "TMNext_MapStore_Action_LoadFavoriteMaps"
+#Const C_Action_RemoveMapFromFavorites "TMNext_MapStore_Action_RemoveMapFromFavorites"
+#Const C_Action_AddMapToFavorites "TMNext_MapStore_Action_AddMapToFavorites"
+#Const C_Action_ToggleCurrentMapFromFavorites "TMNext_MapStore_Action_ToggleCurrentMapFromFavorites"
+
+#Const C_Event_CurrentMapUpdated "TMNext_MapStore_Event_CurrentMapUdpated"
+#Const C_Event_CurrentMapRequestInProgress "TMNext_MapStore_Event_CurrentRequestInProgress"
+#Const C_Event_FavoriteMapsUpdated "TMNext_MapStore_Event_FavoriteMapsUpdated"
+#Const C_Event_FavoriteMapsError "TMNext_MapStore_Event_FavoriteMapsError"
+
+#Const C_CurrentMapStatus_Null 0
+#Const C_CurrentMapStatus_LoadingInfos 1
+#Const C_CurrentMapStatus_AddingToFavorites 2
+#Const C_CurrentMapStatus_RemovingFromFavorites 3
+#Const C_CurrentMapStatus_Success 4
+#Const C_CurrentMapStatus_Error 5
+
+#Const C_ErrorCode_Null 0
+#Const C_ErrorCode_FailedLoadInfos 1
+#Const C_ErrorCode_FailedAddFavorites 2
+#Const C_ErrorCode_FailedRemoveFavorites 3
+
+//L16N An error happened while adding the track to the player's favorites. They need to try to add it again
+#Const C_AddFavoriteMap_Error _("Error while adding track to your favorites. Please try again.")
+//L16N An error happened while removing the track to the player's favorites. They need to try to remove it again
+#Const C_RemoveFavoriteMap_Error _("Error while removing track from your favorites. Please try again.")
+//L16N Message displayed when there is a request in progress and the player tries to launch a new one
+#Const C_RequestInProgress _("A request is already in progress. Please try again in a few seconds.")
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+Void Action_LoadFavoriteMapsPage(CMlScript _This, Integer _Offset, Integer _Length, Boolean _SortByNameElseByDate, Boolean _FromAscendingOrder, Text _MapTypeFilter, Boolean _PlayableFilter, Boolean _OnlyUserMapsFilter) {
+	declare Text Sort = MapAPI::C_Sort_Date;
+	if (_SortByNameElseByDate) Sort = MapAPI::C_Sort_Name;
+	declare Text Order = MapAPI::C_Order_Desc;
+	if (_FromAscendingOrder) Order = MapAPI::C_Order_Asc;
+	declare Text PlayableFilter = "0";
+	if (_PlayableFilter) PlayableFilter = "1";
+	declare Text OnlyUserMapsFilter = "0";
+	if (_OnlyUserMapsFilter) OnlyUserMapsFilter = "1";
+	_This.SendCustomEvent(C_Action_LoadFavoriteMaps, [""^_Offset, ""^_Length, Sort, Order, _MapTypeFilter, PlayableFilter, OnlyUserMapsFilter]);
+}
+
+Void Action_GetMap(CMlScript _This, Text _MapUid) {
+	_This.SendCustomEvent(C_Action_GetMap, [_MapUid]);
+}
+
+Void Action_RemoveMapFromFavorites(CMlScript _This, Text _MapUid) {
+	_This.SendCustomEvent(C_Action_RemoveMapFromFavorites, [_MapUid]);
+}
+
+Void Action_AddMapToFavorites(CMlScript _This, Text _MapUid) {
+	_This.SendCustomEvent(C_Action_AddMapToFavorites, [_MapUid]);
+}
+
+Void Action_ToggleCurrentMapFromFavorites(CMlScript _This) {
+	_This.SendCustomEvent(C_Action_ToggleCurrentMapFromFavorites, []);
+}
+
+CampaignStruct::LibCampaignStruct_K_Map[Integer] GetFavoriteMaps() {
+	declare K_State TMNext_MapStore_State for System = C_State_Null;
+	return TMNext_MapStore_State.FavoriteMapsPager.Maps;
+}
+
+Integer GetFavoriteMapsTotal() {
+	declare K_State TMNext_MapStore_State for System = C_State_Null;
+	return TMNext_MapStore_State.FavoriteMapsPager.Total;
+}
+
+// Reset the current map status
+Void ResetCurrentMap() {
+	declare K_State TMNext_MapStore_State for System = C_State_Null;
+	TMNext_MapStore_State.CurrentMap = K_CurrentMap {
+		Status = C_CurrentMapStatus_Null,
+		ErrorCode = C_ErrorCode_Null,
+		ErrorCodeHttp = C_ErrorCode_Null,
+		IsMapUploadedToNS = False,
+		IsFavorite = False,
+		Uid = ""
+	};
+}
+
+// Get information about the current map status
+K_CurrentMap GetCurrentMap() {
+	declare K_State TMNext_MapStore_State for System = C_State_Null;
+	return TMNext_MapStore_State.CurrentMap;
+}
+
+Void MainInit(CMlScript _This) {
+	Store::Subscribe(_This, C_StoreId);
+	ResetCurrentMap();
+}
+
+Text ComponentV2() {
+	return MV::ComponentV2(
+		C_ComponentName,
+		"""
+		""",
+		"""
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/MapStore_ML.Script.txt" as {{{Q}}}
+		""",
+		"""
+***MainInit***
+***
+{{{P}}}MainInit(This);
+***
+		""",
+[
+	CampaignStruct::Component()
+],
+[]
+	);
+}

@@ -1,0 +1,9 @@
+/**
+ *	Royal markers server side
+ */
+#Const Version		"2021-04-23"
+#Const ScriptName	"ManiaApps/Nadeo/TMNext/TrackMania/Royal/Markers_Server.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //

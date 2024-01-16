@@ -1,0 +1,50 @@
+/**
+ *  Common data for the Record UI
+ */
+#Const Version    "2021-09-02"
+#Const ScriptName "ManiaApps/Nadeo/TMxSM/Race/UIModules/Record_Common.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Common.Script.txt" as UIModules_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_TMxSM_Record_Record {
+	Integer Rank;
+	Text AccountId;
+	Text DisplayName;
+	Integer Time;
+}
+#Struct K_TMxSM_Record_Records {
+	Text ZoneName;
+	Integer WorstTime;
+	Boolean IsFull;
+	Integer Type;
+	K_TMxSM_Record_Record[] Records;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Id "UIModule_Race_Record"
+#Const C_LayerType CUILayer::EUILayerType::Normal
+#Const C_UIModuleConfig UIModules_Common::ComponentModeLibsUIModules_K_ModuleConfig {
+	Id = "Race_Record", //< Do not modify this Id once in production. It is used by the xmlrpc protocole and would break compatibility.
+	IsCustomizable = True,
+	Properties = UIModules_Common::ComponentModeLibsUIModules_K_ModuleProperties {
+		Position = <-160., 30.>,
+		Scale = 1.,
+		Visible = True
+	}
+}
+
+#Const C_RecordsNb 5
+#Const C_BeforeMe 1
+#Const C_AfterMe 1
+
+#Const C_Event_Spectate "TMxSM_Race_Record_Spectate"
+#Const C_Event_NewRecord "TMxSM_Race_Record_NewRecord"
+#Const C_Event_UpdatePBGhostVisibility "TMxSM_Race_Record_UpdatePBGhostVisibility"

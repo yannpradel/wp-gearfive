@@ -1,0 +1,233 @@
+/** 
+ *	Page: Accessibility
+ */
+#Const Version		"2023-04-01"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Menu/Pages/Accessibility.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/Helpers.Script.txt" as MLHelpers
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/MenuSounds.Script.txt" as MenuSounds
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Navigation.Script.txt" as Navigation
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Transition.Script.txt" as Transition
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Router_ML.Script.txt" as Router
+#Include "Libs/Nadeo/TMNext/TrackMania/ColorPalette.Script.txt" as ColorPalette
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/Checkbox.Script.txt" as Checkbox
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/ExpendableButton.Script.txt" as ExpendableButton
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/PopUpMultiChoice.Script.txt" as PopUpMultiChoice
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as Const
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/RoutePaths.Script.txt" as RoutePaths
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/UserStore_ML.Script.txt" as UserStore
+#Include "TextLib" as TL
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "Page_Accessibility"
+#Const C_NavGroupName "navgroup-page-accessibility"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the page manialink
+ *
+ *	@return														The page manialink
+ */
+Text GetManialink() {
+	//L16N [Accessibility] Title of the pop-up showing accessibility features like 'Text To Speech'.
+	declare Text Text_Accessibility = _("Accessibility");
+	//L16N [Accessibility] Text for the 'Text to speech' accessibility feature that can be enabled or disabled.
+	declare Text Text_TTS = _("Text to speech");
+	//L16N [Accessibility] Text to enable or disable the mode to change the colors on some elements to improve visibility for colorblind players.
+	declare Text Text_ColorblindMode = _("Colorblind mode");
+	// Description of the accessibility pop-up
+	declare PopUpMultiChoice::K_DescriptionPart[] Description_Accessibility = [
+		//L16N [Accessibility] Indicates to the player that the accessibility features can be modified later in the settings page.
+		PopUpMultiChoice::CreateDescriptionPart(_("You will be able to modify these features later in the settings page."), <130., 5.>, 2., FontManager::C_GameFontSemiBold, "$t$i", ColorPalette::C_Color_Vec3_GreenOne, False)
+	];
+
+	return MV::Create(
+C_Name, 3,
+"""
+<frame id="frame-global">
+	<frameinstance
+		id="popupmultichoice-accessibility"
+		modelid="{{{PopUpMultiChoice::C_Name}}}"
+		data-custom-content-frame="popupmultichoice-accessibility-custom-content"
+		data-title="{{{Text_Accessibility}}}"
+		data-description="{{{TL::MLEncode(Description_Accessibility.tojson())}}}"
+		data-selection-required="true"
+		data-close-after-selection="false"
+		data-nav-inputs="up;down"
+		data-nav-targets="checkbox-colorblind-mode;checkbox-text-to-speech"
+		hidden="1"
+	/>
+	<frame id="popupmultichoice-accessibility-custom-content" z-index="1">
+		<frameinstance 
+			id="checkbox-text-to-speech" pos="{{{MLHelpers::Skew(0., -1., 10.)}}}"
+			modelid="{{{Checkbox::C_Name}}}" 
+			class="{{{Navigation::C_Class}}} {{{PopUpMultiChoice::C_Class_Navigation}}}"
+			data-opacityunfocus="0.6"
+			data-labelsize="70 10"
+			data-adaptlabelsize="true"
+			data-textxpos="0.1"
+			data-text="{{{Text_TTS}}}"
+			data-texthalign="left"
+			data-textitalicslope=".2"
+			data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+			data-iconsize="10 10"
+			data-iconxpos="0."
+			data-iconcolor="{{{ColorPalette::C_Color_White}}}"
+			data-iconchecked="{{{Const::C_ImageUrl_Icon_Checkbox_Active_Square}}}"
+			data-iconunchecked="{{{Const::C_ImageUrl_Icon_Checkbox_Inactive_Square}}}"
+			data-halign="center" data-valign="center"
+			data-nav-inputs="select;cancel;up;down"
+			data-nav-targets="_;_;{{{PopUpMultiChoice::C_FirstChoice}}};checkbox-colorblind-mode"
+			data-nav-group="{{{PopUpMultiChoice::C_NavGroup}}}"
+			data-nav-zone="{{{Checkbox::C_NavZone}}}"
+		/>
+		<frameinstance 
+			id="checkbox-colorblind-mode" pos="{{{MLHelpers::Skew(0., -10., 10.)}}}"
+			modelid="{{{Checkbox::C_Name}}}" 
+			class="{{{Navigation::C_Class}}} {{{PopUpMultiChoice::C_Class_Navigation}}}"
+			data-opacityunfocus="0.6"
+			data-labelsize="70 10"
+			data-adaptlabelsize="true"
+			data-textxpos="0.1"
+			data-text="{{{Text_ColorblindMode}}}"
+			data-texthalign="left"
+			data-textitalicslope=".2"
+			data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+			data-iconsize="10 10"
+			data-iconxpos="0."
+			data-iconcolor="{{{ColorPalette::C_Color_White}}}"
+			data-iconchecked="{{{Const::C_ImageUrl_Icon_Checkbox_Active_Square}}}"
+			data-iconunchecked="{{{Const::C_ImageUrl_Icon_Checkbox_Inactive_Square}}}"
+			data-halign="center" data-valign="center"
+			data-nav-inputs="select;cancel;up;down"
+			data-nav-targets="_;_;checkbox-text-to-speech;{{{PopUpMultiChoice::C_FirstChoice}}}"
+			data-nav-group="{{{PopUpMultiChoice::C_NavGroup}}}"
+			data-nav-zone="{{{Checkbox::C_NavZone}}}"
+		/>
+	</frame>
+</frame>
+""",
+"""
+#Include "Libs/Nadeo/TMNext/TrackMania/Config.Script.txt" as Config
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Overlays/ControllerInfo_ML.Script.txt" as ControllerInfo
+#Include "Libs/Nadeo/CommonLibs/Common/Platform.Script.txt" as Platform
+""",
+"""
+Void Focus(CMlControl _From, CMlControl _To) {
+	if ({{{Transition::P}}}IsInTransition(This)) return;
+	
+	if (_From != Null) {
+		{{{Navigation::P}}}Unfocus(This, _From);
+		if ({{{ExpendableButton::P}}}IsButton(_From)) {
+			{{{ExpendableButton::P}}}Unfocus(This, _From as CMlFrame);
+		} else if ({{{Checkbox::P}}}IsCheckbox(_From)) {
+			{{{Checkbox::P}}}Unfocus(This, _From as CMlFrame);
+		}
+	}
+	
+	if (_To != Null) {
+		{{{Navigation::P}}}Focus(This, _To);
+		if ({{{ExpendableButton::P}}}IsButton(_To)) {
+			{{{ExpendableButton::P}}}Focus(This, _To as CMlFrame);
+		} else if ({{{Checkbox::P}}}IsCheckbox(_To)) {
+			{{{Checkbox::P}}}Focus(This, _To as CMlFrame);
+		}
+	}
+}
+
+***MainInit***
+***
+declare CMlFrame Frame_Global;
+declare CMlFrame PopUpMultiChoice_Accessibility;
+declare CMlFrame Checkbox_TextToSpeech;
+declare CMlFrame Checkbox_ColorblindMode;
+***
+
+***MainStart***
+***
+Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+PopUpMultiChoice_Accessibility <=> (Frame_Global.GetFirstChild("popupmultichoice-accessibility") as CMlFrame);
+Checkbox_TextToSpeech <=> (Frame_Global.GetFirstChild("checkbox-text-to-speech") as CMlFrame);
+Checkbox_ColorblindMode <=> (Frame_Global.GetFirstChild("checkbox-colorblind-mode") as CMlFrame);
+
+// Initialize the checkbox
+{{{Checkbox::P}}}Check(This, Checkbox_TextToSpeech, ParentApp.ManiaPlanet.UserMgr.MainUserProfile.TTS_Enabled);
+{{{Checkbox::P}}}Check(This, Checkbox_ColorblindMode, ParentApp.ManiaPlanet.UserMgr.MainUserProfile.Interface_ColorblindMode);
+***
+
+***MainLoop***
+***
+if (PageIsVisible) {
+	foreach (Event in {{{Router::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case "{{{Router::C_Event_EnteringRoute}}}": {
+				{{{PopUpMultiChoice::P}}}Open(This, PopUpMultiChoice_Accessibility);
+				ControllerInfo::SetButtons(["A" => _("Select")]);
+			}
+		}
+	}
+
+	/* PopUpMultiChoice events */
+	foreach (Event in {{{PopUpMultiChoice::P}}}GetPendingEvents(This)) {
+		if (Event.PopUpMultiChoice != Null && Event.PopUpMultiChoice.ControlId == PopUpMultiChoice_Accessibility.ControlId) {
+			switch (Event.Type) {
+				case {{{PopUpMultiChoice::P}}}C_EventType_Select: {
+					switch (Event.SelectedIndex) {
+						case {{{PopUpMultiChoice::P}}}C_Choice_Default: {
+							{{{UserStore::P}}}SetUserHasSeenAccessibilityOptions(True);
+							{{{PopUpMultiChoice::P}}}Close(This, PopUpMultiChoice_Accessibility);
+							ParentApp.ManiaPlanet.UserMgr.MainUserProfile.TTS_Enabled = {{{Checkbox::P}}}IsChecked(Checkbox_TextToSpeech);
+							ParentApp.ManiaPlanet.UserMgr.MainUserProfile.Interface_ColorblindMode = {{{Checkbox::P}}}IsChecked(Checkbox_ColorblindMode);
+							if ({{{UserStore::P}}}IsOfflineMode()) {
+								{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_Home}}}");
+								{{{UserStore::P}}}SetCurrentPlayTabIndex({{{Const::C_TabIndex_Solo}}});
+							} else if (Platform::IsPC(System) && !{{{UserStore::P}}}GetUserHasSetAdvertsPreferences()) {
+								{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_AdsPreferences}}}");
+							} else if (LocalUser.ZonePath == "" || LocalUser.ZonePath == Config::Get().DefaultMasterZone) {
+								{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_WelcomeChangeZone}}}");
+							} else {
+								{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_Home}}}");
+							}
+						}
+						default: {
+							switch (Event.SelectedControl.ControlId) {
+								case Checkbox_TextToSpeech.ControlId: {{{Checkbox::P}}}Toggle(This, Checkbox_TextToSpeech);
+								case Checkbox_ColorblindMode.ControlId: {{{Checkbox::P}}}Toggle(This, Checkbox_ColorblindMode);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+***
+""",
+[
+	Checkbox::ComponentV2(),
+	ExpendableButton::ComponentV2(),
+	MenuSounds::ComponentV2(),
+	Navigation::ComponentV2(),
+	PopUpMultiChoice::ComponentV2(),
+	Router::ComponentV2(),
+	Transition::ComponentV2(),
+	UserStore::ComponentV2()
+],
+[]
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update from the ManiaApp
+Void Yield() {
+	
+}

@@ -1,0 +1,229 @@
+#Const C_GREEN_MASTER 	"GreenMaster"
+#Const C_YELLOW 			"Yellow"
+#Const C_YELLOW_INTENSE 	"YellowIntense"
+#Const C_YELLOW_INTENSE2	"YellowIntense2"
+#Const C_ORANGE 			"Orange"
+#Const C_RED 				"Red"
+#Const C_RED2 			"Red2"
+#Const C_BLUE 			"Blue"
+#Const C_BLUE_LIGHT 		"BlueLight"
+#Const C_GREEN 			"Green"
+#Const C_GREEN2 			"Green2"
+#Const C_PURPLE 			"Purple"
+#Const C_CYAN 			"Cyan"
+#Const C_WHITE 			"White"
+#Const C_BLACK 			"Black"
+#Const C_GREY 			"Grey"
+#Const C_GREY_WHITE		"GreyWhite"
+#Const C_GREY_BLACK		"GreyBlack"
+#Const C_PINKRED 			"PinkRed"
+#Const C_CYAN2 			"Cyan2"
+#Const C_GOLD 			"Gold"
+#Const C_SILVER 			"Silver"
+#Const C_BRONZE 			"Bronze"
+#Const C_BRONZESHINY		"BronzeShiny"
+#Const C_SILVERSHINY		"SilverShiny"
+#Const C_GOLDSHINY		"GoldShiny"
+
+#Const C_DifficultyCustom 		<1.0, 0.9, 0.0>
+#Const C_DifficultyWhite 		<1., 1., 1.>
+#Const C_DifficultyGreen 		<0., 1., 0.>
+#Const C_DifficultyBlue  		<0., 0.2, 1.>
+#Const C_DifficultyRed   		<1., 0., 0.>
+#Const C_DifficultyBlack 		<0.25, 0.25, 0.25>
+
+#Const C_ColorQuadScreen0 		<0.8, 0.0, 0.0>
+#Const C_ColorQuadScreen1 		<1.0, 1.0, 0.0>
+
+Text[] GetColorList()
+{
+	return [C_YELLOW, C_YELLOW_INTENSE, C_ORANGE, C_RED, C_BLUE, C_BLUE_LIGHT, C_GREEN, C_GREEN2, C_GREEN_MASTER, C_PURPLE, C_CYAN, C_CYAN2, C_WHITE, C_BLACK, C_GREY, C_PINKRED];
+}
+
+
+
+Vec3 GetColor(Text _Color)
+{
+	switch(_Color)
+	{
+		case C_YELLOW 		: return <0.898, 0.848, 0.000>;
+		case C_YELLOW_INTENSE : return <1.000, 0.641, 0.000>;
+		case C_YELLOW_INTENSE2 : return <0.995, 0.875, 0.002>;
+		case C_ORANGE 		: return <1.000, 0.355, 0.109>;
+		case C_RED 			: return <0.8, 0.227, 0.29>;
+		case C_RED2 			: return <1.000, 0.285, 0.000>;
+		case C_BLUE 			: return <0.23 , 0.356, 0.768>;
+		case C_BLUE_LIGHT 	: return <0.000, 0.871, 1.000>;
+		case C_GREEN 	 		: return <0.196, 0.62, 0.286>;
+		case C_GREEN2 	 	: return <0.100, 1.000, 0.200>;
+		case C_GREEN_MASTER 	: return <0.000, 1.000, 0.082>;
+		case C_PURPLE 		: return <0.666, 0.377, 0.936>;
+		case C_CYAN 			: return <0.000, 0.637, 0.738>;
+		case C_CYAN2 			: return <0.000, 1.000, 1.000>;
+		case C_WHITE 			: return <0.474, 0.474, 0.474>;
+		case C_BLACK 			: return <0.298, 0.299, 0.4>;
+		case C_GREY 			: return <0.436, 0.436, 0.436>;
+		case C_GREY_WHITE		: return <0.600, 0.600, 0.600>;
+		case C_GREY_BLACK		: return <0.250, 0.250, 0.250>;
+		case C_PINKRED 		: return <1.000, 0.285, 0.477>;
+		case C_BRONZE			: return <0.691, 0.423, 0.321>;
+		case C_SILVER			: return <0.565, 0.591, 0.574>;
+		case C_GOLD			: return <0.827, 0.745, 0.312>;
+		case C_BRONZESHINY	: return <1., 0.4, 0.0>;
+		case C_SILVERSHINY	: return <0.464, 0.491, 0.574>;
+		case C_GOLDSHINY		: return <1.0, 0.75, 0.0>;
+	}
+	
+	log("[WARNING] COLORS : Can't find color '" ^ _Color ^ "'.");
+	return <0.,0.,0.>;
+}
+
+Vec3 GetMedalColor(Integer _Color)
+{
+	switch(_Color)
+	{
+		case 3		: return GetColor("BronzeShiny");
+		case 2		: return GetColor("SilverShiny");
+		case 1		: return GetColor("GoldShiny");
+		case 0		: return GetColor("GreenMaster");
+	}
+	return <0.,0.,0.>;
+}
+
+Vec3 GetEchelonColor(Integer _Echelon) {
+	switch(_Echelon)
+	{
+		case 0				: return GetColor("White");
+		case 1				: return GetColor("YellowIntense");
+		case 2				: return GetColor("Orange");
+		case 3				: return <1.0, 0.050, 0.0>;
+		case 4				: return <1.0, 0.439, 0.647>;
+		case 5				: return <0.827, 0.149, 0.996>;
+		case 6				: return <0.431, 0.149, 0.921>;
+		case 7				: return <0.388, 0.819, 0.172>;
+		case 8				: return <0.0, 0.776, 0.541>;
+		case 9				: return <0.0, 0.654, 0.800>;
+	}
+	return <0.0, 0.0, 0.0>;
+}
+
+Text GetColorXml(Text _Color)
+{
+	declare Color = GetColor(_Color);
+	return """{{{Color.X}}} {{{Color.Y}}} {{{Color.Z}}}""";
+}
+
+
+
+// DEPRECATED : SHOULD BE REMOVED. USE GetColorXml(_Color) INSTEAD
+Text GetColorHexa(Text _Color)
+{
+	return GetColorXml(_Color);
+}
+
+//Correspond aux couleurs des Label(ON) de l'écran "Résumé de la campagne"
+Vec3 GetLabelColorLight(Text _Color)
+{ 
+	switch(_Color)
+	{
+		case C_WHITE 			: return <0.941, 0.941, 0.941>;
+		case C_GREEN 	 		: return <0.593, 1.0, 0.220>;
+		case C_BLUE 			: return <0.254, 0.543, 0.688>;
+		case C_RED 			: return <1.000, 0.195, 0.109>;
+		case C_BLACK 			: return <0.329, 0.329, 0.329>;
+	}
+	
+	return <0.,0.,0.>;
+}
+
+//Correspond aux couleurs des Label(OFF) de l'écran "Résumé de la campagne"
+Vec3 GetLabelColorUnLight(Text _Color)
+{ 
+	switch(_Color)
+	{
+		case C_WHITE 			: return <0.40, 0.40, 0.40>;
+		case C_GREEN 	 		: return <0.318, 0.494, 0.122>;
+		case C_BLUE 			: return <0.295, 0.441, 0.515>;
+		case C_RED 			: return <1.000, 0.195, 0.109>;
+		case C_BLACK 			: return <0.129, 0.129, 0.129>;
+	}
+	
+	return <0.,0.,0.>;
+}
+
+
+Vec3 GetQuadColorUnLight(Text _Color)
+{ 
+	switch(_Color)
+	{
+		case C_WHITE 			: return <0.089, 0.089, 0.089>;
+		case C_GREEN 	 		: return <0.089, 0.089, 0.089>;
+		case C_BLUE 			: return <0.089, 0.089, 0.089>;
+		case C_RED 			: return <0.089, 0.089, 0.089>;
+		case C_BLACK 			: return <0.089, 0.089, 0.089>;
+	}
+	
+	return <0.,0.,0.>;
+}
+
+
+Vec3 GetQuadColorLight(Text _Color)
+{ 
+	switch(_Color)
+	{
+		case C_WHITE 			: return <0.58, 0.58, 0.58>;
+		case C_GREEN 	 		: return <0.406, 0.623, 0.168>;
+		case C_BLUE 			: return <0.254, 0.543, 0.688>;
+		case C_RED 			: return <1.000, 0.195, 0.109>;
+		case C_BLACK 			: return <0.129, 0.129, 0.129>;
+	}
+	
+	return <0.,0.,0.>;
+}
+
+Vec3 GetDifficultyColor(Integer _IndexDifficulty) 
+{
+	switch(_IndexDifficulty)
+	{
+		case 1: return GetColor(C_WHITE);
+		case 2: return GetColor(C_GREEN);
+		case 3: return GetColor(C_BLUE);
+		case 4: return GetColor(C_RED);
+		case 5: return GetColor(C_BLACK);
+	}
+	return GetColor(C_BLACK);
+}
+
+Text GetModeColorName(Integer _IndexMenu) 
+{
+	switch(_IndexMenu)
+	{
+		case 0: return C_RED; 	// ONLINE
+		case 1: return C_GREEN2;	// MULTIPLAYER
+		case 2: return C_YELLOW; 	// CAMPAIGN
+		case 3: return C_WHITE;	// EDITOR
+		case 4: return C_BLACK;	// LEADERBOARD
+		case 5: return C_BLUE;	// VR CAMPAIGN
+	}
+	return "";
+}		
+
+Vec3 GetModeColor(Integer _IndexMenu) 
+{
+	return GetColor(GetModeColorName(_IndexMenu));
+}
+		
+Text GetModeColorXml(Integer _IndexMenu) 
+{
+	return GetColorXml(GetModeColorName(_IndexMenu));
+}
+		
+Vec3 GetColorQuadScreen(Integer _Index) 
+{
+	switch(_Index)
+	{
+		case 0: return C_ColorQuadScreen0;
+		case 1: return C_ColorQuadScreen1;
+	}
+	return <0., 0., 0.>;
+}

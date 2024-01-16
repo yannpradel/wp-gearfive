@@ -1,0 +1,135 @@
+/** 
+ *	Component: DisplayVersion
+ *
+ *	Display the current version of the game and copy it to the clipboard
+ */
+#Const Version		"2023-04-11"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Menu/Components/DisplayVersion.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "component-display-version"
+#Const P "ComponentDisplayVersion_"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the `DisplayVersion` component
+Text Component() {
+	//L16N [DisplayVersion] Display the version number of the game. %1 will be replaced by the version number. eg: "Version: 2020-05-05"
+	declare Text Text_Version = _("Version: %1");
+
+	return MV::Component(
+		C_Name,
+		"""
+<label class="{{{P}}}label-version" size="72 6" valign="center2" opacity="0.9" textsize="1" textfont="{{{FontManager::C_GameFontExtraBold}}}" textprefix="$i" focusareacolor1="00000000" focusareacolor2="00000000" scriptevents="1" />
+		""",
+		"""
+#Include "TextLib" as {{{P}}}TL
+#Include "Libs/Nadeo/TMNext/TrackMania/Config.Script.txt" as {{{P}}}Config
+		""",
+		"""
+Void {{{P}}}UpdateVersion(CMlLabel[] _Labels_Version, Text _TitleVersion, Text _ExeVersion, Text _ConfigName) {
+	declare Text Version = _TitleVersion;
+	if (_ExeVersion != "") {
+		if (Version != "") Version ^= "-";
+		Version ^= _ExeVersion;
+	}
+	if (_ConfigName != "" && _ConfigName != "production") {
+		if (Version != "") Version ^= "-";
+		Version ^= _ConfigName;
+	}
+	if (Version != "") {
+		foreach (Label_Version in _Labels_Version) {
+			Label_Version.Value = {{{P}}}TL::Compose("{{{Text_Version}}}", Version);
+		}
+	} else {
+		foreach (Label_Version in _Labels_Version) {
+			Label_Version.Value = "";
+		}
+	}
+}
+
+Text {{{P}}}GetTitleVersion() {
+	declare Text {{{P}}}TitleVersion for System = "";
+	return {{{P}}}TitleVersion;
+}
+
+Text {{{P}}}GetClipboard() {
+	declare Text {{{P}}}Clipboard for System = "";
+	return {{{P}}}Clipboard;
+}
+
+***MainInit***
+***
+declare CMlLabel[] {{{P}}}Labels_Version;
+declare Text {{{P}}}TitleVersion for System = "";
+declare Text {{{P}}}Clipboard for System = "";
+declare Text {{{P}}}LocalTitleVersion;
+declare Text {{{P}}}LocalExeVersion;
+declare Integer {{{P}}}ConfigDirtyCounter;
+***
+
+***MainStart***
+***
+Page.GetClassChildren("{{{P}}}label-version", Page.MainFrame, True);
+foreach (Control in Page.GetClassChildren_Result) {
+	declare CMlLabel Label_Version = (Control as CMlLabel);
+	{{{P}}}Labels_Version.add(Label_Version);
+}
+
+{{{P}}}LocalTitleVersion = "";
+{{{P}}}LocalExeVersion = "";
+{{{P}}}ConfigDirtyCounter = {{{P}}}Config::GetDirtyCounter();
+
+if ({{{P}}}TL::RegexFind("\\d{4}-\\d{2}-\\d{2}_\\d{2}_\\d{2}", System.ExeVersion, "").count > 0) {
+	{{{P}}}LocalExeVersion = {{{P}}}TL::ReplaceChars(System.ExeVersion, "-_", "");
+}
+
+{{{P}}}UpdateVersion({{{P}}}Labels_Version, {{{P}}}LocalTitleVersion, {{{P}}}LocalExeVersion, {{{P}}}Config::Get().ConfigName);
+***
+
+***MainLoop***
+***
+if (PageIsVisible) {
+	if (
+		{{{P}}}LocalTitleVersion != {{{P}}}TitleVersion ||
+		{{{P}}}ConfigDirtyCounter != {{{P}}}Config::GetDirtyCounter()
+	) {
+		{{{P}}}LocalTitleVersion = {{{P}}}TitleVersion;
+		{{{P}}}ConfigDirtyCounter = {{{P}}}Config::GetDirtyCounter();
+		{{{P}}}UpdateVersion({{{P}}}Labels_Version, {{{P}}}LocalTitleVersion, {{{P}}}LocalExeVersion, {{{P}}}Config::Get().ConfigName);
+	}
+
+	foreach (Event in PendingEvents) {
+		if (Event.Type == CMlScriptEvent::Type::MouseClick && Event.Control != Null && Event.Control.HasClass("{{{P}}}label-version")) {
+			System.ClipboardSet({{{P}}}Clipboard);
+		}
+	}
+}
+***
+		""",
+		[],
+		[]
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/**	Update the version number and text
+*	that will be copied in the user clipboard
+*	when clicking on the label
+*/
+Void SetVersion(Text _TitleVersion, Text _ClipboardText) {
+	declare Text ComponentDisplayVersion_TitleVersion for System = "";
+	declare Text ComponentDisplayVersion_Clipboard for System = "";
+	ComponentDisplayVersion_TitleVersion = _TitleVersion;
+	ComponentDisplayVersion_Clipboard = _ClipboardText;
+}

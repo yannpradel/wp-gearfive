@@ -1,0 +1,1728 @@
+/**
+ *	Page: CampaignDisplay
+ */
+#Const Version		"1.4.0"
+#Const ScriptName	"Libs/Nadeo/Trackmania/MainMenu/Pages/CampaignDisplay.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/CMGame/Utils/Grid.Script.txt" as Grid
+#Include "Libs/Nadeo/CMGame/Utils/Icons.Script.txt" as Icons
+#Include "Libs/Nadeo/CMGame/Utils/MLHelpers.Script.txt" as MLHelpers
+#Include "Libs/Nadeo/CMGame/Utils/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/CMGame/Utils/Stylesheet.Script.txt" as Stylesheet
+#Include "Libs/Nadeo/CMGame/Utils/TextToSpeech.Script.txt" as TextToSpeech
+#Include "Libs/Nadeo/CMGame/Components/ControlBlockList.Script.txt" as ControlBlockList
+#Include "Libs/Nadeo/CMGame/Components/LoadingSpinner.Script.txt" as LoadingSpinner
+#Include "Libs/Nadeo/CMGame/Components/MedalStack.Script.txt" as MedalStack
+#Include "Libs/Nadeo/CMGame/Components/MenuSounds.Script.txt" as MenuSounds
+#Include "Libs/Nadeo/CMGame/Components/Navigation.Script.txt" as Navigation
+#Include "Libs/Nadeo/CMGame/Components/Transition.Script.txt" as Transition
+#Include "Libs/Nadeo/CMGame/Menus/Router_ML.Script.txt" as Router
+#Include "Libs/Nadeo/CMGame/Components/ExpendableButton.Script.txt" as ExpendableButton
+#Include "Libs/Nadeo/Trackmania/Components/MapRankings.Script.txt" as MapRankings
+#Include "Libs/Nadeo/Trackmania/Components/NavigationTabs.Script.txt" as NavigationTabs
+#Include "Libs/Nadeo/Trackmania/Components/PopUpBackground2.Script.txt" as PopUpBackground
+#Include "Libs/Nadeo/Trackmania/Components/ProfilePlayerInfo.Script.txt" as ProfilePlayerInfo
+#Include "Libs/Nadeo/Trackmania/Components/Rankings.Script.txt" as RegionRankings
+#Include "Libs/Nadeo/Trackmania/Components/ZoneSelection.Script.txt" as ZoneSelection
+#Include "Libs/Nadeo/Trackmania/MainMenu/Constants.Script.txt" as Const
+#Include "Libs/Nadeo/Trackmania/MainMenu/RoutePaths.Script.txt" as RoutePaths
+#Include "Libs/Nadeo/Trackmania/Stores/CampaignStore_ML.Script.txt" as CampaignStore
+#Include "Libs/Nadeo/Trackmania/Stores/ClubStore_ML.Script.txt" as ClubStore
+#Include "Libs/Nadeo/Trackmania/Stores/UserStore_ML.Script.txt" as UserStore
+#Include "Libs/Nadeo/Trackmania/Structures/CampaignStruct.Script.txt" as CampaignStruct
+#Include "Libs/Nadeo/CMGame/Structures/ClubStruct.Script.txt" as ClubStruct
+#Include "Libs/Nadeo/TMGame/Utils/Difficulty.Script.txt" as Difficulty
+#Include "Libs/Nadeo/CMGame/Utils/Tools.Script.txt" as Tools
+#Include "Libs/Nadeo/CMGame/Components/ExpendableAsset.Script.txt" as ExpendableAsset
+#Include "ColorLib" as CL
+#Include "MathLib" as ML
+#Include "TextLib" as TL
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "Page_CampaignDisplay"
+#Const C_NavGroupName "navgroup-page-campaign-display"
+#Const C_NavGroup_Global "navgroup-page-campaign-display-global"
+#Const C_Class_MapButton "class-button-map-page-campaign-display"
+
+#Const C_Privileges [
+	CPrivilegeMgr::EPrivilege::UseUserCreatedContentRequired
+]
+
+#Const C_EventsDelay 150
+
+#Const C_ColumnNumber 5
+#Const C_RowNumber 5
+
+#Const Const::C_TabNames_Campaigns as C_TabNames
+#Const Difficulty::C_Colors as C_Category_Colors
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the page manialink
+ *
+ *	@return														The page manialink
+ */
+Text GetManialink() {
+	declare Text Text_Back = _("Back");
+	//L16N [CampaignDisplay] Best place in specified region ranking
+	declare Text Text_Top = _("|Rank|Top");
+	//L16N [CampaignDisplay] Text preceded by a button icon (i.e. "X") to inform the player that they can access the ranking for the current campaign by pressing the associated button on their controller.
+	declare Text Text_AccessCampaignRankings = _("Campaign rankings");
+	//L16N [CampaignDisplay] Text preceded by a button icon (i.e. "X") to inform the player that they can access the ranking for the selected track by pressing the associated button on their controller.
+	declare Text Text_AccessMapRankings = _("Track rankings");
+	//L16N [CampaignDisplay] Text preceded by a button icon (i.e. "X") to inform the player that they can exit the ranking for the selected track by pressing the associated button on their controller.
+	declare Text Text_ExitRankings = _("Exit rankings");
+	//L16N [CampaignDisplay] Text preceded by a button icon (i.e. "X") to inform the player that they can access the author profile for the selected track by pressing the associated button on their controller.
+	declare Text Text_ShowAuthorProfile = _("Show author profile");
+	//L16N [CampaignDisplay] Text preceded by a button icon (i.e. "X") to inform the player that they can select the focused element by pressing the associated button on their controller.
+	declare Text Text_Select = _("Select");
+	//L16N [CampaignDisplay] Text of the Loading spinner informing the player that the selected campaign is currently loading.
+	declare Text Text_Retrieving = _("Retrieving campaign's data");
+	//L16N [CampaignDisplay] Text of the club button. %1 will be replaced by the name of the club. e.g. "Club Nadeo"
+	declare Text Text_Club = _("Club $<%1$>");
+	//L16N [CampaignDisplay] Message displayed when there is no tracks in the campaign.
+	declare Text Text_NoMaps = _("There is no tracks in this campaign.");
+	//L16N [CampaignDisplay] Message displayed when the campaign cannot be loaded properly. %1 goes for the type of error.
+	declare Text Text_FetchError = _("An error occurred while fetching the campaign, please try again. (Error code: %1)");
+	//L16N [CampaignDisplay] Message to inform that the ranking system is closed for the campaign
+	declare Text Text_LeaderboardsClosed = _("Leaderboards are now closed on this campaign!");
+	//L16N [CampaignDisplay] Text pronounced when the player is focusing a track of the campaign. %1 will be replaced with the number of the track in the campaign. e.g. "Track 22"
+	declare Text TTS_Track = _("|TTS|Track %1");
+
+	/* Map grid */
+	declare Vec2 Size_Spacing = <0.5, 2.>;
+	declare Vec2 Size_MapButton = <35.5, 9.5>;
+	declare Vec2 Size_Category = MLHelpers::KeepRatioFromY(320., 20., 2.13);
+	declare Grid::K_GridConfig GridConfig_Column = Grid::Create(Size_MapButton.X*C_ColumnNumber + Size_Spacing.X*(C_ColumnNumber-1), 0., Size_Spacing.X, Grid::C_Direction_Right);
+	declare Grid::K_GridConfig GridConfig_Row = Grid::Create(Size_MapButton.Y*C_RowNumber + Size_Spacing.Y*(C_RowNumber-1), 0., Size_Spacing.Y, Grid::C_Direction_Bottom);
+	for (ColumnIndex, 0, C_ColumnNumber-1) GridConfig_Column = Grid::AddColumn(GridConfig_Column, ColumnIndex, 100., Grid::C_Align_Center);
+	for (RowIndex, 0, C_RowNumber-1) GridConfig_Row = Grid::AddRow(GridConfig_Row, RowIndex, 100., Grid::C_Align_Center);
+	declare Grid::K_Grid Grid_Column = Grid::Compile(GridConfig_Column);
+	declare Grid::K_Grid Grid_Row = Grid::Compile(GridConfig_Row);
+
+	declare Text ML_Maps = "";
+	declare Text ML_Categories = "";
+	for (ColumnIndex, 0, C_ColumnNumber-1) {
+		for (RowIndex, 0, C_RowNumber-1) {
+			declare Text UpTarget = "button-map-"^ML::Clamp(ColumnIndex, 0, C_ColumnNumber-1)^"-"^ML::Clamp(RowIndex-1, 0, C_RowNumber-1);
+			declare Text DownTarget = "button-map-"^ML::Clamp(ColumnIndex, 0, C_ColumnNumber-1)^"-"^ML::Clamp(RowIndex+1, 0, C_RowNumber-1);
+			declare Text LeftTarget = "button-map-"^ML::Clamp(ColumnIndex-1, 0, C_ColumnNumber-1)^"-"^ML::Clamp(RowIndex, 0, C_RowNumber-1);
+			declare Text RightTarget = "button-map-"^ML::Clamp(ColumnIndex+1, 0, C_ColumnNumber-1)^"-"^ML::Clamp(RowIndex, 0, C_RowNumber-1);
+			if (RowIndex == 0) UpTarget = "button-club";
+
+			ML_Maps ^= """
+				<frame id="frame-map-{{{ColumnIndex}}}-{{{RowIndex}}}" pos="{{{MLHelpers::Skew(Grid_Column.Pos[ColumnIndex], Grid_Row.Pos[RowIndex], 10.)}}}">
+					<frameinstance
+						id="button-map-{{{ColumnIndex}}}-{{{RowIndex}}}" z-index="1"
+						modelid="{{{ExpendableButton::C_Name}}}"
+						class="{{{Navigation::C_Class}}} {{{C_Class_MapButton}}}"
+						data-text="{{{TL::FormatInteger(C_RowNumber*ColumnIndex + (RowIndex+1), 2)}}}"
+						data-tts-text="{{{TL::Compose(TTS_Track, TL::FormatInteger(C_RowNumber*ColumnIndex + (RowIndex+1), 2))}}}"
+						data-height="{{{Grid_Row.Size[RowIndex]}}}" data-width="{{{Grid_Column.Size[ColumnIndex]}}}"
+						data-nav-inputs="select;cancel;up;down;left;right;action1;action2"
+						data-nav-targets="_;_;{{{UpTarget}}};{{{DownTarget}}};{{{LeftTarget}}};{{{RightTarget}}};frame-map-rankings;frame-region-rankings"
+						data-nav-group="{{{C_NavGroupName}}}"
+						data-nav-zone="{{{ExpendableButton::C_NavZone}}}"
+					/>
+					<frameinstance
+						id="frame-medalstack" scale=".8" z-index="2"
+						pos="{{{Grid_Column.Size[ColumnIndex]*0.25}}} {{{-Grid_Row.Size[RowIndex]*0.42}}}"
+						modelid="{{{MedalStack::C_Name}}}"
+						data-bigmedaldirection="{{{MedalStack::C_BigMedal_None}}}"
+						data-medaloffset="9.5"
+						data-iscolorize="0"
+					/>
+					<frame id="frame-top" pos="{{{Grid_Column.Size[ColumnIndex]*0.63}}} {{{-Grid_Row.Size[RowIndex]*0.83}}}" z-index="2" hidden="1">
+						<label id="label-top" size="8 {{{Size_MapButton.Y}}}" text="{{{Text_Top}}}" textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_Regular)}}}" textcolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentThree)}}}" textsize="1.5" textprefix="$i$t" valign="bottom" halign="right"/>
+						<label id="label-rank" pos="0 -0.3" size="11 {{{Size_MapButton.Y}}}" textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_SemiBold)}}}" textcolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentThree)}}}" textsize="3.5" textprefix="$i$t" valign="bottom" halign="left"/>
+					</frame>
+				</frame>
+			""";
+		}
+
+		declare Text MedalUrl = Const::C_ImageUrl_Medal_Bronze_VerySmall;
+		if (ColumnIndex == CampaignStruct::C_CategoryRed) MedalUrl = Const::C_ImageUrl_Medal_Silver_VerySmall;
+		else if (ColumnIndex == CampaignStruct::C_CategoryBlack) MedalUrl = Const::C_ImageUrl_Medal_Gold_VerySmall;
+
+		ML_Categories ^= """
+			<frame id="frame-anim-clip-{{{ColumnIndex}}}" size="{{{Size_Category.X * 1.05}}} {{{Size_Category.Y * 4.}}}" pos="{{{Grid_Column.Pos[ColumnIndex]}}} 0" valign="center" >
+				<frameinstance
+					id="asset-category-{{{ColumnIndex}}}"
+					modelid="{{{ExpendableAsset::C_Name}}}"
+					pos="{{{(Size_Category.X / 2) + 1.5}}} 0"
+					data-width="{{{Size_Category.X}}}"
+					data-height="{{{Size_Category.Y}}}"
+					data-color="{{{CL::RgbToHex6(C_Category_Colors[ColumnIndex])}}}"
+					data-halign="center"
+					data-valign="center"
+				/>
+
+				<frame id="frame-locked-{{{ColumnIndex}}}" valign="center" hidden="1">
+					<frameinstance
+						id="asset-category-locked-{{{ColumnIndex}}}"
+						modelid="{{{ExpendableAsset::C_Name}}}"
+						pos="7.5 0"
+						data-width="{{{Size_Category.X}}}"
+						data-height="{{{Size_Category.Y}}}"
+						data-color="{{{CL::RgbToHex6(C_Category_Colors[ColumnIndex])}}}"
+						data-halign="left"
+						data-valign="center"
+					/>
+					<quad id="quad-medal-{{{ColumnIndex}}}" size="5.5 5.5" image="{{{MedalUrl}}}" halign="right" valign="center" />
+					<label id="label-medals-count-{{{ColumnIndex}}}" pos="{{{Size_Category.X + 1.5}}} 0" size="15 10" textsize="2.5" class="text-semibold" halign="right" textcolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentOne)}}}" />
+					<quad id="quad-locked-category-{{{ColumnIndex}}}" size="8 8" image="{{{Icons::C_Icon_128x128_Lock_Oblique}}}" halign="left" valign="center" colorize="{{{CL::RgbToHex6(C_Category_Colors[ColumnIndex])}}}" />
+					<quad id="quad-unlocked-category-{{{ColumnIndex}}}" hidden="1" size="8 8" halign="left" valign="center" colorize="{{{CL::RgbToHex6(C_Category_Colors[ColumnIndex])}}}" />
+				</frame>
+			</frame>
+			""";
+	}
+
+	return MV::Create(
+C_Name, 3,
+"""
+<stylesheet>
+	<style class="text-semibold" halign="center" valign="center2" textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_SemiBold)}}}" textprefix="$i$t" textcolor="FFFFFF"/>
+	<style class="text-extrabold" halign="center" valign="center2" textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}" textprefix="$i$t" textcolor="FFFFFF"/>
+</stylesheet>
+
+<frame id="frame-global" class="{{{Navigation::C_Class}}}" data-nav-inputs="action1" data-nav-targets="_" data-nav-group="{{{C_NavGroup_Global}}}" z-index="{{{Const::C_ZIndex_PopUpDisplay}}}">
+	<frameinstance id="frame-background" modelid="{{{PopUpBackground::C_Name}}}" data-header-gradient-visible="1" z-index="0"/>
+	<frameinstance id="loadingspinner-retrieve-info" modelid="{{{LoadingSpinner::C_Name}}}" pos="{{{MLHelpers::Skew(-120., 20., 10.)}}}" data-label="{{{Text_Retrieving}}}" data-label-side="{{{LoadingSpinner::C_LabelSide_Right}}}" data-size="10 10" scale="0.7" z-index="2"/>
+	<frame id="frame-profile" hidden="1" z-index="10">
+		<frameinstance modelid="{{{ProfilePlayerInfo::C_Name}}}" data-enable-players-pager="0" data-enable-zone-selection="0" data-enable-my-access-info="0"/>
+	</frame>
+
+	<!-- Pop-up header -->
+	<frameinstance id="frame-navigation-tabs" modelid="{{{NavigationTabs::C_Name}}}" pos="{{{MLHelpers::Skew(-125.5, 34.5, 10.)}}}" data-tabs="{{{TL::MLEncode(C_TabNames.tojson())}}}" data-events-delay="{{{C_EventsDelay}}}" data-halign="left" z-index="1"/>
+	<label id="label-title" pos="{{{MLHelpers::Skew(-126.5, 61.5, 10.)}}}" size="150 20" class="text-extrabold" textsize="13" halign="left" filter-profanities="OnlyIfNotTranslated" z-index="1"/>
+	<frameinstance
+		id="frame-region-rankings" pos="99.5 50" z-index="1"
+		modelid="{{{RegionRankings::C_Name}}}"
+		class="{{{Navigation::C_Class}}}"
+		data-nav-inputs="cancel;action1;action2"
+		data-nav-targets="button-map-0-0;frame-map-rankings;button-map-0-0"
+		data-nav-zone="{{{RegionRankings::C_NavZone}}}"
+		data-nav-group="{{{C_NavGroupName}}}"
+	/>
+	<frameinstance
+		id="button-club" z-index="2"
+		pos="{{{MLHelpers::Skew(-125.5, 53., 10.)}}}"
+		modelid="{{{ExpendableButton::C_Name}}}"
+		class="{{{Navigation::C_Class}}}"
+		data-styles="{{{ExpendableButton::C_Style_NoBackground}}}"
+		data-valign="center"
+		data-icon-image="{{{Icons::C_Icon_128x128_Link}}}"
+		data-icon-colormode="{{{ExpendableButton::C_ColorMode_Colorize}}}"
+		data-icon-color-unfocused="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_IconLight)}}}"
+		data-icon-color-focused="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentOne)}}}"
+		data-text-textcolor-unfocused="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_TextLight)}}}"
+		data-text-textcolor-focused="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentOne)}}}"
+		data-nav-inputs="select;cancel;down;action1;action2"
+		data-nav-targets="_;_;button-map-0-0;frame-map-rankings;frame-region-rankings"
+		data-nav-group="{{{C_NavGroupName}}}"
+		data-nav-zone="{{{ExpendableButton::C_NavZone}}}"
+		data-nav-locked="1"
+		data-filter-profanities="{{{Tools::C_FilterProfanities_Always}}}"
+		hidden="1"
+	/>
+
+	<!-- Pop-up body -->
+	<frameinstance id="frame-zone-selection" modelid="{{{ZoneSelection::C_Name}}}" pos="{{{MLHelpers::Skew(-75., 11., 10.)}}}" z-index="3"/>
+	<label id="label-info" pos="{{{MLHelpers::Skew(-125., 19., 10.)}}}" size="250 10" class="text-semibold" textsize="2.5" halign="left" z-index="3"/>
+	<frame id="frame-pinned-club" pos="{{{MLHelpers::Skew(-120., 11., 10.)}}}" z-index="3">
+		<quad id="quad-club-pin" size="5 5" image="{{{Icons::C_Icon_128x128_Pin_Full}}}" colorize="FFFFFF" halign="right" valign="center"/>
+		<label id="label-club-name" class="text-extrabold" pos="0 -0.5" textsize="4" halign="left" filter-profanities="OnlyIfNotTranslated" z-index="1"/>
+	</frame>
+
+	<frameinstance
+		id="frame-map-rankings" pos="105 -25" z-index="1"
+		modelid="{{{MapRankings::C_Name}}}"
+		class="{{{Navigation::C_Class}}}"
+		data-nav-group="{{{C_NavGroupName}}}"
+		data-nav-inputs="cancel;action1;action2"
+		data-nav-targets="button-map-0-0;button-map-0-0;frame-region-rankings"
+		data-nav-zone="{{{MapRankings::C_NavZone}}}"
+	/>
+
+	<frame id="frame-campaign" pos="{{{MLHelpers::Skew(-144., 5., 10.)}}}" z-index="1">
+		<frame id="frame-categories">
+			{{{ML_Categories}}}
+		</frame>
+		<frame id="frame-maps">
+			{{{ML_Maps}}}
+		</frame>
+	</frame>
+</frame>
+""",
+"""
+#Include "TextLib" as TL
+#Include "MathLib" as ML
+#Include "Libs/Nadeo/CMGame/Utils/Privileges.Script.txt" as Privileges
+#Include "Libs/Nadeo/CMGame/Utils/MainUser.Script.txt" as MainUser
+#Include "Libs/Nadeo/TMGame/Utils/Tracking.Script.txt" as Tracking
+#Include "Libs/Nadeo/CMGame/Utils/Tools.Script.txt" as Tools
+#Include "Libs/Nadeo/CMGame/Utils/MLHelpers.Script.txt" as MLHelpers
+#Include "Libs/Nadeo/CMGame/Utils/Medals.Script.txt" as Medals
+#Include "Libs/Nadeo/Trackmania/RBAC.Script.txt" as RBAC
+#Include "Libs/Nadeo/Trackmania/MainMenu/TitleControl.Script.txt" as TitleControl
+#Include "Libs/Nadeo/Trackmania/MainMenu/Overlays/ControllerInfo_ML.Script.txt" as ControllerInfo
+#Include "Libs/Nadeo/Trackmania/MainMenu/Overlays/ReportSystem.Script.txt" as ReportSystem
+#Include "Libs/Nadeo/Trackmania/Structures/ReportStruct.Script.txt" as ReportStruct
+#Include "Libs/Nadeo/CMGame/Utils/Config.Script.txt" as Config
+#Include "Libs/Nadeo/CMGame/Utils/AudioManager_ML.Script.txt" as AudioManager
+#Include "Libs/Nadeo/Trackmania/ClubEdition.Script.txt" as ClubEdition
+
+#Const C_ImageUrls_PopUp_Quarterly_Header {{{dump(Const::C_ImageUrls_PopUp_Quarterly_Header)}}}
+#Const C_ImageUrls_Campaign_Decal {{{dump(Const::C_ImageUrls_Campaign_Decal)}}}
+
+#Const C_Tab_Medals {{{dump(Const::C_Tab_Medals)}}}
+#Const C_Tab_ZoneRankings {{{dump(Const::C_Tab_ZoneRankings)}}}
+#Const C_Tab_ClubRankings {{{dump(Const::C_Tab_ClubRankings)}}}
+#Const C_TabNames {{{dump(Const::C_TabNames_Campaigns)}}}
+
+#Const C_CacheLifetime 60000
+
+#Const C_UnlockVideoSoundDelay 500
+#Const C_Duration_UnlockAnimationStep1 700
+#Const C_Duration_UnlockAnimationStep2 700
+#Const C_Duration_UnlockAnimationStep3 500
+#Const C_IntervalBetweenUnlockMaps 200
+
+#Struct K_Controls {
+	CMlFrame Button_Club;
+	CMlFrame Frame_Background;
+	CMlFrame Frame_Categories;
+	CMlFrame LoadingSpinner_RetrieveInfo;
+	CMlFrame Frame_MapRankings;
+	CMlFrame Frame_NavigationTabs;
+	CMlFrame Frame_PinnedClub;
+	CMlFrame Frame_Profile;
+	CMlFrame Frame_RegionRankings;
+	CMlFrame Frame_Maps;
+	CMlFrame Frame_ZoneSelection;
+	CMlLabel Label_ClubName;
+	CMlLabel Label_Info;
+	CMlLabel Label_Title;
+}
+
+#Struct K_MapInfo {
+	Text Uid;
+	Boolean Locked;
+	Integer Category;
+}
+
+#Struct K_MapToUnlock {
+	CMlFrame Button;
+	Boolean IsRaced;
+}
+
+#Struct K_State {
+	Boolean IsClubActivity;
+	CMlControl FocusedMap;
+	Integer	FetchMapRankingsWithDelay;
+	Integer CampaignId;
+	Integer CurrentTab;
+	Integer ZoneLevel;
+	Boolean CanViewLeaderboards;
+	K_Controls Controls;
+	{{{CampaignStruct::P}}}K_CampaignName CampaignName;
+	Privileges::K_PrivilegeCheck LeaderboardPrivilegeCheck;
+	ReportStruct::LibStructuresReport_K_ReportData[Integer] CurrentReportData;
+	Integer[] LockedCategories;
+	Integer[Integer] CurrentMedalsToUnlockCategory; // key is the category and value the nb of current medals to unlock this category
+	K_MapToUnlock[] MapsToUnlock;
+	Integer NavigationUnlockTime;
+	Integer AnimMapUnlockTime;
+	CVideo[Integer] UnlockVideos;
+	Text[Text] LastQuery;
+}
+""",
+"""
+declare Ident G_TTSContextIdent_Tabs;
+declare Ident G_TTSContextIdent_Section;
+
+// Read the TTS context with updated value
+Void ReadTTSContext(K_State _State) {
+	ParentApp.TTS_Context_Change(G_TTSContextIdent_Tabs, {{{NavigationTabs::P}}}GetCurrentTabLabel(_State.Controls.Frame_NavigationTabs));
+	if (_State.Controls.Frame_ZoneSelection.Visible || _State.Controls.Frame_PinnedClub.Visible) {
+		if (G_TTSContextIdent_Section == NullId) G_TTSContextIdent_Section = ParentApp.TTS_Context_Enter({{{TextToSpeech::C_ContextLevel_Section}}});
+		if (_State.Controls.Frame_ZoneSelection.Visible) ParentApp.TTS_Context_Change(G_TTSContextIdent_Section, {{{ZoneSelection::P}}}GetCurrentZoneName(This), True);
+		if (_State.Controls.Frame_PinnedClub.Visible) ParentApp.TTS_Context_Change(G_TTSContextIdent_Section, _State.Controls.Label_ClubName);
+	} else {
+		G_TTSContextIdent_Section = ParentApp.TTS_Context_Leave(G_TTSContextIdent_Section);
+	}
+	ParentApp.TTS_Context_Read({{{TextToSpeech::C_ContextLevel_Page}}});
+}
+
+// Display an information message
+Void DisplayInfo(K_State _State, Text _Text, Integer _InfoType) {
+	declare Integer CurrentlyDisplayedInfoType for _State.Controls.Label_Info = {{{Const::C_InfoType_None}}};
+	declare Vec2 Pos_Hidden = MLHelpers::SkewX(<-126., 20.>, 10.);
+	declare Vec2 Pos_Visible = MLHelpers::SkewX(<-125., 20.>, 10.);
+
+	// Update loading spinner
+	if (_InfoType == {{{Const::C_InfoType_Loading}}}) {
+		{{{LoadingSpinner::P}}}StartAnimWithFade(This, _State.Controls.LoadingSpinner_RetrieveInfo, _Text);
+	} else if ({{{LoadingSpinner::P}}}IsLoading(_State.Controls.LoadingSpinner_RetrieveInfo)) {
+		{{{LoadingSpinner::P}}}StopAnimWithFade(This, _State.Controls.LoadingSpinner_RetrieveInfo);
+	}
+
+	// Update label
+	if (CurrentlyDisplayedInfoType != _InfoType || _Text != _State.Controls.Label_Info.Value) {
+		AnimMgr.Flush(_State.Controls.Label_Info);
+		if (_InfoType != {{{Const::C_InfoType_Loading}}} && _Text != "") {
+			_State.Controls.Label_Info.SetText(_Text);
+			_State.Controls.Label_Info.Opacity = 0.;
+			_State.Controls.Label_Info.RelativePosition_V3 = Pos_Hidden;
+			if (_InfoType == {{{Const::C_InfoType_Error}}}) _State.Controls.Label_Info.TextColor = {{{Stylesheet::GetColorRGB(Stylesheet::C_Color_TextError)}}};
+			else _State.Controls.Label_Info.TextColor = {{{Stylesheet::GetColorRGB(Stylesheet::C_Color_TextLight)}}};
+			AnimMgr.Add(_State.Controls.Label_Info, "<anim pos=\""^Pos_Visible.X^" "^Pos_Visible.Y^"\" opacity=\"1.\" hidden=\"0\"/>", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+		} else {
+			AnimMgr.Add(_State.Controls.Label_Info, "<anim pos=\""^Pos_Hidden.X^" "^Pos_Hidden.Y^"\" opacity=\"0.\" hidden=\"1\"/>", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+		}
+	}
+
+	// Update current info type
+	CurrentlyDisplayedInfoType = _InfoType;
+}
+
+// Update controller hints at the bottom of the screen
+Void UpdateControllerInfo(K_State _State) {
+	declare Text[Text] ControllerInfos = ["A" => "{{{Text_Select}}}"];
+	declare CMlControl FocusedControl = {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}");
+
+	if (FocusedControl != Null) {
+		if (_State.CurrentTab != C_Tab_Medals) {
+			switch (FocusedControl.ControlId) {
+				case _State.Controls.Frame_MapRankings.ControlId: {
+					ControllerInfos["B"] = ""; //< Empty on purpose
+					ControllerInfos["Action1"] = "{{{Text_ExitRankings}}}";
+					if (!{{{Navigation::P}}}IsLocked(_State.Controls.Frame_RegionRankings)) ControllerInfos["Action2"] = "{{{Text_AccessCampaignRankings}}}";
+				}
+				case _State.Controls.Frame_RegionRankings.ControlId: {
+					if (!{{{Navigation::P}}}IsLocked(_State.Controls.Frame_MapRankings)) ControllerInfos["Action1"] = "{{{Text_AccessMapRankings}}}";
+					ControllerInfos["B"] = ""; //< Empty on purpose
+					ControllerInfos["Action2"] = "{{{Text_ExitRankings}}}";
+				}
+				default: {
+					ControllerInfos["B"] = "{{{Text_Back}}}";
+					if (!{{{Navigation::P}}}IsLocked(_State.Controls.Frame_MapRankings)) ControllerInfos["Action1"] = "{{{Text_AccessMapRankings}}}";
+					if (!{{{Navigation::P}}}IsLocked(_State.Controls.Frame_RegionRankings)) ControllerInfos["Action2"] = "{{{Text_AccessCampaignRankings}}}";
+				}
+			}
+		} else if ({{{MapRankings::P}}}IsMapAuthorNameDisplayed(_State.Controls.Frame_MapRankings)) {
+			ControllerInfos["Action1"] = "{{{Text_ShowAuthorProfile}}}";
+		}
+		ControllerInfos["{{{Const::C_NavInput_ReportSystem}}}"] = "{{{Const::C_Text_Report}}}";
+	} else {
+		ControllerInfos["B"] = "{{{Text_Back}}}";
+	}
+
+	ControllerInfo::SetButtons(ControllerInfos);
+}
+
+// Update the focus state of the given map button
+Void UpdateMapButtonFocus(K_State _State, CMlFrame _Button_Map, Boolean _IsFocused) {
+	if (!_Button_Map.HasClass("{{{C_Class_MapButton}}}")) return;
+
+	declare CMlLabel Label_Top = _Button_Map.Parent.GetFirstChild("label-top") as CMlLabel;
+	declare CMlLabel Label_Rank = _Button_Map.Parent.GetFirstChild("label-rank") as CMlLabel;
+
+	AnimMgr.Flush(Label_Top);
+	AnimMgr.Flush(Label_Rank);
+
+	if (_IsFocused) {
+		AnimMgr.Add(Label_Top, "<anim textcolor=\"FFFFFF\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+		AnimMgr.Add(Label_Rank, "<anim textcolor=\"FFFFFF\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+	}	else {
+		AnimMgr.Add(Label_Top, "<anim textcolor=\"{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentThree)}}}\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+		AnimMgr.Add(Label_Rank, "<anim textcolor=\"{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentThree)}}}\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+	}
+
+	/* Update report context */
+	if (_IsFocused) {
+		declare K_MapInfo MapInfo for _Button_Map;
+		declare {{{CampaignStruct::P}}}K_Map MapData = {{{CampaignStore::P}}}GetMap(_State.CampaignId, MapInfo.Uid);
+
+		if (MapData.Uid != "") {
+			ReportSystem::AddData(
+				ReportStruct::C_ReportTarget_Track,
+				ReportStruct::LibStructuresReport_K_ReportData {
+					Details = [MapData.Name],
+					Ids = [MapData.Uid],
+					Contexts = [["From" => "Menu CampaignDisplay"]]
+				}
+			);
+			if ({{{ControlBlockList::P}}}IsBlocked(This, MapData.AuthorLogin) || MapInfo.Locked) {
+				{{{MenuSounds::P}}}SetCustomSelectSound(_Button_Map, {{{MenuSounds::P}}}C_Sound_SelectError);
+			} else {
+				{{{MenuSounds::P}}}SetCustomSelectSound(_Button_Map, {{{MenuSounds::P}}}C_Sound_Select);
+			}
+		} else {
+			ReportSystem::RemoveData(ReportStruct::C_ReportTarget_Track);
+		}
+	}
+}
+
+// Fetch all player ranking information for this campaign that will be displayed in the map button, e.g. "Top 1"
+Void FetchAllMapPlayerRankings(K_State _State) {
+	if (_State.CurrentTab == C_Tab_Medals) return;
+	declare {{{CampaignStruct::P}}}K_Campaign Campaign = {{{CampaignStore::P}}}GetCampaignFromId(_State.CampaignId);
+	declare Integer[Text] CurrentScores;
+	foreach (Category in Campaign.Categories) {
+		foreach (Map in Category.Playlist) {
+			CurrentScores[Map.Uid] = Map.Score;
+		}
+	}
+
+	if (Campaign.IsLoaded) {
+		switch (_State.CurrentTab) {
+			case C_Tab_ZoneRankings: {
+				{{{CampaignStore::P}}}Action_LoadMapPlayerGlobalRankings(This, Campaign.LeaderboardGroupUid, CurrentScores);
+			}
+			case C_Tab_ClubRankings: {
+				{{{CampaignStore::P}}}Action_LoadMapPlayerClubRankings(This, Campaign.LeaderboardGroupUid, {{{ClubStore::P}}}GetUserPinnedClub().Id, CurrentScores);
+			}
+		}
+	}
+}
+
+// Update the RegionRankings component
+Void UpdateRegionRankingsComponent(K_State _State, {{{CampaignStruct::P}}}K_Campaign _Campaign) {
+	declare Integer UserPinnedClubId = {{{ClubStore::P}}}GetUserPinnedClub().Id;
+	declare {{{CampaignStruct::P}}}K_TopRanking[] TopRankingList;
+
+	foreach (ZoneLevel => TopRanking in _Campaign.TopRankings) {
+		declare {{{CampaignStruct::P}}}K_Top[] TopsWithMainUser;
+		declare IsInTop5 = False;
+		foreach (Index => Top in TopRanking.Tops) {
+			if (Index >= {{{RegionRankings::C_NumberOf_RanksInList}}}) break;
+			if (Top.AccountId == LocalUser.WebServicesUserId) IsInTop5 = True;
+			TopsWithMainUser.add(Top);
+		}
+
+		if (!IsInTop5) {
+			declare Position = 0;
+			if (_Campaign.CampaignRanking.Rankings.existskey(ZoneLevel)) {
+				Position = _Campaign.CampaignRanking.Rankings[ZoneLevel].Position;
+			}
+
+			TopsWithMainUser.add({{{CampaignStruct::P}}}K_Top {
+				AccountId = LocalUser.WebServicesUserId,
+				DisplayName = {{{UserStore::P}}}GetPlayerName(LocalUser),
+				Position = Position,
+				SP = _Campaign.CampaignRanking.SP
+			});
+		}
+
+		TopRankingList.add({{{CampaignStruct::P}}}K_TopRanking {
+			Tops = TopsWithMainUser,
+			ZoneName = TopRanking.ZoneName
+		});
+	}
+
+	{{{RegionRankings::P}}}UpdateRankingDisplayed(_State.Controls.Frame_RegionRankings, _State.CurrentTab);
+	{{{RegionRankings::P}}}SetRankingUIZone(_State.Controls.Frame_RegionRankings, _State.ZoneLevel);
+	{{{RegionRankings::P}}}SetTopInRankingsControl(_State.Controls.Frame_RegionRankings, _Campaign.CampaignRanking.Rankings);
+	{{{RegionRankings::P}}}SetRankingsInRankingControl(
+		_State.Controls.Frame_RegionRankings,
+		TopRankingList,
+		_Campaign.ClubTopRankings.get(UserPinnedClubId, []),
+		_Campaign.ClubPlayerRanking.get(UserPinnedClubId, {{{CampaignStruct::P}}}K_Top {}),
+		_State.ZoneLevel
+	);
+}
+
+// Fetch all necessary information about the campaign that will be displayed in the RegionRankings component
+Void FetchRegionRankings(K_State _State) {
+	declare {{{CampaignStruct::P}}}K_Campaign Campaign = {{{CampaignStore::P}}}GetCampaignFromId(_State.CampaignId);
+
+	if (Campaign.IsLoaded) {
+		switch (_State.CurrentTab) {
+			case C_Tab_Medals, C_Tab_ZoneRankings: {
+				{{{CampaignStore::P}}}Action_LoadCampaignTopGlobalRankings(This, _State.CampaignId, Campaign.LeaderboardGroupUid);
+				{{{CampaignStore::P}}}Action_LoadCampaignPlayerGlobalRankings(This, _State.CampaignId, Campaign.LeaderboardGroupUid);
+			}
+			case C_Tab_ClubRankings: {
+				{{{CampaignStore::P}}}Action_LoadCampaignTopClubRankings(This, _State.CampaignId, {{{ClubStore::P}}}GetUserPinnedClub().Id, Campaign.LeaderboardGroupUid, 0, 5);
+			}
+		}
+		UpdateRegionRankingsComponent(_State, Campaign);
+	}
+}
+
+// Update the MapRankings component
+Void UpdateMapRankingsComponent(K_State _State, {{{CampaignStruct::P}}}K_Campaign _Campaign, Boolean _UpdateControllerInfos) {
+	declare K_MapInfo MapInfo for _State.FocusedMap;
+	declare {{{CampaignStruct::P}}}K_Map MapData = {{{CampaignStore::P}}}GetMap(_State.CampaignId, MapInfo.Uid);
+	declare Boolean IsLoading = (
+		(_State.CurrentTab == C_Tab_ZoneRankings && MapData.TopRankings.count <= 0) ||
+		(_State.CurrentTab == C_Tab_ClubRankings && MapData.ClubTopRankings.count <= 0)
+	);
+
+	{{{MapRankings::P}}}UpdateMapRanking(
+		This,
+		_State.Controls.Frame_MapRankings,
+		{{{ClubStore::P}}}GetUserPinnedClub().Id,
+		_State.CampaignId,
+		_Campaign.LeaderboardGroupUid,
+		MapData,
+		_State.ZoneLevel,
+		_State.CurrentTab,
+		False,
+		MapInfo.Locked,
+		MapInfo.Category,
+		_State.CurrentMedalsToUnlockCategory.get(MapInfo.Category, 0),
+		True,
+		IsLoading
+	);
+
+	{{{MapRankings::P}}}ShowRanking(_State.Controls.Frame_MapRankings, _State.CurrentTab != C_Tab_Medals);
+	{{{MapRankings::P}}}ShowMedal(_State.Controls.Frame_MapRankings, _State.CurrentTab == C_Tab_Medals);
+	if (_UpdateControllerInfos) UpdateControllerInfo(_State);
+}
+
+Void UpdateMapRankingsComponent(K_State _State, {{{CampaignStruct::P}}}K_Campaign _Campaign) {
+	UpdateMapRankingsComponent(_State, _Campaign, True);
+}
+
+// Fetch all necessary information about the focused map that will be displayed in the MapRankings component
+Void FetchFocusedMapRankings(K_State _State) {
+	declare K_MapInfo MapInfo for _State.FocusedMap;
+	declare {{{CampaignStruct::P}}}K_Map MapData = {{{CampaignStore::P}}}GetMap(_State.CampaignId, MapInfo.Uid);
+	declare {{{CampaignStruct::P}}}K_Campaign Campaign = {{{CampaignStore::P}}}GetCampaignFromId(_State.CampaignId);
+
+	if (MapData.Uid != "") {
+		switch (_State.CurrentTab) {
+			case C_Tab_ZoneRankings: {
+				if ({{{CampaignStore::P}}}HasCacheExpired_MapTopGlobalRankings(MapData, C_CacheLifetime)) {
+					{{{CampaignStore::P}}}Action_LoadMapTopGlobalRankings(This, Campaign.LeaderboardGroupUid, MapData.Uid, MapData.Score);
+				}
+				if ({{{CampaignStore::P}}}HasCacheExpired_MapPlayerGlobalRankings(MapData, C_CacheLifetime)) {
+					{{{CampaignStore::P}}}Action_LoadMapPlayerGlobalRankings(This, Campaign.LeaderboardGroupUid, MapData.Uid, MapData.Score);
+				}
+			}
+			case C_Tab_ClubRankings: {
+				declare Integer UserPinnedClubId = {{{ClubStore::P}}}GetUserPinnedClub().Id;
+				if ({{{CampaignStore::P}}}HasCacheExpired_MapTopClubRankings(MapData, UserPinnedClubId, C_CacheLifetime)) {
+					{{{CampaignStore::P}}}Action_LoadMapTopClubRankings(This, Campaign.LeaderboardGroupUid, MapData.Uid, UserPinnedClubId, MapData.Score);
+				}
+				if ({{{CampaignStore::P}}}HasCacheExpired_MapPlayerClubRankings(MapData, UserPinnedClubId, C_CacheLifetime)) {
+					{{{CampaignStore::P}}}Action_LoadMapPlayerClubRankings(This, Campaign.LeaderboardGroupUid, UserPinnedClubId, MapData.Uid, MapData.Score);
+				}
+			}
+		}
+		UpdateMapRankingsComponent(_State, Campaign);
+	}
+}
+
+// Handle the focus on the given control
+K_State Focus(K_State _State, CMlControl _From, CMlControl _To, Boolean _UpdateControllerInfos) {
+	if ({{{Transition::P}}}IsInTransition(This)) return _State;
+	declare K_State State = _State;
+
+	if (_From != Null) {
+		{{{Navigation::P}}}Unfocus(This, _From);
+		if ({{{ExpendableButton::P}}}IsButton(_From)) {
+			{{{ExpendableButton::P}}}Unfocus(This, (_From as CMlFrame));
+			UpdateMapButtonFocus(State, _From as CMlFrame, False);
+		} else if ({{{RegionRankings::P}}}IsRegionRankings(_From)) {
+			{{{RegionRankings::P}}}Unfocus((_From as CMlFrame));
+		} else if ({{{MapRankings::P}}}IsMapRankings(_From)) {
+			{{{MapRankings::P}}}Unfocus(This, (_From as CMlFrame));
+		}
+	}
+
+	if (_To != Null) {
+		{{{Navigation::P}}}Focus(This, _To);
+		if ({{{ExpendableButton::P}}}IsButton(_To)) {
+			{{{ExpendableButton::P}}}Focus(This, (_To as CMlFrame));
+			switch (_To.ControlId) {
+				case "button-club": {{{Navigation::P}}}ChangeControlTarget(This, _To, "down", State.FocusedMap.ControlId);
+				default: {
+					if (_To.HasClass("{{{C_Class_MapButton}}}")) {
+						State.FocusedMap = _To;
+						State.FetchMapRankingsWithDelay = Now + {{{C_EventsDelay}}};
+						UpdateMapRankingsComponent(State, {{{CampaignStore::P}}}GetCampaignFromId(State.CampaignId));
+						UpdateMapButtonFocus(State, _To as CMlFrame, True);
+					}
+				}
+			}
+		} else if ({{{RegionRankings::P}}}IsRegionRankings(_To)) {
+			{{{RegionRankings::P}}}Focus((_To as CMlFrame));
+			{{{Navigation::P}}}ChangeControlTargets(This, _To, ["cancel", "action2"], [State.FocusedMap.ControlId, State.FocusedMap.ControlId]);
+		} else if ({{{MapRankings::P}}}IsMapRankings(_To)) {
+			{{{MapRankings::P}}}Focus(This, (_To as CMlFrame));
+			{{{Navigation::P}}}ChangeControlTargets(This, _To, ["cancel", "action1"], [State.FocusedMap.ControlId, State.FocusedMap.ControlId]);
+		}
+	}
+
+	if (_UpdateControllerInfos) UpdateControllerInfo(State);
+
+	return State;
+}
+
+K_State Focus(K_State _State, CMlControl _From, CMlControl _To) {
+	return Focus(_State, _From, _To, True);
+}
+
+// Update the campaign maps display based on the current tab
+K_State UpdateCampaignMapsGrid(K_State _State, Integer _CurrentTab) {
+	declare K_State State = _State;
+	declare {{{CampaignStruct::P}}}K_Campaign Campaign = {{{CampaignStore::P}}}GetCampaignFromId(State.CampaignId);
+
+	/* Update current tab */
+	State.CurrentTab = _CurrentTab;
+	State.Controls.Frame_ZoneSelection.Visible = _CurrentTab == C_Tab_ZoneRankings;
+	State.Controls.Frame_PinnedClub.Visible = _CurrentTab == C_Tab_ClubRankings;
+	if (!{{{LoadingSpinner::P}}}IsLoading(State.Controls.LoadingSpinner_RetrieveInfo)) {
+		if (Campaign.MapCount <= 0) {
+			DisplayInfo(State, "{{{Text_NoMaps}}}", {{{Const::C_InfoType_Standard}}});
+		} else if (Campaign.Type == {{{CampaignStruct::C_CampaignType_Quarterly}}} && !Campaign.IsSeasonLive && State.CurrentTab != C_Tab_Medals) {
+			DisplayInfo(State, "{{{Text_LeaderboardsClosed}}}", {{{Const::C_InfoType_Standard}}});
+		} else {
+			DisplayInfo(State, "", {{{Const::C_InfoType_None}}});
+		}
+	}
+
+	foreach (Index => Control in State.Controls.Frame_Maps.Controls) {
+		declare CMlFrame Button_Map = (Control as CMlFrame).Controls[0] as CMlFrame;
+		declare CMlFrame Frame_MedalStack = (Control as CMlFrame).Controls[1] as CMlFrame;
+		declare CMlFrame Frame_Top = (Control as CMlFrame).Controls[2] as CMlFrame;
+		declare CMlLabel Label_Top = (Frame_Top.GetFirstChild("label-top") as CMlLabel);
+		declare CMlLabel Label_Rank = (Frame_Top.GetFirstChild("label-rank") as CMlLabel);
+		declare K_MapInfo MapInfo for Button_Map;
+
+		declare {{{CampaignStruct::P}}}K_Map MapData = {{{CampaignStore::P}}}GetMap(State.CampaignId, MapInfo.Uid);
+
+		// Lock some official maps to handle the player progression on the current live campaign
+		declare Boolean IsLiveQuaterlyCampaign = (Campaign.Type == {{{CampaignStruct::C_CampaignType_Quarterly}}} && Campaign.IsSeasonLive);
+		MapInfo.Locked =
+			IsLiveQuaterlyCampaign &&
+			(
+				(MapInfo.Category == {{{CampaignStruct::P}}}C_CategoryBlue && State.LockedCategories.exists({{{CampaignStruct::P}}}C_CategoryBlue)) ||
+				(MapInfo.Category == {{{CampaignStruct::P}}}C_CategoryRed && State.LockedCategories.exists({{{CampaignStruct::P}}}C_CategoryRed)) ||
+				(MapInfo.Category == {{{CampaignStruct::P}}}C_CategoryBlack && State.LockedCategories.exists({{{CampaignStruct::P}}}C_CategoryBlack))
+			)
+		;
+
+		// Display medal stack or top depending on the current tab
+		Frame_MedalStack.Visible = State.CurrentTab == C_Tab_Medals && MapData.Medal > 0 && !MapInfo.Locked;
+		Frame_Top.Visible = State.CurrentTab != C_Tab_Medals && MapData.Score > 0 && !MapInfo.Locked;
+		if (Frame_MedalStack.Visible) {
+			{{{MedalStack::P}}}SetMedalsNumber(Frame_MedalStack, MapData.Medal);
+		} else if (Frame_Top.Visible) {
+			switch (State.CurrentTab) {
+				case C_Tab_ZoneRankings: {
+					if (MapData.Rankings.count > 0 && MapData.Rankings.existskey(State.ZoneLevel)) {
+						Label_Rank.SetText(Tools::FormatTop(MapData.Rankings[State.ZoneLevel].Position, False));
+					} else {
+						Label_Rank.SetText("");
+					}
+				}
+				case C_Tab_ClubRankings: {
+					declare Integer UserPinnedClubId = {{{ClubStore::P}}}GetUserPinnedClub().Id;
+					if (MapData.ClubRankings.existskey(UserPinnedClubId)) {
+						Label_Rank.SetText(Tools::FormatTop(MapData.ClubRankings[UserPinnedClubId], False));
+					} else {
+						Label_Rank.SetText("");
+					}
+				}
+			}
+
+			Frame_Top.Visible = Label_Rank.Value != "";
+			Tools::FitLabelValue(Label_Top, 1.5, 1., 0.1);
+			Tools::FitLabelValue(Label_Rank, 3.5, 2.5, 0.1);
+		}
+
+		// Update map button styles
+		if (MapInfo.Locked) {
+			{{{ExpendableButton::P}}}AddStyle(This, Button_Map, {{{ExpendableButton::P}}}Style_MapLocked(), False);
+			{{{ExpendableButton::P}}}RemoveStyle(This, Button_Map, {{{ExpendableButton::P}}}Style_MapRaced());
+		} else if (IsLiveQuaterlyCampaign && !MapInfo.Locked && {{{ExpendableButton::P}}}HasStyle(Button_Map, {{{ExpendableButton::P}}}Style_MapLocked())) {
+			State.MapsToUnlock.add( // animation on unlock maps in the main loop
+				K_MapToUnlock {
+					Button = Button_Map,
+					IsRaced = (MapData.Score > 0)
+				}
+			);
+		} else if (MapData.Score > 0 && !{{{ExpendableButton::P}}}HasStyle(Button_Map, {{{ExpendableButton::P}}}Style_MapRaced())) {
+			{{{ExpendableButton::P}}}AddStyle(This, Button_Map, {{{ExpendableButton::P}}}Style_MapRaced());
+		} else if (MapData.Score <= 0 && {{{ExpendableButton::P}}}HasStyle(Button_Map, {{{ExpendableButton::P}}}Style_MapRaced())) {
+			{{{ExpendableButton::P}}}RemoveStyle(This, Button_Map, {{{ExpendableButton::P}}}Style_MapRaced());
+		}
+	}
+
+	/* Update the navigation if needed */
+	if (Campaign.IsLoaded && !Campaign.FailedToGetMapUrl) {
+		if ({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}") == State.Controls.Button_Club) {
+			if ({{{Navigation::P}}}IsLocked(State.FocusedMap)) State.FocusedMap = State.Controls.Frame_Maps.GetFirstChild("button-map-0-0");
+			if (!{{{Navigation::P}}}IsLocked(State.FocusedMap)) State = Focus(State, State.Controls.Button_Club, State.FocusedMap);
+		}
+	}
+
+	return State;
+}
+
+/* Lock the navigation in the page */
+Void LockPage(K_State _State, Boolean _Lock) {
+	{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", !_Lock);
+	{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroup_Global}}}", !_Lock);
+	{{{MapRankings::P}}}LockNavigation(This, _State.Controls.Frame_MapRankings, _Lock);
+	{{{RegionRankings::P}}}LockNavigation(_State.Controls.Frame_RegionRankings, _Lock);
+	{{{NavigationTabs::P}}}LockTabs(This, _State.Controls.Frame_NavigationTabs, _Lock);
+}
+
+/* Update campaign categories display */
+K_State UpdateCampaignCategories(K_State _State, {{{CampaignStruct::P}}}K_Campaign _Campaign, Integer _PreviousLockedCategory) {
+	declare K_State State = _State;
+	State.Controls.Frame_Categories.Visible = _Campaign.Type == {{{CampaignStruct::P}}}C_CampaignType_Quarterly;
+	declare Integer CategoryIndex = 0;
+	declare Boolean CategoryLocked = False;
+	declare Boolean CategoryVisible = False;
+	if (State.Controls.Frame_Categories.Visible) {
+		for (CategoryIndex, 0, {{{C_ColumnNumber}}}-1) {
+			declare CMlFrame Asset_Category <=> (State.Controls.Frame_Categories.GetFirstChild("asset-category-"^CategoryIndex) as CMlFrame);
+			declare CMlFrame Frame_Locked <=> (State.Controls.Frame_Categories.GetFirstChild("frame-locked-"^CategoryIndex) as CMlFrame);
+
+			CategoryVisible = _Campaign.Categories.existskey(CategoryIndex) && _Campaign.Categories[CategoryIndex].Playlist.count > 0 && _Campaign.Categories[CategoryIndex].Playlist[0].Uid != "";
+			CategoryLocked =
+				(CategoryIndex == {{{CampaignStruct::P}}}C_CategoryBlue && State.LockedCategories.exists({{{CampaignStruct::P}}}C_CategoryBlue)) ||
+				(CategoryIndex == {{{CampaignStruct::P}}}C_CategoryRed && State.LockedCategories.exists({{{CampaignStruct::P}}}C_CategoryRed)) ||
+				(CategoryIndex == {{{CampaignStruct::P}}}C_CategoryBlack && State.LockedCategories.exists({{{CampaignStruct::P}}}C_CategoryBlack))
+			;
+
+			Asset_Category.Visible = CategoryVisible && !CategoryLocked;
+			Frame_Locked.Visible = CategoryVisible && CategoryLocked;
+
+			if (Frame_Locked.Visible) {
+				declare CMlFrame ExpendableAsset_CategoryLocked = Frame_Locked.GetFirstChild("asset-category-locked-"^CategoryIndex) as CMlFrame;
+				declare CMlQuad Quad_MedalLocked = Frame_Locked.GetFirstChild("quad-medal-"^CategoryIndex) as CMlQuad;
+				declare CMlLabel Label_MedalsCount = Frame_Locked.GetFirstChild("label-medals-count-"^CategoryIndex) as CMlLabel;
+				declare CMlQuad Quad_Locked = Frame_Locked.GetFirstChild("quad-locked-category-"^CategoryIndex) as CMlQuad;
+				declare CMlQuad Quad_Unlocked = Frame_Locked.GetFirstChild("quad-unlocked-category-"^CategoryIndex) as CMlQuad;
+
+				//L16N [CampaignDisplay] Text to indicate the number of medals needed to unlock a category (example 6/10 Bronze Medals to unlock the Blue Category)
+				Label_MedalsCount.Value = TL::Compose("%1/%2", ""^State.CurrentMedalsToUnlockCategory.get(CategoryIndex, 0), ""^{{{CampaignStruct::P}}}GetMedalsMinToUnlockCategory(CategoryIndex));
+				declare LabelLength = ML::Min(Label_MedalsCount.Size.X, Label_MedalsCount.ComputeWidth(Label_MedalsCount.Value));
+				Quad_MedalLocked.RelativePosition_V3.X = Label_MedalsCount.RelativePosition_V3.X - LabelLength - 0.15;
+				{{{ExpendableAsset::P}}}SetWidth(This, ExpendableAsset_CategoryLocked, {{{Size_Category.X}}} - LabelLength - 12.4, False);
+				{{{ExpendableAsset::P}}}RedrawAsset(This, ExpendableAsset_CategoryLocked, False);
+				Quad_Locked.Visible = True;
+				Quad_Unlocked.Visible = False;
+				if (State.UnlockVideos.existskey(CategoryIndex) && State.UnlockVideos[CategoryIndex] != Null) {
+					declare CVideo CurrentVideo = State.UnlockVideos[CategoryIndex];
+					Quad_Unlocked.Image = CurrentVideo.Image;
+					CurrentVideo.Stop();
+					CurrentVideo.PlayCursor = 0.;
+				}
+			} else if (CategoryIndex == _PreviousLockedCategory) {
+				declare CMlQuad Quad_Locked = Frame_Locked.GetFirstChild("quad-locked-category-"^CategoryIndex) as CMlQuad;
+				declare CMlQuad Quad_Unlocked = Frame_Locked.GetFirstChild("quad-unlocked-category-"^CategoryIndex) as CMlQuad;
+				declare CMlFrame ExpendableAsset_CategoryLocked = Frame_Locked.GetFirstChild("asset-category-locked-"^CategoryIndex) as CMlFrame;
+				declare CMlQuad Quad_MedalLocked = Frame_Locked.GetFirstChild("quad-medal-"^CategoryIndex) as CMlQuad;
+				declare CMlLabel Label_MedalsCount = Frame_Locked.GetFirstChild("label-medals-count-"^CategoryIndex) as CMlLabel;
+
+				// Update medal count first
+				// Text to indicate the number of medals needed to unlock a category (example 6/10 Bronze Medals to unlock the Blue Category)
+				Label_MedalsCount.Value = TL::Compose("%1/%2", ""^State.CurrentMedalsToUnlockCategory.get(CategoryIndex, 0), ""^{{{CampaignStruct::P}}}GetMedalsMinToUnlockCategory(CategoryIndex));
+				declare LabelLength = ML::Min(Label_MedalsCount.Size.X, Label_MedalsCount.ComputeWidth(Label_MedalsCount.Value));
+				Quad_MedalLocked.RelativePosition_V3.X = Label_MedalsCount.RelativePosition_V3.X - LabelLength - 0.15;
+				{{{ExpendableAsset::P}}}SetWidth(This, ExpendableAsset_CategoryLocked, {{{Size_Category.X}}} - LabelLength - 12.4, False);
+				{{{ExpendableAsset::P}}}RedrawAsset(This, ExpendableAsset_CategoryLocked, False);
+
+				// Lock navigation during the unlock category animation
+				LockPage(State, True);
+				declare Integer TotalAnimationTime = C_Duration_UnlockAnimationStep1 + C_Duration_UnlockAnimationStep2 + C_Duration_UnlockAnimationStep3;
+				State.NavigationUnlockTime = Now + TotalAnimationTime;
+				State.AnimMapUnlockTime = Now + C_Duration_UnlockAnimationStep1;
+
+				Asset_Category.Visible = False;
+				Frame_Locked.Visible = True;
+
+				// Flush anims
+				AnimMgr.Flush(Asset_Category);
+				AnimMgr.Flush(Frame_Locked);
+				AnimMgr.Flush(Quad_Locked);
+				AnimMgr.Flush(ExpendableAsset_CategoryLocked);
+				AnimMgr.Flush(Quad_MedalLocked);
+				AnimMgr.Flush(Label_MedalsCount);
+
+				// First step (Play unlocked video)
+				Quad_Locked.Visible = False;
+				Quad_Unlocked.Visible = True;
+				if (State.UnlockVideos.existskey(CategoryIndex) && State.UnlockVideos[CategoryIndex] != Null) {
+					declare CVideo CurrentVideo = State.UnlockVideos[CategoryIndex];
+					Quad_Unlocked.Image = CurrentVideo.Image;
+					CurrentVideo.Play();
+				}
+				AudioManager::PlaySoundWithDelay(This, "{{{C_Name}}}", "SquadInvitation", Now + C_UnlockVideoSoundDelay);
+
+				// Second step (hide medal data)
+				{{{ExpendableAsset::P}}}SetWidth(This, ExpendableAsset_CategoryLocked, {{{Size_Category.X}}} - 6., False);
+				{{{ExpendableAsset::P}}}RedrawAsset(This, ExpendableAsset_CategoryLocked, True, Now + C_Duration_UnlockAnimationStep1, C_Duration_UnlockAnimationStep1, True);
+				AnimMgr.Add(Quad_MedalLocked, "<anim pos=\""^Quad_MedalLocked.RelativePosition_V3.X + Label_MedalsCount.Size.X + Quad_MedalLocked.Size.X^" "^0.^"\" />", Now + C_Duration_UnlockAnimationStep1, C_Duration_UnlockAnimationStep2, CAnimManager::EAnimManagerEasing::QuadOut);
+				AnimMgr.Add(Label_MedalsCount, "<anim pos=\""^Label_MedalsCount.RelativePosition_V3.X + Label_MedalsCount.Size.X + Quad_MedalLocked.Size.X^" "^0.^"\" />", Now + C_Duration_UnlockAnimationStep1, C_Duration_UnlockAnimationStep2, CAnimManager::EAnimManagerEasing::QuadOut);
+
+				// Third step (hide padlock and category asset grows)
+				AnimMgr.Add(Quad_Unlocked, "<anim pos=\""^Quad_Unlocked.RelativePosition_V3.X-7.^" "^0.^"\" />", Now + C_Duration_UnlockAnimationStep1 + C_Duration_UnlockAnimationStep2, C_Duration_UnlockAnimationStep3, CAnimManager::EAnimManagerEasing::QuadOut);
+				{{{ExpendableAsset::P}}}SetHAlign(This, ExpendableAsset_CategoryLocked, CMlControl::AlignHorizontal::HCenter, False);
+				{{{ExpendableAsset::P}}}SetWidth(This, ExpendableAsset_CategoryLocked, {{{Size_Category.X}}}, False);
+				{{{ExpendableAsset::P}}}RedrawAsset(This, ExpendableAsset_CategoryLocked, True, Now + C_Duration_UnlockAnimationStep1 + C_Duration_UnlockAnimationStep2, C_Duration_UnlockAnimationStep3, False);
+				AnimMgr.Add(ExpendableAsset_CategoryLocked, "<anim pos=\""^Asset_Category.RelativePosition_V3.X^" "^0.^"\" />", Now + C_Duration_UnlockAnimationStep1 + C_Duration_UnlockAnimationStep2, C_Duration_UnlockAnimationStep3, CAnimManager::EAnimManagerEasing::QuadOut);
+
+				// Hide locked frame and show accessible category at the end of the animations
+				AnimMgr.Add(Frame_Locked, "<anim hidden=\"1\" />", TotalAnimationTime, CAnimManager::EAnimManagerEasing::QuadOut);
+				AnimMgr.Add(Asset_Category, "<anim hidden=\"0\" />", TotalAnimationTime, CAnimManager::EAnimManagerEasing::QuadOut);
+			}
+		}
+	}
+	return State;
+}
+
+// Update the campaign scores and medals
+K_State UpdateCampaignScoresAndMedals(K_State _State, {{{CampaignStruct::P}}}K_Campaign _Campaign) {
+	declare K_State State = _State;
+	declare Integer Index = 0;
+
+	// Count medals in first categories only to udpate the locked maps of the campaign
+	declare Integer BronzeMedalsNbInFirstCategories = 0; // count the Bronze medals in white and green categories to unlock the blue category
+	declare Integer SilverMedalNbInFirstCategories = 0; // count the Silver medals in white, green and blue categories to unlock the red category
+	declare Integer GoldMedalNbInFirstCategories = 0; // count the Gold medals in white, green, blue and red categories to unlock the black category
+
+	/* Update maps grid */
+	foreach (ColumnIndex => Category in _Campaign.Categories) {
+		foreach (RowIndex => Map in Category.Playlist) {
+			if (State.Controls.Frame_Maps.Controls.existskey(Index)) {
+				declare CMlFrame Frame_Map = State.Controls.Frame_Maps.Controls[Index] as CMlFrame;
+				declare CMlFrame Frame_Top = Frame_Map.Controls[2] as CMlFrame;
+				declare CMlFrame Frame_MedalStack = Frame_Map.Controls[1] as CMlFrame;
+				declare CMlFrame Button_Map = Frame_Map.Controls[0] as CMlFrame;
+				declare {{{CampaignStruct::P}}}K_Map MapData = Map;
+				declare K_MapInfo MapInfo for Button_Map;
+
+				MapInfo = K_MapInfo {
+					Uid = Map.Uid,
+					Category = ColumnIndex,
+					Locked = False
+				};
+				Index += 1;
+
+				// Update map scores and medals
+				MapData.Medal = ScoreMgr.Map_GetMedal(
+					MainUser::GetMainUserId(),
+					Map.Uid,
+					"{{{Const::C_ScopeType_PersonalBest}}}",
+					"",
+					"{{{Const::C_GameMode_TimeAttack}}}",
+					""
+				);
+				MapData.Score = ScoreMgr.Map_GetRecord_v2(
+					MainUser::GetMainUserId(),
+					Map.Uid,
+					"{{{Const::C_ScopeType_PersonalBest}}}",
+					"",
+					"{{{Const::C_GameMode_TimeAttack}}}",
+					""
+				);
+				{{{CampaignStore::P}}}SetMapMedalAndScore(_Campaign.Id, MapData);
+
+				if ((ColumnIndex >= {{{CampaignStruct::P}}}C_CategoryWhite && ColumnIndex <= {{{CampaignStruct::P}}}C_CategoryGreen) && MapData.Medal >= Medals::C_ScoreMgrMedal_Bronze) {
+					BronzeMedalsNbInFirstCategories += 1;
+				}
+				if ((ColumnIndex >= {{{CampaignStruct::P}}}C_CategoryWhite && ColumnIndex <= {{{CampaignStruct::P}}}C_CategoryBlue) && MapData.Medal >= Medals::C_ScoreMgrMedal_Silver) {
+					SilverMedalNbInFirstCategories += 1;
+				}
+				if ((ColumnIndex >= {{{CampaignStruct::P}}}C_CategoryWhite && ColumnIndex <= {{{CampaignStruct::P}}}C_CategoryRed) && MapData.Medal >= Medals::C_ScoreMgrMedal_Gold) {
+					GoldMedalNbInFirstCategories += 1;
+				}
+			}
+		}
+	}
+
+	/* Medals for locked categories */
+	State.CurrentMedalsToUnlockCategory[{{{CampaignStruct::P}}}C_CategoryBlue] = BronzeMedalsNbInFirstCategories;
+	State.CurrentMedalsToUnlockCategory[{{{CampaignStruct::P}}}C_CategoryRed] = SilverMedalNbInFirstCategories;
+	State.CurrentMedalsToUnlockCategory[{{{CampaignStruct::P}}}C_CategoryBlack] = GoldMedalNbInFirstCategories;
+
+	/* Determine locked categories with medals numbers */
+	State.LockedCategories.clear();
+	declare Integer PreviousLockedCategory = -1;
+	if (_Campaign.Type == {{{CampaignStruct::C_CampaignType_Quarterly}}} && _Campaign.IsSeasonLive) {
+		declare Integer PreviousLockedCategoriesNb = State.LockedCategories.count;
+		if (BronzeMedalsNbInFirstCategories < {{{CampaignStruct::P}}}GetMedalsMinToUnlockCategory({{{CampaignStruct::P}}}C_CategoryBlue)) {
+			State.LockedCategories.add({{{CampaignStruct::P}}}C_CategoryBlue);
+		}
+		if (SilverMedalNbInFirstCategories < {{{CampaignStruct::P}}}GetMedalsMinToUnlockCategory({{{CampaignStruct::P}}}C_CategoryRed)) {
+			State.LockedCategories.add({{{CampaignStruct::P}}}C_CategoryRed);
+		}
+		if (GoldMedalNbInFirstCategories < {{{CampaignStruct::P}}}GetMedalsMinToUnlockCategory({{{CampaignStruct::P}}}C_CategoryBlack)) {
+			State.LockedCategories.add({{{CampaignStruct::P}}}C_CategoryBlack);
+		}
+
+		if (PreviousLockedCategoriesNb > 0 && PreviousLockedCategoriesNb != State.LockedCategories.count) {
+			switch (PreviousLockedCategoriesNb) {
+				case 3:	PreviousLockedCategory = {{{CampaignStruct::P}}}C_CategoryBlue;
+				case 2:	PreviousLockedCategory = {{{CampaignStruct::P}}}C_CategoryRed;
+				case 1:	PreviousLockedCategory = {{{CampaignStruct::P}}}C_CategoryBlack;
+			}
+		}
+	}
+
+	/* Refresh maps grid */
+	State = UpdateCampaignMapsGrid(State, State.CurrentTab);
+
+	/* Refresh campaign categories */
+	State = UpdateCampaignCategories(State, _Campaign, PreviousLockedCategory);
+
+	return State;
+}
+
+// Display the player's profile associated to the given account id
+K_State DisplayProfile(K_State _State, Text _AccountId, Boolean _Display, Boolean _UdpateControllerInfos) {
+	if (_Display && _AccountId == "") return _State;
+	declare K_State State = _State;
+
+	State.Controls.Frame_Profile.Visible = _Display;
+	LockPage(State, _Display);
+	if (_Display) {
+		State.CurrentReportData = ReportSystem::GetDataList();
+		{{{ProfilePlayerInfo::P}}}SetUserAccountId(_AccountId);
+		{{{ProfilePlayerInfo::P}}}Enable(True);
+		{{{ProfilePlayerInfo::P}}}EnableGarageButton(False);
+	} else {
+		{{{ProfilePlayerInfo::P}}}Enable(False);
+		if (PageIsVisible) {
+			ReportSystem::AddUsingId("{{{C_Name}}}");
+			ReportSystem::SetDataList(State.CurrentReportData);
+		}
+		if (_UdpateControllerInfos) UpdateControllerInfo(State);
+	}
+
+	return State;
+}
+
+K_State DisplayProfile(K_State _State, Text _AccountId, Boolean _Display) {
+	return DisplayProfile(_State, _AccountId, _Display, True);
+}
+
+// Play time attack on the selected map
+K_State PlayMap(K_State _State, {{{CampaignStruct::P}}}K_Map _MapData) {
+	if (
+		_MapData.Uid == "" ||
+		(_MapData.DownloadUrl == "" && _MapData.LocalFileName == "") ||
+		{{{ControlBlockList::P}}}IsBlocked(This, _MapData.AuthorLogin)
+	) {
+		return _State;
+	}
+
+	declare K_State State = _State;
+	declare {{{CampaignStruct::P}}}K_Campaign Campaign = {{{CampaignStore::P}}}GetCampaignFromId(State.CampaignId);
+
+	declare Text[] MapList;
+	declare Boolean CanPlayEntireOfficialQuarterlyCampaign = {{{UserStore::P}}}HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_PlayEntireOfficialQuarterlyCampaign, Campaign.SeasonId);
+	foreach (Category in Campaign.Categories) {
+		if (MapList.count > 0) break; //< Add only the remaining maps in the category of the selected map to reduce loading time
+		foreach (Map in Category.Playlist) {
+			if (Map.Uid == _MapData.Uid || MapList.count > 0) {
+				declare Text MapUrl = Map.DownloadUrl;
+				if (MapUrl == "") MapUrl = Map.LocalFileName;
+				if (
+					MapUrl != "" &&
+					!{{{ControlBlockList::P}}}IsBlocked(This, Map.AuthorLogin) &&
+					!MapList.exists(MapUrl) && (
+						CanPlayEntireOfficialQuarterlyCampaign ||
+						!RBAC::TrackRequiresEntireCampaignAccess(Campaign, Map.Uid)
+					)
+				) {
+					MapList.add(MapUrl);
+				}
+			}
+		}
+	}
+
+	declare Text CampaignIsLive = "0";
+	if (Campaign.IsSeasonLive) {
+		CampaignIsLive = "1";
+	}
+
+	declare Text ClubCampaignTrophiesAreEnabled = "0";
+	if (Campaign.Type == {{{CampaignStruct::P}}}C_CampaignType_Club && Campaign.ClubOfficialTrophiesEnabled) {
+		ClubCampaignTrophiesAreEnabled = "1";
+	}
+
+	declare Text DecalUrl = Campaign.Club.DecalUrl;
+	if (Campaign.Type == {{{CampaignStruct::P}}}C_CampaignType_Quarterly) {
+		DecalUrl = C_ImageUrls_Campaign_Decal.get(State.CampaignName.Season, Campaign.Media.DecalUrl);
+	}
+
+	declare Boolean PlayCampaignActivity = (
+		Campaign.Type == {{{CampaignStruct::P}}}C_CampaignType_Quarterly &&
+		Campaign.IsSeasonLive
+	);
+	if (PlayCampaignActivity) {
+		Tracking::StartActivity(ParentApp.TrackingMgr, System, Tracking::C_ActivityId_Campaign);
+	}
+
+	TitleControl::PlayMapList(TitleControl, MapList, "TrackMania/TM_Campaign_Local", TL::Join("", [
+		"<root>",
+			"<setting name=\"S_CampaignId\" value=\""^State.CampaignId^"\" type=\"integer\"/>",
+			"<setting name=\"S_CampaignType\" value=\""^Campaign.Type^"\" type=\"integer\"/>",
+			"<setting name=\"S_CampaignIsLive\" value=\""^CampaignIsLive^"\" type=\"boolean\"/>",
+			"<setting name=\"S_ClubCampaignTrophiesAreEnabled\" value=\""^ClubCampaignTrophiesAreEnabled^"\" type=\"boolean\"/>",
+			"<setting name=\"S_DecoImageUrl_Checkpoint\" value=\""^TL::MLEncode(DecalUrl)^"\" type=\"text\"/>",
+			"<setting name=\"S_DecoImageUrl_DecalSponsor4x1\" value=\""^TL::MLEncode(Campaign.Club.DecoImageUrl_DecalSponsor4x1)^"\" type=\"text\"/>",
+			"<setting name=\"S_DecoImageUrl_Screen16x9\" value=\""^TL::MLEncode(Campaign.Club.DecoImageUrl_Screen16x9)^"\" type=\"text\"/>",
+			"<setting name=\"S_DecoImageUrl_Screen8x1\" value=\""^TL::MLEncode(Campaign.Club.DecoImageUrl_Screen8x1)^"\" type=\"text\"/>",
+			"<setting name=\"S_DecoImageUrl_Screen16x1\" value=\""^TL::MLEncode(Campaign.Club.DecoImageUrl_Screen16x1)^"\" type=\"text\"/>",
+			"<setting name=\"S_ClubId\" value=\""^Campaign.Club.Id^"\" type=\"integer\"/>",
+			"<setting name=\"S_ClubName\" value=\""^TL::MLEncode(Campaign.Club.Name)^"\" type=\"text\"/>",
+		"</root>"
+	]));
+	sleep(1000); // To make sure the player sees the unlock animation when coming back from the game
+
+	// When coming back from a map, do not use the rankings from the cache
+	// The player might have improved their time on multiple maps
+	{{{CampaignStore::P}}}Action_BustCache_MapPlayerClubRankings(This, State.CampaignId, "", {{{ClubStore::P}}}GetUserPinnedClub().Id);
+	{{{CampaignStore::P}}}Action_BustCache_MapPlayerGlobalRankings(This, State.CampaignId, "");
+	{{{CampaignStore::P}}}Action_BustCache_MapTopClubRankings(This, State.CampaignId, "", {{{ClubStore::P}}}GetUserPinnedClub().Id);
+	{{{CampaignStore::P}}}Action_BustCache_MapTopGlobalRankings(This, State.CampaignId, "");
+	State = UpdateCampaignScoresAndMedals(State, Campaign);
+	FetchRegionRankings(State);
+	UpdateControllerInfo(State);
+
+	if (PlayCampaignActivity) {
+		Tracking::StopActivity(ParentApp.TrackingMgr, System);
+	}
+
+	return State;
+}
+
+// Handle the selection on the given control
+K_State Select(K_State _State, CMlControl _Control) {
+	if (_Control == Null || {{{Transition::P}}}IsInTransition(This)) return _State;
+	declare K_State State = _State;
+
+	switch (_Control.ControlId) {
+		case "button-club": {
+			if (State.IsClubActivity) {
+				{{{Router::P}}}PushParent(This);
+			} else {
+				// Cannot use GetCurrentRoutePath function because we lose the background behind the pop-up
+				{{{Router::P}}}SetParentPath(This, "{{{RoutePaths::C_Path_ClubDetails}}}", {{{Router::P}}}GetCurrentParentPath(This));
+				{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_ClubDetails}}}", ["{{{RoutePaths::C_Query_Club}}}" => {{{CampaignStore::P}}}GetCampaignFromId(State.CampaignId).Club.tojson()]);
+			}
+		}
+		default: {
+			if (_Control.HasClass("{{{C_Class_MapButton}}}")) {
+				declare {{{CampaignStruct::P}}}K_Campaign Campaign = {{{CampaignStore::P}}}GetCampaignFromId(State.CampaignId);
+				declare Boolean HasPermission = True;
+				declare Text PermissionMessage = "";
+
+				switch (Campaign.Type) {
+					case {{{CampaignStruct::P}}}C_CampaignType_Quarterly: {
+						if (State.CampaignId == {{{CampaignStore::P}}}GetLiveQuarterlyCampaign().Id) {
+							HasPermission = {{{UserStore::P}}}HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_PlayCurrentOfficialQuarterlyCampaign, Campaign.SeasonId);
+							if (!HasPermission) PermissionMessage = RBAC::GetGamePermissionMessage(RBAC::C_GamePermissionMessage_PlayCurrentOfficialQuarterlyCampaign);
+						} else {
+							HasPermission = {{{UserStore::P}}}HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_PlayPastOfficialQuarterlyCampaign, Campaign.SeasonId);
+							if (!HasPermission) PermissionMessage = RBAC::GetGamePermissionMessage(RBAC::C_GamePermissionMessage_PlayPastOfficialQuarterlyCampaign);
+						}
+
+						declare K_MapInfo MapInfo for _Control;
+						if (
+							HasPermission &&
+							RBAC::TrackRequiresEntireCampaignAccess(Campaign, MapInfo.Uid) &&
+							!{{{UserStore::P}}}HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_PlayEntireOfficialQuarterlyCampaign, Campaign.SeasonId)
+						) {
+							HasPermission = False;
+							PermissionMessage = RBAC::GetGamePermissionMessage(RBAC::C_GamePermissionMessage_PlayEntireOfficialQuarterlyCampaign);
+						}
+					}
+					case {{{CampaignStruct::P}}}C_CampaignType_Club: {
+						HasPermission = {{{UserStore::P}}}HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_PlayPublicClubCampaign);
+						if (!HasPermission) PermissionMessage = RBAC::GetGamePermissionMessage(RBAC::C_GamePermissionMessage_PlayPublicClubCampaign);
+					}
+				}
+
+				if (HasPermission) {
+					declare K_MapInfo MapInfo for _Control;
+					if (!MapInfo.Locked) State = PlayMap(State, {{{CampaignStore::P}}}GetMap(State.CampaignId, MapInfo.Uid));
+				} else {
+					ClubEdition::GoToPage(This, {{{Router::P}}}GetCurrentRoutePath(This), PermissionMessage);
+				}
+			}
+		}
+	}
+
+	return State;
+}
+
+// Set the given campaign in the pop-up
+K_State SetCampaign(K_State _State, {{{CampaignStruct::P}}}K_Campaign _Campaign, Boolean _IsAnimated, Boolean _UpdateControllerInfos) {
+	declare K_State State = _State;
+	State.CampaignId = _Campaign.Id;
+
+	/* Set official campaign header */
+	State.CampaignName = {{{CampaignStruct::P}}}ParseCampaignName(_Campaign.Name);
+	declare Text CampaignName = State.CampaignName.Name;
+	if (_Campaign.Type == {{{CampaignStruct::P}}}C_CampaignType_Quarterly && State.CampaignName.IsValid) {
+		{{{PopUpBackground::P}}}SetHeaderImageUrl(This, State.Controls.Frame_Background, C_ImageUrls_PopUp_Quarterly_Header.get(State.CampaignName.Season, ""));
+		CampaignName = State.CampaignName.TranslatedName;
+	} else {
+		{{{PopUpBackground::P}}}SetHeaderImageUrl(This, State.Controls.Frame_Background, "");
+	}
+
+	/* Set campaign infos */
+	State.Controls.Label_Title.SetText(CampaignName);
+	State.Controls.Label_ClubName.SetText({{{ClubStore::P}}}GetUserPinnedClub().Name);
+	Tools::FitLabelValue(State.Controls.Label_Title, 13., 8., 0.5);
+	{{{ExpendableButton::P}}}SetText(This, State.Controls.Button_Club, TL::Compose("{{{Text_Club}}}", _Campaign.Club.Name));
+	{{{ExpendableButton::P}}}SetVisibilityAndNavigation(State.Controls.Button_Club, _Campaign.Club.Name != "");
+	{{{MapRankings::P}}}ShowAuthorDisplayName(State.Controls.Frame_MapRankings, _Campaign.Type != {{{CampaignStruct::P}}}C_CampaignType_Quarterly);
+	SendCustomEvent("{{{Const::C_Event_UpdateLoadingScreen}}}", [CampaignName]);
+	State = DisplayProfile(State, "", False, _UpdateControllerInfos);
+
+	/* Update campaign maps layout */
+	foreach (Index => Control in State.Controls.Frame_Maps.Controls) {
+		declare CMlFrame Frame_Map = Control as CMlFrame;
+		declare CMlFrame Button_Map = Frame_Map.Controls[0] as CMlFrame;
+		((Control as CMlFrame).Controls[1] as CMlFrame).Hide(); //< Frame_MedalStack
+		((Control as CMlFrame).Controls[2] as CMlFrame).Hide(); //< Frame_Top
+		if (Index < _Campaign.MapCount) {
+			{{{ExpendableButton::P}}}SetStyles(This, Button_Map, [{{{ExpendableButton::P}}}Style_Stack()], False);
+			if (Index == 0) {{{ExpendableButton::P}}}AddStyle(This, Button_Map, {{{ExpendableButton::P}}}Style_StackTop(), False);
+			if (Index == _Campaign.MapCount-1) {{{ExpendableButton::P}}}AddStyle(This, Button_Map, {{{ExpendableButton::P}}}Style_StackBottom(), False);
+			{{{ExpendableButton::P}}}AddStyle(This, Button_Map, {{{ExpendableButton::P}}}Style_Map(), False);
+			{{{ExpendableButton::P}}}RedrawButton(This, Button_Map, _IsAnimated);
+			{{{ExpendableButton::P}}}ShowAndUnlock(Button_Map);
+			Frame_Map.Show();
+		} else {
+			declare K_MapInfo MapInfo for Button_Map;
+			{{{Navigation::P}}}Lock(Button_Map, !(Index == 0 && _Campaign.MapCount <= 0 && !State.Controls.Button_Club.Visible));
+			Frame_Map.Hide();
+			MapInfo.Uid = "";
+		}
+	}
+
+	/* Update the campaign if properly loaded */
+	if (_Campaign.IsLoaded && !_Campaign.FailedToGetMapUrl) {
+		State = UpdateCampaignScoresAndMedals(State, _Campaign);
+		FetchAllMapPlayerRankings(State);
+		FetchFocusedMapRankings(State);
+		FetchRegionRankings(State);
+	} else {
+		State.LockedCategories.clear();
+		if (_Campaign.Type == {{{CampaignStruct::P}}}C_CampaignType_Quarterly && _Campaign.IsSeasonLive) {
+			State.LockedCategories.add({{{CampaignStruct::P}}}C_CategoryBlue);
+			State.LockedCategories.add({{{CampaignStruct::P}}}C_CategoryRed);
+			State.LockedCategories.add({{{CampaignStruct::P}}}C_CategoryBlack);
+		}
+		State = UpdateCampaignCategories(State, _Campaign, -1);
+	}
+
+	/* Preload unlock videos */
+	if (_Campaign.Type == {{{CampaignStruct::P}}}C_CampaignType_Quarterly && _Campaign.IsSeasonLive) {
+		foreach (CategoryIndex in State.LockedCategories) {
+			if (!State.UnlockVideos.existskey(CategoryIndex)) {
+				State.UnlockVideos[CategoryIndex] = (Video.CreateVideo("{{{Icons::C_Icon_256x256_Animated_Unlock}}}", False, True));
+			}
+		}
+	}
+
+	/* Update campaign categories positions */
+	State.Controls.Frame_Maps.RelativePosition_V3 = <0., 0.>;
+	if (!State.Controls.Frame_Categories.Visible) {
+		State.Controls.Frame_Maps.RelativePosition_V3 = MLHelpers::SkewX(<0., 2.5>, 10.);
+	}
+
+	if (_Campaign.ActivityId != {{{ClubStruct::P}}}C_ActivityNullId) {
+		ReportSystem::AddData(
+			ReportStruct::C_ReportTarget_Activity,
+			ReportStruct::LibStructuresReport_K_ReportData {
+				Details = [_Campaign.Name],
+				Ids = [TL::ToText(_Campaign.ActivityId)],
+				Contexts = [["From" => "Menu CampaignDisplay"]]
+			}
+		);
+	}
+
+	if (_Campaign.Club.Id != {{{ClubStruct::P}}}C_ClubNullId) {
+		ReportSystem::AddData(
+			ReportStruct::C_ReportTarget_Club,
+			ReportStruct::LibStructuresReport_K_ReportData {
+				Details = [_Campaign.Club.Name],
+				Ids = [TL::ToText(_Campaign.Club.Id)],
+				Contexts = [["From" => "Menu CampaignDisplay"]]
+			}
+		);
+	}
+
+	return State;
+}
+
+K_State SetCampaign(K_State _State, {{{CampaignStruct::P}}}K_Campaign _Campaign, Boolean _IsAnimated) {
+	return SetCampaign(_State, _Campaign, _IsAnimated, True);
+}
+
+K_State UpdateCampaignTabPage(K_State _State, Integer _TabIndex) {
+	declare K_State State = UpdateCampaignMapsGrid(_State, _TabIndex);
+
+	FetchAllMapPlayerRankings(State);
+	FetchFocusedMapRankings(State);
+	FetchRegionRankings(State);
+	UpdateControllerInfo(State);
+	ReadTTSContext(State);
+
+	// Update navigation
+	if ({{{Navigation::P}}}IsLocked({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"))) {
+		State = Focus(State, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), State.FocusedMap);
+	}
+
+	return State;
+}
+
+// Update the navigation tabs with the current region name and the pinned club
+Void UpdateNavigationTabs(K_State _State) {
+	declare Text[Integer] TabNames = C_TabNames;
+
+	if (_State.CanViewLeaderboards) {
+		if ({{{ZoneSelection::P}}}GetCurrentZoneLevel(This) != "") {
+			TabNames[C_Tab_ZoneRankings] = {{{ZoneSelection::P}}}GetCurrentZoneLevel(This);
+		} else {
+			TabNames.removekey(C_Tab_ZoneRankings);
+		}
+
+		if ({{{ClubStore::P}}}GetUserPinnedClub().Id == {{{ClubStruct::P}}}C_ClubNullId) {
+			TabNames.removekey(C_Tab_ClubRankings);
+		}
+	} else {
+		TabNames.removekey(C_Tab_ZoneRankings);
+		TabNames.removekey(C_Tab_ClubRankings);
+	}
+
+	{{{NavigationTabs::P}}}SetTabs(This, _State.Controls.Frame_NavigationTabs, TabNames, False);
+	{{{NavigationTabs::P}}}RedrawNavigationTabs(This, _State.Controls.Frame_NavigationTabs, False);
+}
+
+***MainInit***
+***
+declare CMlFrame Frame_Global;
+
+declare K_State State;
+
+declare Integer CampaignDisplay_NavigationTab for LocalUser = C_Tab_Medals;
+declare Integer CampaignDisplay_SelectedRegion for LocalUser = {{{ZoneSelection::P}}}C_ZoneLevel_Null;
+***
+
+***MainStart***
+***
+Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+
+State = K_State {
+	IsClubActivity = False,
+	CurrentTab = CampaignDisplay_NavigationTab,
+	CanViewLeaderboards = False,
+	FocusedMap = (Frame_Global.GetFirstChild("button-map-0-0") as CMlFrame),
+	Controls = K_Controls {
+		Button_Club = (Frame_Global.GetFirstChild("button-club") as CMlFrame),
+		Frame_Background = (Frame_Global.GetFirstChild("frame-background") as CMlFrame),
+		Frame_Categories = (Frame_Global.GetFirstChild("frame-categories") as CMlFrame),
+		Frame_MapRankings = (Frame_Global.GetFirstChild("frame-map-rankings") as CMlFrame),
+		Frame_NavigationTabs = (Frame_Global.GetFirstChild("frame-navigation-tabs") as CMlFrame),
+		Frame_PinnedClub = (Frame_Global.GetFirstChild("frame-pinned-club") as CMlFrame),
+		Frame_Profile = (Frame_Global.GetFirstChild("frame-profile") as CMlFrame),
+		Frame_RegionRankings = (Frame_Global.GetFirstChild("frame-region-rankings") as CMlFrame),
+		Frame_Maps = (Frame_Global.GetFirstChild("frame-maps") as CMlFrame),
+		Frame_ZoneSelection = (Frame_Global.GetFirstChild("frame-zone-selection") as CMlFrame),
+		Label_ClubName = (Frame_Global.GetFirstChild("label-club-name") as CMlLabel),
+		Label_Info = (Frame_Global.GetFirstChild("label-info") as CMlLabel),
+		Label_Title = (Frame_Global.GetFirstChild("label-title") as CMlLabel),
+		LoadingSpinner_RetrieveInfo = (Frame_Global.GetFirstChild("loadingspinner-retrieve-info") as CMlFrame)
+	},
+	LockedCategories = [],
+	CurrentMedalsToUnlockCategory = [],
+	MapsToUnlock = [],
+	NavigationUnlockTime = -1,
+	AnimMapUnlockTime = -1,
+	UnlockVideos = [],
+	LastQuery = []
+};
+***
+
+***MainLoop***
+***
+if (PageIsVisible) {
+	foreach (Event in {{{Router::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case "{{{Router::C_Event_EnteringRoute}}}": {
+				ReportSystem::AddUsingId("{{{C_Name}}}");
+				declare Text[Text] Query = {{{Router::P}}}GetCurrentRouteQuery(This);
+				declare {{{CampaignStruct::P}}}K_Campaign QueryCampaign;
+				if (Query.existskey("{{{RoutePaths::C_Query_Campaign}}}")) {
+					State.LastQuery = Query;
+				} else {
+					// If we reach this page without a campaign, it's because we're using the last one used
+					// For example, when we go in the ClubEdition store page or when we PushParent to this page
+					Query = State.LastQuery;
+				}
+
+				QueryCampaign.fromjson(Query["{{{RoutePaths::C_Query_Campaign}}}"]);
+				if (QueryCampaign.Id != {{{CampaignStruct::P}}}C_Campaign_NullId) {
+					State.IsClubActivity = Query.existskey("{{{RoutePaths::C_Query_IsClubActivity}}}");
+
+					// Reset unlock animation maps
+					State.AnimMapUnlockTime = -1;
+					State.MapsToUnlock.clear();
+
+					// Text to speech context
+					G_TTSContextIdent_Tabs = ParentApp.TTS_Context_Enter({{{TextToSpeech::C_ContextLevel_Page}}});
+
+					// Get the campaign with the most information
+					declare {{{CampaignStruct::P}}}K_Campaign Campaign = {{{CampaignStore::P}}}GetCampaignFromId(QueryCampaign.Id);
+					if (Campaign.Id == {{{CampaignStruct::P}}}C_Campaign_NullId) {
+						Campaign = QueryCampaign;
+					}
+
+					// Check if the campaign was edited since the time we loaded it
+					if (Query.existskey("{{{RoutePaths::C_Query_CampaignEditionTimestamp}}}")) {
+						if (TL::ToInteger(Query["{{{RoutePaths::C_Query_CampaignEditionTimestamp}}}"]) > Campaign.EditionTimestamp) {
+							// The campaign have been edited, unload the old data from the cache
+							{{{CampaignStore::P}}}UnloadCampaign(Campaign.Id, True);
+							Campaign = {{{CampaignStore::P}}}GetCampaignFromId(Campaign.Id);
+						}
+					}
+
+					// Load the campaign if the campaign is not loaded
+					if (!Campaign.IsLoaded || Campaign.FailedToGetMapUrl) {
+						DisplayInfo(State, "{{{Text_Retrieving}}}", {{{Const::C_InfoType_Loading}}});
+						if (State.IsClubActivity && Campaign.ActivityId != {{{ClubStruct::P}}}C_ActivityNullId && Campaign.Id <= {{{CampaignStruct::P}}}C_Campaign_NullId) {
+							{{{CampaignStore::P}}}Action_LoadClubCampaign(This, Campaign.ActivityId, {{{ClubStore::P}}}GetUserCurrentClub().Id);
+						} else if (State.IsClubActivity) {
+							{{{CampaignStore::P}}}Action_LoadCampaign(This, Campaign.Id, {{{ClubStore::P}}}GetUserCurrentClub().Id);
+						} else {
+							{{{CampaignStore::P}}}Action_LoadCampaign(This, Campaign.Id, Campaign.Club.Id);
+						}
+					}
+
+					// Check that the user can view the leaderboards
+					declare CPrivilegeMgr::EPrivilege PrivilegeToCheck = CPrivilegeMgr::EPrivilege::PlayMultiplayerAsyncWithUGC;
+					if (Campaign.Type == {{{CampaignStruct::P}}}C_CampaignType_Quarterly) {
+						PrivilegeToCheck = CPrivilegeMgr::EPrivilege::PlayMultiplayerAsync;
+					}
+					State.LeaderboardPrivilegeCheck = Privileges::Check_DestroyAndCreate(
+						State.LeaderboardPrivilegeCheck,
+						PrivilegeMgr,
+						MainUser::GetMainUserId(),
+						PrivilegeToCheck
+					);
+					State.CanViewLeaderboards = Privileges::Cache_HasPrivilege(PrivilegeToCheck);
+
+					// Update zone selection with top zone or shared variables (must be done before updating tabs)
+					if (CampaignDisplay_SelectedRegion <= {{{ZoneSelection::P}}}C_ZoneLevel_Null && Campaign.CampaignRanking.Rankings.count > 0) {
+						{{{ZoneSelection::P}}}SetCurrentZone(This, {{{ZoneSelection::P}}}GetZoneLevel(This, {{{CampaignStore::P}}}GetTopRank(Campaign.CampaignRanking.Rankings).ZoneName));
+					} else {
+						{{{ZoneSelection::P}}}SetCurrentZone(This, CampaignDisplay_SelectedRegion);
+					}
+
+					// Update navigation tabs with shared variables
+					UpdateNavigationTabs(State);
+					if ({{{NavigationTabs::P}}}IsAvailableTab(State.Controls.Frame_NavigationTabs, CampaignDisplay_NavigationTab)) {
+						{{{NavigationTabs::P}}}UpdateCurrentTab(This, State.Controls.Frame_NavigationTabs, CampaignDisplay_NavigationTab, False);
+						State.CurrentTab = CampaignDisplay_NavigationTab;
+					} else {
+						State.CurrentTab = {{{NavigationTabs::P}}}GetCurrentTab(State.Controls.Frame_NavigationTabs);
+						CampaignDisplay_NavigationTab = State.CurrentTab;
+					}
+					ReadTTSContext(State);
+
+					// Update campaign pop-up
+					State = SetCampaign(State, Campaign, False);
+					if (!{{{Navigation::P}}}IsLocked(State.FocusedMap)) {
+						State = Focus(State, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), State.FocusedMap);
+					} else if (!{{{Navigation::P}}}IsLocked(State.Controls.Button_Club)) {
+						State = Focus(State, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), State.Controls.Button_Club);
+					} else { //< The first map is hidden but not locked if no there are no maps and club button is unavailable
+						State.FocusedMap = State.Controls.Frame_Maps.GetFirstChild("button-map-0-0");
+						State = Focus(State, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), State.FocusedMap);
+					}
+				}
+			}
+		}
+	}
+
+	/* Unlock maps animations */
+	if (State.MapsToUnlock.count > 0 && Now > State.AnimMapUnlockTime) {
+		State.AnimMapUnlockTime = Now + C_IntervalBetweenUnlockMaps;
+		if (State.MapsToUnlock[0].IsRaced) { // player could have already raced the map on the official channel server
+			{{{ExpendableButton::P}}}AddStyle(This, State.MapsToUnlock[0].Button, {{{ExpendableButton::P}}}Style_MapRaced(), False);
+		}
+		{{{ExpendableButton::P}}}RemoveStyle(This, State.MapsToUnlock[0].Button, {{{ExpendableButton::P}}}Style_MapLocked());
+		{{{MenuSounds::P}}}PlaySound(This, "RankUp");
+		State.MapsToUnlock.removekey(0);
+	}
+
+	/* Unlock navigation after unlock category animations */
+	if (State.NavigationUnlockTime > 0 && Now > State.NavigationUnlockTime) {
+		State.NavigationUnlockTime = -1;
+		LockPage(State, False);
+	}
+
+	/* Campaign store events */
+	foreach (Event in PendingEvents) {
+		if ({{{CampaignStore::P}}}IsCampaignStoreEvent(Event.CustomEventType)) {
+			switch (Event.Type) {
+				case CMlScriptEvent::Type::PluginCustomEvent: {
+					if (Event.CustomEventData.count > 0) {
+						if (State.CampaignId <= {{{CampaignStruct::P}}}C_Campaign_NullId) {
+							switch (Event.CustomEventType) {
+								case {{{CampaignStore::P}}}C_Event_CampaignUpdated: State.CampaignId = TL::ToInteger(Event.CustomEventData[0]);
+							}
+						} else {
+							declare K_MapInfo MapInfo for State.FocusedMap;
+							declare {{{CampaignStruct::P}}}K_Campaign Campaign = {{{CampaignStore::P}}}GetCampaignFromId(State.CampaignId);
+							declare Text[] LeaderboardGroupUidList = [Campaign.LeaderboardGroupUid];
+
+							switch (Event.CustomEventData[0]) {
+								case MapInfo.Uid, LeaderboardGroupUidList.tojson(), ""^State.CampaignId: {
+									switch (Event.CustomEventType) {
+										case {{{CampaignStore::P}}}C_Event_CampaignPlayerGlobalRankingsUpdated: UpdateRegionRankingsComponent(State, Campaign);
+										case {{{CampaignStore::P}}}C_Event_CampaignTopClubRankingsUpdated: UpdateRegionRankingsComponent(State, Campaign);
+										case {{{CampaignStore::P}}}C_Event_CampaignTopGlobalRankingsUpdated: UpdateRegionRankingsComponent(State, Campaign);
+										case {{{CampaignStore::P}}}C_Event_CacheBusted_MapTopClubRankings: FetchFocusedMapRankings(State);
+										case {{{CampaignStore::P}}}C_Event_CacheBusted_MapTopGlobalRankings: FetchFocusedMapRankings(State);
+										case {{{CampaignStore::P}}}C_Event_CacheBusted_MapPlayerClubRankings: FetchFocusedMapRankings(State);
+										case {{{CampaignStore::P}}}C_Event_CacheBusted_MapPlayerGlobalRankings: FetchFocusedMapRankings(State);
+										case {{{CampaignStore::P}}}C_Event_MapTopClubRankingsUpdate: UpdateMapRankingsComponent(State, Campaign);
+										case {{{CampaignStore::P}}}C_Event_MapTopGlobalRankingsUpdate: UpdateMapRankingsComponent(State, Campaign);
+										case {{{CampaignStore::P}}}C_Event_MapPlayerClubRankingsUpdated, {{{CampaignStore::P}}}C_Event_MapPlayerGlobalRankingsUpdated: {
+											UpdateMapRankingsComponent(State, Campaign);
+											State = UpdateCampaignMapsGrid(State, State.CurrentTab);
+										}
+										case {{{CampaignStore::P}}}C_Event_CampaignLoadComplete, {{{CampaignStore::P}}}C_Event_CampaignListUpdateError, {{{CampaignStore::P}}}C_Event_CampaignUpdateFailed: {
+											DisplayInfo(State, "", {{{Const::C_InfoType_None}}});
+											if (Event.CustomEventData.count > 1) {
+												DisplayInfo(State, TL::Compose("{{{Text_FetchError}}}", ""^Event.CustomEventData[1]), {{{Const::C_InfoType_Error}}});
+											} else if (Campaign.MapCount > 0 && !Frame_Global.GetFirstChild("frame-map-0-0").Visible) {
+												State = SetCampaign(State, Campaign, True);
+											} else if (Campaign.IsLoaded && !Campaign.FailedToGetMapUrl) {
+												State = UpdateCampaignScoresAndMedals(State, Campaign);
+												FetchAllMapPlayerRankings(State);
+												FetchFocusedMapRankings(State);
+												FetchRegionRankings(State);
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/* Report system events */
+	foreach (Event in ReportSystem::GetPendingEvents()) {
+		if (Event.LastUsingId == "{{{C_Name}}}") {
+			switch (Event.Type) {
+				case ReportSystem::C_EventType_Open: {
+					LockPage(State, True);
+				}
+				case ReportSystem::C_EventType_Close: {
+					LockPage(State, False);
+					UpdateControllerInfo(State);
+				}
+			}
+		}
+	}
+
+	/* Check leaderboard privilege */
+	if (!Privileges::Check_IsComplete(State.LeaderboardPrivilegeCheck)) {
+		State.LeaderboardPrivilegeCheck = Privileges::Check_Update(State.LeaderboardPrivilegeCheck);
+		if (Privileges::Check_IsComplete(State.LeaderboardPrivilegeCheck)) {
+			State.CanViewLeaderboards = Privileges::Check_HasPrivilege(State.LeaderboardPrivilegeCheck);
+			State.LeaderboardPrivilegeCheck = Privileges::Check_Destroy(State.LeaderboardPrivilegeCheck);
+			UpdateNavigationTabs(State);
+		}
+	}
+
+	/* Navigation events */
+	foreach (Event in {{{Navigation::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case {{{Navigation::P}}}C_EventType_NavigateInput: {
+				if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroup_Global}}}")) {
+					switch (Event.Input) {
+						case CMlScriptEvent::EMenuNavAction::Action1: {
+							if ({{{Navigation::P}}}IsLocked(State.Controls.Frame_MapRankings) && {{{MapRankings::P}}}IsMapAuthorNameDisplayed(State.Controls.Frame_MapRankings)) {
+								declare K_MapInfo MapInfo for State.FocusedMap;
+								State = DisplayProfile(State, {{{CampaignStore::P}}}GetMap(State.CampaignId, MapInfo.Uid).AuthorLogin, True);
+							}
+						}
+					}
+				} else if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName}}}")) {
+					switch (Event.Input) {
+						case CMlScriptEvent::EMenuNavAction::Select: State = Select(State, Event.To);
+						case CMlScriptEvent::EMenuNavAction::Cancel: {
+							if (Event.To == Event.From) {{{Router::P}}}PushParent(This);
+							else State = Focus(State, Event.From, Event.To);
+						}
+						default: State = Focus(State, Event.From, Event.To);
+					}
+				}
+			}
+			case {{{Navigation::P}}}C_EventType_NavigateMouse: {
+				if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName}}}")) {
+					switch (Event.Mouse) {
+						case CMlScriptEvent::Type::MouseClick: State = Select(State, Event.To);
+						case CMlScriptEvent::Type::MouseOver: State = Focus(State, Event.From, Event.To);
+					}
+				}
+			}
+		}
+	}
+
+	/* PopUpBackground events */
+	foreach (Event in {{{PopUpBackground::P}}}GetPendingEvents(This)) {
+		if (Event.PopUpBackground != Null && Event.PopUpBackground.ControlId == "frame-background") {
+			switch (Event.Type) {
+				case {{{PopUpBackground::P}}}C_EventType_Close: {{{Router::P}}}PushParent(This);
+			}
+		}
+	}
+
+
+	/* Map rankings info events */
+	foreach (Event in {{{MapRankings::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case {{{MapRankings::P}}}C_EventType_Select: {
+				State = DisplayProfile(State, Event.AccountId, True);
+			}
+		}
+	}
+
+	/* Region rankings events */
+	foreach (Event in {{{RegionRankings::P}}}PendingEvents) {
+		switch (Event.Type) {
+			case {{{RegionRankings::P}}}C_EventType_Select: {
+				State = DisplayProfile(State, Event.AccountId, True);
+			}
+		}
+	}
+
+	/* Profile player info events */
+	foreach (Event in {{{ProfilePlayerInfo::P}}}PendingEvents) {
+		switch (Event.Type) {
+			case {{{ProfilePlayerInfo::P}}}C_EventType_Close: {
+				State = DisplayProfile(State, "", False);
+			}
+		}
+	}
+
+	/* Zone selection events */
+	foreach (Event in {{{ZoneSelection::P}}}GetPendingEvents(This)) {
+		if (Event.Type == {{{ZoneSelection::P}}}C_Event_ZoneUpdate) {
+			State.ZoneLevel = Event.Zone;
+			CampaignDisplay_SelectedRegion = Event.Zone;
+			State = UpdateCampaignMapsGrid(State, State.CurrentTab);
+			UpdateNavigationTabs(State);
+			UpdateMapRankingsComponent(State, {{{CampaignStore::P}}}GetCampaignFromId(State.CampaignId));
+			UpdateRegionRankingsComponent(State, {{{CampaignStore::P}}}GetCampaignFromId(State.CampaignId));
+			ReadTTSContext(State);
+		}
+	}
+
+	/* Events NavigationTabs */
+	foreach (Event in {{{NavigationTabs::P}}}GetPendingEvents(This)) {
+		if (Event.Frame_NavigationTabs.ControlId == State.Controls.Frame_NavigationTabs.ControlId) {
+			switch (Event.Type) {
+				case {{{NavigationTabs::P}}}C_EventType_Update: {
+					if (!{{{NavigationTabs::P}}}IsAvailableTab(State.Controls.Frame_NavigationTabs, State.CurrentTab)) {
+						State = UpdateCampaignTabPage(State, {{{NavigationTabs::P}}}GetCurrentTab(State.Controls.Frame_NavigationTabs));
+						CampaignDisplay_NavigationTab = State.CurrentTab;
+					}
+				}
+				case {{{NavigationTabs::P}}}C_EventType_Select: {
+					State = UpdateCampaignTabPage(State, Event.CurrentTab);
+					CampaignDisplay_NavigationTab = State.CurrentTab;
+				}
+			}
+		}
+	}
+
+	/* Fetch map rankings with delay to avoid spam */
+	if (State.FetchMapRankingsWithDelay > 0 && State.FetchMapRankingsWithDelay <= Now) {
+		State.FetchMapRankingsWithDelay = -1;
+		FetchFocusedMapRankings(State);
+	}
+} else {
+	foreach (Event in {{{Router::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case "{{{Router::C_Event_LeavingRoute}}}": {
+				foreach (UnlockVideo in State.UnlockVideos) {
+					if (UnlockVideo != Null && UnlockVideo.Id != NullId && Video.Videos.existskey(UnlockVideo.Id)) {
+						Video.DestroyVideo(UnlockVideo);
+					}
+				}
+				State.UnlockVideos.clear();
+				State.Controls.Label_Info.SetText("");
+				State.CampaignId = {{{CampaignStruct::P}}}C_Campaign_NullId;
+				State = SetCampaign(State, {{{CampaignStruct::P}}}K_Campaign {}, False, False);
+				UpdateRegionRankingsComponent(State, {{{CampaignStruct::P}}}K_Campaign {});
+				declare K_MapInfo MapInfo for State.FocusedMap;
+				MapInfo = K_MapInfo {
+					Uid = "",
+					Category = -1,
+					Locked = False
+				};
+				UpdateMapRankingsComponent(State, {{{CampaignStruct::P}}}K_Campaign {}, False);
+				State.LeaderboardPrivilegeCheck = Privileges::Check_Destroy(State.LeaderboardPrivilegeCheck);
+				G_TTSContextIdent_Tabs = ParentApp.TTS_Context_Leave(G_TTSContextIdent_Tabs);
+				G_TTSContextIdent_Section = ParentApp.TTS_Context_Leave(G_TTSContextIdent_Section);
+				State = Focus(State, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), Null, False);
+				ReportSystem::RemoveUsingId("{{{C_Name}}}");
+				DisplayInfo(State, "", {{{Const::C_InfoType_None}}});
+			}
+		}
+	}
+}
+***
+""",
+[
+	CampaignStore::ComponentV2(),
+	CampaignStruct::Component(),
+	ClubStore::ComponentV2(),
+	ClubStruct::Component(),
+	ExpendableButton::ComponentV2(),
+	LoadingSpinner::ComponentV2(),
+	MapRankings::ComponentV2(),
+	MedalStack::Component(),
+	Navigation::ComponentV2(),
+	NavigationTabs::ComponentV2(),
+	PopUpBackground::ComponentV2(),
+	ProfilePlayerInfo::Component(),
+	RegionRankings::Component(),
+	Router::ComponentV2(),
+	Transition::ComponentV2(),
+	UserStore::ComponentV2(),
+	ZoneSelection::ComponentV2(),
+	MenuSounds::ComponentV2(),
+	ExpendableAsset::ComponentV2(),
+	ControlBlockList::ComponentV2()
+],
+[]
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update from the ManiaApp
+Void Yield() {
+
+}

@@ -1,0 +1,11 @@
+/** 
+ *	Constants for the Champion Cup mode
+ */
+#Const Version		"2021-10-25"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Modes/ChampionCup/Constants.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_DisplayGapAfter 8
+#Const C_FinalRankThreshold 1

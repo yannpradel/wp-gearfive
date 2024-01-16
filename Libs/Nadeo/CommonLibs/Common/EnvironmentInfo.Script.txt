@@ -1,0 +1,10 @@
+/** 
+ *	Get information about the environments
+ */
+#Const Version		"2020-03-06"
+#Const ScriptName	"Libs/Nadeo/CommonLibs/Common/EnvironmentInfo.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Collection_Stadium "Stadium"

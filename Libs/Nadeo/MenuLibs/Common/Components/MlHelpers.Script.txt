@@ -1,0 +1,104 @@
+/** 
+ *	Component: MlHelpers
+ */
+#Const Version		"2022-09-28"
+#Const ScriptName	"Libs/Nadeo/MenuLibs/Common/Components/MlHelpers.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "MathLib" as ML
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// GET ALL X (from parent with class)
+CMlFrame[] GetFramesWithClass(CMlPage _Page, CMlFrame _Parent, Text _Class) {
+	_Page.GetClassChildren(_Class, _Parent, False);
+	declare CMlFrame[] Frames;
+	foreach (ResultControl in _Page.GetClassChildren_Result) {
+		if (ResultControl is CMlFrame) {
+			declare CMlFrame Frame = (ResultControl as CMlFrame);
+			Frames.add(Frame);
+		}
+	}
+	return Frames;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// GET ALL X (from parent with class, recursive)
+CMlFrame[] GetFramesRecursiveWithClass(CMlPage _Page, CMlFrame _Parent, Text _Class) {
+	_Page.GetClassChildren(_Class, _Parent, True);
+	declare CMlFrame[] Frames;
+	foreach (ResultControl in _Page.GetClassChildren_Result) {
+		if (ResultControl is CMlFrame && ResultControl.HasClass(_Class)) {
+			declare CMlFrame Frame = (ResultControl as CMlFrame);
+			Frames.add(Frame);
+		}
+	}
+	return Frames;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// GET CLOSEST (with id)
+CMlFrame GetClosestWithId(CMlControl _Control, Text _Id) {
+	if (_Control == Null) return Null;
+	declare CMlFrame Parent <=> _Control.Parent;
+	while (Parent != Null) {
+		if (Parent.ControlId == _Id) return Parent;
+		Parent <=> Parent.Parent;
+	}
+	return Null;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// GET CLOSEST (with class)
+CMlFrame GetClosestWithClass(CMlControl _Control, Text _Class) {
+	if (_Control == Null) return Null;
+	declare CMlFrame Parent <=> _Control.Parent;
+	while (Parent != Null) {
+		if (Parent.HasClass(_Class)) return Parent;
+		Parent <=> Parent.Parent;
+	}
+	return Null;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/**
+ * Return the corresponding suffix to use for ranking (st, nd or th in english for exemple) 
+ * @Ra I'm not sure it's compatible with every language :/
+ */
+Text GetRankingSuffix(Integer _Rank) {
+	return TL::FormatRank(_Rank, False);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/**
+ * Given a ZonePath "XXX|YYY|...|ZZZ" return "ZZZ"
+ */
+Text GetLocalZone(Text _ZonePath) {
+	declare Text[] Zones = TL::Split("|", _ZonePath);
+	if (Zones.count > 0) return Zones[Zones.count-1];
+	return "";
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+Text TimeToText(Integer _Time) {
+	return TL::TimeToText(_Time, True)^ML::Abs(_Time % 10);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/**
+ * Reduce Textsize of a Label until it reaches a minimum size
+ */
+Void DecreaseTextSize(CMlLabel _Label, Real _DecreaseStep, Real _MinimumTextSize) {
+	while (_Label.ComputeWidth(_Label.Value) > _Label.Size.X && _Label.TextSizeReal > _MinimumTextSize) {
+		_Label.TextSizeReal -= _DecreaseStep;
+	}
+}

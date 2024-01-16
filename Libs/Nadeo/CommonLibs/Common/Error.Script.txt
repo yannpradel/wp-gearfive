@@ -1,0 +1,916 @@
+/** 
+ *	Common error codes and messages for Trackmania
+ */
+#Const Version		"2023-06-08"
+#Const ScriptName	"Libs/Nadeo/CommonLibs/Common/Error.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/MenuLibs/Common/Components/Tools.Script.txt" as Tools
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_Key {
+	Text Type;
+	Text Code;
+	Text Context;
+}
+#Struct K_ErrorConfig {
+	K_Key Key;
+	Integer Number;
+	Text Title;
+	Text Description;
+}
+#Struct K_Error {
+	K_Key Key;
+	K_Key Source;
+	Boolean IsExactError;
+	Text Code;
+	Text Title;
+	Text Description;
+	Text Message;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_ErrorKeySeparator "/#/"
+#Const C_ErrorNickname "YEPTREE"
+#Const C_ErrorNumberSizeMax 8
+#Const C_ErrorDefaultNumber 0
+#Const C_ErrorFormat "%1 (%2)"
+//L16N [Error] Generic error title displayed when an error has occured but we have no details about the error.
+#Const C_ErrorDefaultTitle _("Trackmania error")
+//L16N [Error] Generic error message displayed when an error has occured but we have no details about the error.
+#Const C_ErrorDefaultDescription _("Trackmania was unable to process your request")
+#Const C_DefaultErrorConfig K_ErrorConfig {
+	Key = K_Key {
+		Type = "",
+		Code = "",
+		Context = ""
+	},
+	Number = 0,
+	Title = "",
+	Description = ""
+}
+
+#Const C_Type_Null "@NoType"
+#Const C_Type_Sony "SCE"
+#Const C_Type_Microsoft "GDK"
+#Const C_Type_UbiServices "UbiServices"
+#Const C_Type_UplayPC "UplayPC"
+#Const C_Type_Common "Common"
+#Const C_Type_NadeoServices "NadeoServices"
+#Const C_Type_WebServices "WebServices"
+#Const C_Type_PermissionService "PermissionService"
+#Const C_Type_DataFileManager "DataFileManager"
+#Const C_Type_ScoreManager "ScoreManager"
+#Const C_Type_MasterServer "MasterServer"
+#Const C_Type_ManiaScript "ManiaScript"
+
+#Const C_FirstPartyTypes ["SCE", "GDK"]
+
+#Const C_TypeEncoded_Unknown "AA"
+#Const C_TypeEncoded_Null "AB"
+#Const C_TypeEncoded_Sony "AC"
+#Const C_TypeEncoded_Microsoft "AD"
+#Const C_TypeEncoded_UbiServices "AE"
+#Const C_TypeEncoded_UplayPC "AF"
+#Const C_TypeEncoded_Common "BA"
+#Const C_TypeEncoded_NadeoServices "BB"
+#Const C_TypeEncoded_WebServices "BC"
+#Const C_TypeEncoded_PermissionService "BD"
+#Const C_TypeEncoded_DataFileManager "BE"
+#Const C_TypeEncoded_ScoreManager "BF"
+#Const C_TypeEncoded_MasterServer "CA"
+#Const C_TypeEncoded_ManiaScript "CB"
+
+// ManiaScript errors
+// /!\ DO NOT MODIFY THESE CODES ONCE THEY ARE IN PRODUCTION /!\
+// Users will report errors with these codes, modifying them
+// would prevent us from tracking the error
+#Const C_Code_Null "@NoCode"
+#Const C_Code_CreateCampaign_LiveFailedToResetCollection "MS-0001"
+#Const C_Code_CreateCampaign_CoreFailedToResetCollection "MS-0002"
+#Const C_Code_ClubItemsActivity_TaskCreationAddItemCollectionToFavorite "MS-0003"
+#Const C_Code_ClubItemsActivity_TaskProcessingAddItemCollectionToFavorite "MS-0004"
+#Const C_Code_ClubItemsActivity_TaskCreationRemoveItemCollectionFromFavorite "MS-0005"
+#Const C_Code_ClubItemsActivity_TaskProcessingRemoveItemCollectionFromFavorite "MS-0006"
+#Const C_Code_ClubItemsActivity_TaskProcessingGetFavoriteItemCollections "MS-0007"
+#Const C_Code_CreateCampaign_TaskCreationCreateCampaignGetMapList "MS-0008"
+#Const C_Code_CreateCampaign_TaskProcessingCreateCampaignGetMapList "MS-0009"
+#Const C_Code_CreateClubItemsActivity_TaskCreationSetActivityIdToItemCollection "MS-0010"
+#Const C_Code_CreateClubItemsActivity_TaskCreationCreateItemCollection "MS-0011"
+#Const C_Code_CreateClubItemsActivity_TaskCreationUpdateItemCollection "MS-0012"
+#Const C_Code_CreateClubItemsActivity_TaskCreationUpdateItemCollectionVersion "MS-0013"
+#Const C_Code_CreateClubItemsActivity_TaskCreationLiveGetItemCollection "MS-0014"
+#Const C_Code_CreateClubItemsActivity_TaskCreationCoreGetItemCollection "MS-0015"
+#Const C_Code_CreateClubItemsActivity_TaskProcessingCreateItemCollection "MS-0016"
+#Const C_Code_CreateClubItemsActivity_TaskProcessingSetActivityIdToItemCollectionId "MS-0017"
+#Const C_Code_CreateClubItemsActivity_TaskProcessingUpdateItemCollection "MS-0018"
+#Const C_Code_CreateClubItemsActivity_TaskProcessingUpdateItemCollectionVersion "MS-0019"
+#Const C_Code_CreateClubItemsActivity_ItemCollectionActivityCreatedOrEdited "MS-0020"
+#Const C_Code_CreateRoom_TaskProcessingMapList "MS-0021"
+#Const C_Code_MapReviewActivity_TaskCreationGetMap "MS-0022"
+#Const C_Code_MapReviewActivity_TaskProcessingRegisterMap "MS-0023"
+#Const C_Code_MapReviewActivity_TaskProcessingGetMap "MS-0024"
+#Const C_Code_PressStart_TaskNetworkAvailabilityTimeOut "MS-0025"
+#Const C_Code_PressStart_TaskNetworkAvailabilityDestroyed "MS-0026"
+#Const C_Code_PressStart_TaskConnectUserTimeOut "MS-0027"
+#Const C_Code_PressStart_TaskConnectUserDestroyed "MS-0028"
+#Const C_Code_PressStart_ConnectionStatusTimeout "MS-0029"
+#Const C_Code_PressStart_ConnectionStatusNotConnected "MS-0030"
+#Const C_Code_PressStart_HttpHeadersTimeout "MS-0031"
+#Const C_Code_ServerReview_TaskCreationGetMap "MS-0032"
+#Const C_Code_ServerReview_TaskProcessingRegisterMap "MS-0033"
+#Const C_Code_ServerReview_TaskProcessingGetMap "MS-0034"
+#Const C_Code_LocalServer_MatchSettingsCreationFailed "MS-0035"
+#Const C_Code_LocalServer_MatchSettingsInvalidMode "MS-0036"
+#Const C_Code_TrackBrowser_GetPlayerFavoriteMaps "MS-0037"
+#Const C_Code_TrackBrowser_RemoveFavoriteMap "MS-0038"
+#Const C_Code_TrackBrowser_GetOfficialCampaigns "MS-0039"
+#Const C_Code_TrackBrowser_GetMonthlyTracks "MS-0040"
+#Const C_Code_TrackBrowser_GetOfficialCampaignTracks "MS-0041"
+#Const C_Code_TrackBrowser_GetClubCampaignTracks "MS-0042"
+#Const C_Code_TrackBrowser_GetPlayerClubs "MS-0043"
+#Const C_Code_TrackBrowser_GetClubCampaigns "MS-0044"
+#Const C_Code_TrackBrowser_AddFavoriteMap "MS-0045"
+#Const C_Code_PressStart_TaskConnectUserOfflineTimeOut "MS-0046"
+#Const C_Code_PressStart_TaskConnectUserOfflineDestroyed "MS-0047"
+#Const C_Code_Profile_MissPrivilegeViewGameHistory "MS-0048"
+#Const C_Code_TrackBrowser_DeleteTrackTaskNull "MS-0049"
+#Const C_Code_BucketItemUploads_AddFavoriteMap "MS-0050"
+#Const C_Code_BucketItemUploads_RemoveFavoriteMap "MS-0051"
+#Const C_Code_PressStart_UbiServicesConnectionFailed "MS-0052"
+#Const C_Code_ManiaScript_TaskCreationFailed "MS-0053"
+#Const C_Code_ManiaScript_TaskNotFound "MS-0054"
+#Const C_Code_ManiaScript_TaskConnectUserFailed "MS-0055" //< Deprecated
+#Const C_Code_ManiaScript_ShowUbisoftConnectRewardFailed "MS-0056" //< Deprecated
+#Const C_Code_ManiaScript_TaskConnectUserOfflineFailed "MS-0057"
+#Const C_Code_ManiaScript_DisconnectedFrom "MS-0058" //< Deprecated
+#Const C_Code_ManiaScript_FirstPartySignedOut "MS-0059"
+#Const C_Code_ManiaScript_TaskJoinSessionError "MS-0060" //< Deprecated
+
+// UbiServices errors
+#Const C_Code_UbiServices_ConnectionFailed "0x00000054"
+#Const C_Code_UbiServices_NeedUbiConnectAccount "0x00000143"
+#Const C_Code_UbiServices_Auth_Unauthorized "0x00000146"
+#Const C_Code_UbiServices_FullSquad "0x00003709"
+#Const C_Code_UbiServices_AlreadySquadMember "0x00003703"
+#Const C_Code_UbiServices_SquadNotFoundOrAccessible "0x00003715"
+#Const C_Code_UbiServices_SquadNotFound "0x00003737"
+#Const C_Code_UbiServices_SquadNotFoundBis "0x0000371C"
+#Const C_Code_UbiServices_SquadLocked "0x00003716"
+#Const C_Code_UbiServices_InviteeNotAllowedToJoinSquad "0x00003732"
+#Const C_Code_UbiServices_InviteeBlockedByInviter "0x0000371D"
+#Const C_Code_UbiServices_InviteeBlockingInviter "0x0000371F"
+#Const C_Code_UbiServices_CrossplayDisabled "0x00003734"
+#Const C_Code_UbiServices_FirstPartyInviteExpired "0x0000373F"
+
+// NadeoServices errors
+#Const C_Code_NadeoServices_AccountBanned "C-AI-09-01"
+
+// WebServices errors
+#Const C_Code_WebServices_FirstPartySignedOut "A-AA-01-03"
+#Const C_Code_WebServices_KillSwitchEnabled "A-AA-01-04"
+#Const C_Code_WebServices_MasterServerDisabled "A-AA-01-05"
+#Const C_Code_WebServices_MasterServerSafeMode "A-AA-01-06"
+#Const C_Code_WebServices_NetworkNotAvailable "A-AA-01-07"
+#Const C_Code_WebServices_NoUbiServicesSession "A-AA-01-08"
+#Const C_Code_WebServices_NoUplayPC "A-AA-01-09"
+#Const C_Code_WebServices_UnauthorizedFeature "A-AA-01-10"
+#Const C_Code_WebServices_SimultaneousLogin "A-AA-01-11"
+#Const C_Code_WebServices_AccountBanned "A-AA-01-12"
+
+// Common errors
+#Const C_Code_Common_Unexpected "Unexpected"
+#Const C_Code_Common_Canceled "Canceled"
+
+//L16N [Error] Error title displayed when an error has occured in the Ubisoft online services.
+#Const C_Title_UbiServices _("Ubisoft services error")
+//L16N [Error] Error title displayed when an error has occured in the Ubisoft Connect overlay or application.
+#Const C_Title_UbiConnect _("Ubisoft Connect error")
+//L16N [Error] Error title displayed when an error has occured in the Ubisoft online services.
+#Const C_Title_NadeoServices _("Nadeo services error")
+//L16N [Error] Error title displayed when an error has occured in the online services.
+#Const C_Title_WebServices _("Online services error")
+//L16N [Error] Error title displayed when an error has occured with a player permission check
+#Const C_Title_PermissionService _("Permission error")
+//L16N [Error] Error title displayed when an error has occured in the data manager (tracks, replays, skins, ...)
+#Const C_Title_DataFileManager _("Data error")
+//L16N [Error] Error title displayed when an error has occured in the scores manager (rankings, points, ...)
+#Const C_Title_ScoreManager _("Scores error")
+//L16N [Error] Error title displayed when an error has occured in a Trackmania script.
+#Const C_Title_ManiaScript _("Script error")
+//L16N [LibTask] Error message displayed when creating a task fails.
+#Const C_Title_TaskCreationFailed _("Failed to create task")
+//L16N [LibTask] Error message displayed when a task cannot be found.
+#Const C_Title_TaskNotFound _("Task not found")
+
+//L16N [PressStartPage] The connection to the web services timed out.
+#Const C_Description_ConnectionTimedOut _("Connection timed out")
+//L16N [PressStartPage] The connection to the web services failed.
+#Const C_Description_ConnectionFailed _("Connection failed")
+
+// WebServices error descriptions
+//L16N [ConnectionError] Message displayed when Trackmania services are disabled.
+#Const C_Description_WebServices_MasterServerDisabled _("Trackmania services are disabled.")
+//L16N [ConnectionError] Message displayed when the network connection is lost.
+#Const C_Description_WebServices_NetworkNotAvailable _("The network connection is lost. Please check your Internet connection and try again.")
+//L16N [ConnectionError] Message displayed when the connection has been lost with Ubisoft services.
+#Const C_Description_WebServices_NoUbiServicesSession _("The connection has been lost with Ubisoft services.")
+//L16N [ConnectionError] Message displayed when a feature is not authorized for the player.
+#Const C_Description_WebServices_UnauthorizedFeature _("You tried to access an unauthorized feature.")
+//L16N [ConnectionError] Message displayed when the current account is used on another instance of the game.
+#Const C_Description_WebServices_SimultaneousLogin _("You have been disconnected from Ubisoft services. Your Trackmania account was just logged into a new instance of the game.")
+
+// UbiServices error descriptions
+//L16N [Error] Generic error message displayed when an error has occured in the Ubisoft online services but we have no details about the error.
+#Const C_Description_UbiServices_Error _("The Ubisoft online services were unable to process your request")
+//L16N [PressStartPage] The connection failed because the Ubisoft online services could not be contacted
+#Const C_Description_UbiServices_ConnectionFailed _("Failed to connect to Ubisoft services")
+//L16N [JoiningSession] Can not accept a squad invitation because the squad is already full
+#Const C_Description_UbiServices_JoinErrorFullSquad _("The squad is already full. Cannot join it.")
+//L16N [JoiningSession] Cannot accept a squad invitation because the player is already a member of the squad
+#Const C_Description_UbiServices_JoinErrorAlreadySquadMember _("You are already a member of this squad. You cannot join it again.")
+//L16N [JoiningSession] Cannot accept a squad invitation because the squad is not found
+#Const C_Description_UbiServices_JoinErrorSquadNotFound _("Squad not found. Impossible to join it.")
+//L16N [JoiningSession] Cannot accept a squad invitation because the squad is locked
+#Const C_Description_UbiServices_JoinErrorSquadLocked _("The squad is locked. Impossible to join it.")
+//L16N [JoiningSession] Cannot accept a squad invitation because the player is not allowed to join this squad
+#Const C_Description_UbiServices_JoinErrorSquadInviteeNotAllowedToJoin _("You are not allowed to join this squad.")
+//L16N [JoiningSession] Cannot accept a squad invitation because the player is blocked by the inviter
+#Const C_Description_UbiServices_JoinErrorSquadInviteeBlocked _("You are blocked by the inviter. Impossible to join this squad.")
+//L16N [JoiningSession] Cannot accept a squad invitation because the player is blocking the inviter
+#Const C_Description_UbiServices_JoinErrorSquadInviteeBlocking _("You are blocking the inviter. Impossible to join this squad.")
+//L16N [JoiningSession] Cannot accept a squad invitation because the squad is crossplay but the local player disabled crossplay
+#Const C_Description_UbiServices_JoinErrorCrossplayDisabled _("You must enable the crossplay to join this squad.")
+//L16N [JoiningSession] Cannot accept a squad invitation because the invite is expired
+#Const C_Description_UbiServices_JoinErrorInviteExpired _("Invite expired. Impossible to join this squad.")
+//L16N [Authentication] User is not authorized to connect to the service
+#Const C_Description_UbiServices_Auth_Unauthorized _("You are not authorized to connect to this service")
+
+// NadeoServices error descriptions
+//L16N [Error] Generic error message displayed when an error has occured in the Nadeo online services but we have no details about the error.
+#Const C_Description_NadeoServices_Error _("The Nadeo online services were unable to process your request")
+//L16N [PressStartPage] The connection failed because the player's account is currently banned from the game.
+#Const C_Description_NadeoServices_AccountBanned _("You are currently banned from Trackmania")
+//L16N [Error] Generic error message displayed when an error has occured in the online services but we have no details about the error.
+#Const C_Description_WebServices_Error _("The online services were unable to process your request")
+
+// UbiConnect error descriptions
+//L16N [Error] Generic error message displayed when an error has occured in the Ubisoft Connect overlay or application but we have no details about the error.
+#Const C_Description_UbiConnect_Error _("Ubisoft Connect was unable to process your request")
+//L16N [Error] An error occured when the user tried to open the Ubisoft Connect overlay or application
+#Const C_Description_UbiConnect_OverlayOpeningFailed _("Error while opening Ubisoft Connect")
+
+// ManiaScript error descriptions
+//L16N [PressStartPage] The game failed to initialize the offline mode
+#Const C_Description_ManiaScript_OfflineModeInitFailed _("Failed to initialize offline mode")
+//L16N [JoiningSession] Message displayed when there's an error while trying to join a multiplayer session (eg: joining a friend in matchmaking)
+#Const C_Description_ManiaScript_JoinError _("Error while joining the session")
+
+// !!!!!!!!!!!!!!!!!!!!!!!
+// /!\ COMPOSE WARNING /!\
+// !!!!!!!!!!!!!!!!!!!!!!!
+// Messages that need a `TL::Compose()` should be isolated to errors that can only be retrieved volontarily
+// Otherwise we take the risk to receive these messages and not compose the missing elements inside because we cannot
+// predict in advance what error messages we will received and if they need a compose.
+
+//L16N [ConnectionError] Message displayed when the player has been disconnected from Ubisoft Connect or the console network service (Xbox, Playstation, Stadia, or Luna Network). %1 will be replaced by the first party network name.
+#Const C_Description_ManiaScript_DisconnectedFrom _("You have been disconnected from %1.")
+//L16N [ConnectionError] Message displayed when the player has been disconnected from Ubisoft Connect or the console network service (Xbox, Playstation, Stadia, or Luna Network). %1 will be replaced by the first party network name. e.g "You have signed out of the Ubisoft Connect network. Please Sign in to the Ubisoft Connect network and try again."
+#Const C_Description_ManiaScript_FirstPartySignedOut _("You have signed out of the %1. Please Sign in to the %1 and try again.")
+//L16N [Favorite map] Error while removing a track from the player's favorites. e.g %1 will be replaced by the track name. e.g "Error while removing the track 'Ice circuit' from your favorites."
+#Const C_Description_ManiaScript_RemoveFavoriteMap _("Error while removing the track '%1' from your favorites.")
+//L16N [Favorite map] Error while adding a track to the player's favorites. e.g %1 will be replaced by the track name. e.g "Error while adding the track 'Ice circuit' to your favorites."
+#Const C_Description_ManiaScript_AddFavoriteMap _("Error while adding the track '%1' from your favorites.")
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the errors array
+ *	We use a function instead of a constants
+ *	because we want to be able to use constants inside
+ *	the array
+ *	
+ *	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ *	/!\ NEVER CHANGE THE NUMBER OF AN ERROR /!\
+ *	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ *	This number is used to generate an error code.
+ *	If the number is changed or reuse an old number,
+ *	reports with the old error code will conflict
+ *	with the ones with the new error code.
+ */
+K_ErrorConfig[] Private_GetErrors() {
+	return [
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_Null },
+			Number = 1
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_Sony },
+			Number = 2
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_Microsoft },
+			Number = 3
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_UbiServices },
+			Number = 4,
+			Title = C_Title_UbiServices,
+			Description = C_Description_UbiServices_Error
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_UplayPC },
+			Number = 5,
+			Title = C_Title_UbiConnect,
+			Description = C_Description_UbiConnect_Error
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_Common },
+			Number = 6
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_NadeoServices },
+			Number = 7,
+			Title = C_Title_NadeoServices,
+			Description = C_Description_NadeoServices_Error
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_WebServices },
+			Number = 36,
+			Title = C_Title_WebServices,
+			Description = C_Description_WebServices_Error
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_PermissionService },
+			Number = 8,
+			Title = C_Title_PermissionService
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_DataFileManager },
+			Number = 9,
+			Title = C_Title_DataFileManager
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_ScoreManager },
+			Number = 10,
+			Title = C_Title_ScoreManager
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_MasterServer },
+			Number = 11
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_ManiaScript },
+			Number = 12,
+			Title = C_Title_ManiaScript
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_ManiaScript, Code = C_Code_ManiaScript_TaskCreationFailed },
+			Number = 13,
+			Title = C_Title_TaskCreationFailed
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_ManiaScript, Code = C_Code_ManiaScript_TaskNotFound },
+			Number = 14,
+			Title = C_Title_TaskNotFound
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_ManiaScript, Code = C_Code_PressStart_TaskConnectUserTimeOut },
+			Number = 15,
+			Title = C_Title_WebServices,
+			Description = C_Description_ConnectionTimedOut
+		},
+		K_ErrorConfig {
+			// Deprecated
+			Key = K_Key { Type = C_Type_ManiaScript, Code = C_Code_ManiaScript_TaskConnectUserFailed },
+			Number = 16,
+			Title = C_Title_WebServices,
+			Description = C_Description_ConnectionFailed
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_WebServices, Code = C_Code_WebServices_NetworkNotAvailable },
+			Number = 17,
+			Title = C_Title_WebServices,
+			Description = C_Description_WebServices_NetworkNotAvailable
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_ManiaScript, Code = C_Code_ManiaScript_FirstPartySignedOut },
+			Number = 18,
+			Title = C_Title_WebServices,
+			Description = C_Description_ManiaScript_FirstPartySignedOut
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_WebServices, Code = C_Code_WebServices_KillSwitchEnabled },
+			Number = 19,
+			Title = C_Title_WebServices
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_WebServices, Code = C_Code_WebServices_MasterServerDisabled },
+			Number = 20,
+			Title = C_Title_WebServices,
+			Description = C_Description_WebServices_MasterServerDisabled
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_WebServices, Code = C_Code_WebServices_MasterServerSafeMode },
+			Number = 21,
+			Title = C_Title_WebServices
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_WebServices, Code = C_Code_WebServices_NoUbiServicesSession },
+			Number = 22,
+			Title = C_Title_WebServices,
+			Description = C_Description_WebServices_NoUbiServicesSession
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_WebServices, Code = C_Code_WebServices_NoUplayPC },
+			Number = 23,
+			Title = C_Title_WebServices,
+			Description = C_Description_WebServices_NoUbiServicesSession
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_WebServices, Code = C_Code_WebServices_UnauthorizedFeature },
+			Number = 24,
+			Title = C_Title_WebServices,
+			Description = C_Description_WebServices_UnauthorizedFeature
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_WebServices, Code = C_Code_WebServices_SimultaneousLogin },
+			Number = 25,
+			Title = C_Title_WebServices,
+			Description = C_Description_WebServices_SimultaneousLogin
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_UbiServices, Code = C_Code_UbiServices_ConnectionFailed },
+			Number = 26,
+			Title = C_Title_UbiServices,
+			Description = C_Description_UbiServices_ConnectionFailed
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_NadeoServices, Code = C_Code_NadeoServices_AccountBanned },
+			Number = 27,
+			Title = C_Title_NadeoServices,
+			Description = C_Description_NadeoServices_AccountBanned
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_ManiaScript, Code = C_Code_PressStart_TaskConnectUserDestroyed },
+			Number = 28,
+			Title = C_Title_WebServices,
+			Description = C_Description_ConnectionFailed
+		},
+		K_ErrorConfig {
+			// Deprecated
+			Key = K_Key { Type = C_Type_ManiaScript, Code = C_Code_ManiaScript_ShowUbisoftConnectRewardFailed },
+			Number = 29,
+			Title = C_Title_UbiConnect,
+			Description = C_Description_UbiConnect_OverlayOpeningFailed
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_ManiaScript, Code = C_Code_PressStart_ConnectionStatusTimeout },
+			Number = 30,
+			Title = C_Title_WebServices,
+			Description = C_Description_ConnectionTimedOut
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_ManiaScript, Code = C_Code_PressStart_ConnectionStatusNotConnected },
+			Number = 31,
+			Title = C_Title_WebServices,
+			Description = C_Description_ConnectionFailed
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_ManiaScript, Code = C_Code_PressStart_HttpHeadersTimeout },
+			Number = 32,
+			Title = C_Title_WebServices,
+			Description = C_Description_ConnectionTimedOut
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_ManiaScript, Code = C_Code_PressStart_TaskConnectUserOfflineTimeOut },
+			Number = 33,
+			Description = C_Description_ConnectionTimedOut
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_ManiaScript, Code = C_Code_ManiaScript_TaskConnectUserOfflineFailed },
+			Number = 34,
+			Description = C_Description_ManiaScript_OfflineModeInitFailed
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_ManiaScript, Code = C_Code_PressStart_TaskConnectUserOfflineDestroyed },
+			Number = 35,
+			Description = C_Description_ManiaScript_OfflineModeInitFailed
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_Common, Code = C_Code_Common_Unexpected },
+			Number = 37
+		},
+		K_ErrorConfig {
+			// Deprecated
+			Key = K_Key { Type = C_Type_ManiaScript, Code = C_Code_ManiaScript_DisconnectedFrom },
+			Number = 38,
+			Description = C_Description_ManiaScript_DisconnectedFrom
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_Common, Code = C_Code_Common_Canceled },
+			Number = 39
+		},
+		K_ErrorConfig {
+			// Deprecated
+			Key = K_Key { Type = C_Type_ManiaScript, Code = C_Code_ManiaScript_TaskJoinSessionError },
+			Number = 40,
+			Description = C_Description_ManiaScript_JoinError
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_UbiServices, Code = C_Code_UbiServices_FullSquad },
+			Number = 41,
+			Description = C_Description_UbiServices_JoinErrorFullSquad
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_UbiServices, Code = C_Code_UbiServices_AlreadySquadMember },
+			Number = 42,
+			Description = C_Description_UbiServices_JoinErrorAlreadySquadMember
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_UbiServices, Code = C_Code_UbiServices_SquadNotFound },
+			Number = 43,
+			Description = C_Description_UbiServices_JoinErrorSquadNotFound
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_UbiServices, Code = C_Code_UbiServices_SquadNotFoundBis },
+			Number = 44,
+			Description = C_Description_UbiServices_JoinErrorSquadNotFound
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_UbiServices, Code = C_Code_UbiServices_SquadNotFoundOrAccessible },
+			Number = 45,
+			Description = C_Description_UbiServices_JoinErrorSquadNotFound
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_UbiServices, Code = C_Code_UbiServices_SquadLocked },
+			Number = 46,
+			Description = C_Description_UbiServices_JoinErrorSquadLocked
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_UbiServices, Code = C_Code_UbiServices_InviteeNotAllowedToJoinSquad },
+			Number = 47,
+			Description = C_Description_UbiServices_JoinErrorSquadInviteeNotAllowedToJoin
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_UbiServices, Code = C_Code_UbiServices_InviteeBlockedByInviter },
+			Number = 48,
+			Description = C_Description_UbiServices_JoinErrorSquadInviteeBlocked
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_UbiServices, Code = C_Code_UbiServices_InviteeBlockingInviter },
+			Number = 49,
+			Description = C_Description_UbiServices_JoinErrorSquadInviteeBlocking
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_UbiServices, Code = C_Code_UbiServices_CrossplayDisabled },
+			Number = 50,
+			Description = C_Description_UbiServices_JoinErrorCrossplayDisabled
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_UbiServices, Code = C_Code_UbiServices_FirstPartyInviteExpired },
+			Number = 51,
+			Description = C_Description_UbiServices_JoinErrorInviteExpired
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_UbiServices, Code = C_Code_UbiServices_Auth_Unauthorized },
+			Number = 52,
+			Description = C_Description_UbiServices_Auth_Unauthorized
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_ManiaScript, Code = C_Code_TrackBrowser_RemoveFavoriteMap },
+			Number = 53,
+			Description = C_Description_ManiaScript_RemoveFavoriteMap
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_ManiaScript, Code = C_Code_TrackBrowser_AddFavoriteMap },
+			Number = 54,
+			Description = C_Description_ManiaScript_AddFavoriteMap
+		},
+		K_ErrorConfig {
+			Key = K_Key { Type = C_Type_WebServices, Code = C_Code_WebServices_AccountBanned },
+			Number = 55,
+			Description = C_Description_NadeoServices_AccountBanned
+		}
+	];
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Generate a unique error identifier from a type, code and context
+Text GetErrorIdentifier(Text _Type, Text _Code, Text _Context) {
+	declare Text Type = _Type;
+	if (Type == "") Type = C_Type_Null;
+	declare Text Code = _Code;
+	if (Code == "") Code = C_Code_Null;
+
+	if (_Context != "") {
+		return Type^C_ErrorKeySeparator^Code^C_ErrorKeySeparator^_Context;
+	} else if (_Code != "") {
+		return Type^C_ErrorKeySeparator^_Code;
+	} else if (_Type != "") {
+		return _Type;
+	}
+
+	return "";
+}
+Text GetErrorIdentifier(Text _Type, Text _Code) {
+	return GetErrorIdentifier(_Type, _Code, "");
+}
+Text GetErrorIdentifier(Text _Type) {
+	return GetErrorIdentifier(_Type, "", "");
+}
+Text GetErrorIdentifier(K_Key _ErrorKey) {
+	return GetErrorIdentifier(_ErrorKey.Type, _ErrorKey.Code, _ErrorKey.Context);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Initialize the errors array
+K_ErrorConfig[Text] Private_InitializeErrors(K_ErrorConfig[] _Errors) {
+	declare K_ErrorConfig[Text] Errors;
+	declare Integer[] ErrorNumbers;
+
+	foreach (Error in _Errors) {
+		declare Text ErrorKey = GetErrorIdentifier(Error.Key);
+		assert(
+			(
+				Error.Key.Type != "" && Error.Key.Code != "" && Error.Key.Context != "" ||
+				Error.Key.Type != "" && Error.Key.Code != "" && Error.Key.Context == "" ||
+				Error.Key.Type != "" && Error.Key.Code == "" && Error.Key.Context == "" ||
+				Error.Key.Type == "" && Error.Key.Code == "" && Error.Key.Context == ""
+			),
+			"""Invalid Type{{{C_ErrorKeySeparator}}}Code{{{C_ErrorKeySeparator}}}Context triplet. Error key : '{{{ErrorKey}}}'."""
+		);
+		assert(!Errors.existskey(ErrorKey), """Error already exists. Error key : '{{{ErrorKey}}}'.""");
+		assert(Error.Number > 0, """The error number '{{{Error.Number}}}' is invalid. Use a positive number greater than 0. Error key : '{{{ErrorKey}}}'.""");
+		assert(!ErrorNumbers.exists(Error.Number), """The error number '{{{Error.Number}}}' is already used. Error key : '{{{ErrorKey}}}'.""");
+		assert(TL::RegexFind("%[0-9]+", Error.Description, "").count == 0 || Error.Key.Type == C_Type_ManiaScript, """Error descriptions containing a compose element must be of type `C_Type_ManiaScript`. Check the COMPOSE WARNING comment. Error key : '{{{ErrorKey}}}'.""");
+
+		Errors[ErrorKey] = Error;
+		ErrorNumbers.add(Error.Number);
+	}
+
+	return Errors;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if the errors are valid
+Void CheckErrorsValidity() {
+	declare K_ErrorConfig[Text] LibCommonLibs_Error_Errors for This = [];
+	if (LibCommonLibs_Error_Errors.count == 0) {
+		LibCommonLibs_Error_Errors = Private_InitializeErrors(Private_GetErrors());
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Compose an array of Text into another Text
+Text Private_ComposeArray(Text _ComposeText, Text[] _ComposeElements) {
+	// Use the `GetTranslatedText()` function to resolve the `Compose()` and get a normal string
+	// that can be used inside another `Compose()`.
+	// The downside of using `GetTranslatedText()` is that the text won't be automatically
+	// updated in the label and translated to the new language when the user change it in the settings.
+	// A new call to `GetTranslatedTex()` must be done in this case.
+	// Because these are error messages, we consider that the chances that they are displayed at the same
+	// time that the user change the language is pretty low.
+	// So it is acceptable to use `GetTranslatedText()` in this case.
+	declare Text ComposeText = "";
+	switch (_ComposeElements.count) {
+		case 0: {
+			ComposeText = _ComposeText;
+		}
+		case 1: {
+			ComposeText = TL::GetTranslatedText(TL::Compose(_ComposeText, _ComposeElements[0]));
+		}
+		case 2: {
+			ComposeText = TL::GetTranslatedText(TL::Compose(_ComposeText, _ComposeElements[0], _ComposeElements[1]));
+		}
+		case 3: {
+			ComposeText = TL::GetTranslatedText(TL::Compose(_ComposeText, _ComposeElements[0], _ComposeElements[1], _ComposeElements[2]));
+		}
+		case 4: {
+			ComposeText = TL::GetTranslatedText(TL::Compose(_ComposeText, _ComposeElements[0], _ComposeElements[1], _ComposeElements[2], _ComposeElements[3]));
+		}
+		default: {
+			// The `Compose()` function accept up to 5 elements to compose inside the string.
+			ComposeText = TL::GetTranslatedText(TL::Compose(_ComposeText, _ComposeElements[0], _ComposeElements[1], _ComposeElements[2], _ComposeElements[3], _ComposeElements[4]));
+		}
+	}
+	return ComposeText;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if an error comes from a first party
+Boolean IsFromFirstParty(Text _Type) {
+	return C_FirstPartyTypes.exists(_Type);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Encore the error type
+Text Private_EncodeErrorType(Text _Type) {
+	switch (_Type) {
+		case C_Type_Null: return C_TypeEncoded_Null;
+		case C_Type_Sony: return C_TypeEncoded_Sony;
+		case C_Type_Microsoft: return C_TypeEncoded_Microsoft;
+		case C_Type_UbiServices: return C_TypeEncoded_UbiServices;
+		case C_Type_UplayPC: return C_TypeEncoded_UplayPC;
+		case C_Type_Common: return C_TypeEncoded_Common;
+		case C_Type_NadeoServices: return C_TypeEncoded_NadeoServices;
+		case C_Type_WebServices: return C_TypeEncoded_WebServices;
+		case C_Type_PermissionService: return C_TypeEncoded_PermissionService;
+		case C_Type_DataFileManager: return C_TypeEncoded_DataFileManager;
+		case C_Type_ScoreManager: return C_TypeEncoded_ScoreManager;
+		case C_Type_MasterServer: return C_TypeEncoded_MasterServer;
+		case C_Type_ManiaScript: return C_TypeEncoded_ManiaScript;
+	}
+	return C_TypeEncoded_Unknown;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get a `K_Error` from a `K_ErrorConfig` structure
+K_Error Private_GetErrorFromConfig(K_ErrorConfig _ErrorConfig, Text _Type, Text _Code, Text _Context, Text[] _ComposeElements) {
+	declare Boolean IsExactError = (_ErrorConfig.Key.Type == _Type && _ErrorConfig.Key.Code == _Code && _ErrorConfig.Key.Context == _Context);
+	declare Text Code;
+	if (IsExactError) {
+		Code = C_ErrorNickname^" - "^TL::FormatInteger(_ErrorConfig.Number, C_ErrorNumberSizeMax);
+	} else if (IsFromFirstParty(_Type)) {
+		Code = C_ErrorNickname^" - "^TL::FormatInteger(_ErrorConfig.Number, C_ErrorNumberSizeMax)^" - "^Private_EncodeErrorType(_Type);
+	} else if (_Context != "") {
+		Code = C_ErrorNickname^" - "^TL::FormatInteger(_ErrorConfig.Number, C_ErrorNumberSizeMax)^" - "^Private_EncodeErrorType(_Type)^"+"^_Code^"+"^_Context;
+	} else {
+		Code = C_ErrorNickname^" - "^TL::FormatInteger(_ErrorConfig.Number, C_ErrorNumberSizeMax)^" - "^Private_EncodeErrorType(_Type)^"+"^_Code;
+	}
+	declare Text Description = Tools::Ternary(_ErrorConfig.Description == "", C_ErrorDefaultDescription, _ErrorConfig.Description);
+	return K_Error {
+		Key = _ErrorConfig.Key,
+		Source = K_Key {
+			Type = _Type,
+			Code = _Code,
+			Context = _Context
+		},
+		IsExactError = IsExactError,
+		Code = Code,
+		Title = Tools::Ternary(_ErrorConfig.Title == "", C_ErrorDefaultTitle, _ErrorConfig.Title),
+		Description = Description,
+		Message = TL::Compose(C_ErrorFormat, Private_ComposeArray(Description, _ComposeElements), Code)
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Remove the initialized errors
+Void ResetErrors() {
+	declare K_ErrorConfig[Text] LibCommonLibs_Error_Errors for This = [];
+	LibCommonLibs_Error_Errors = [];
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the default custom error
+K_Error GetDefaultError() {
+	return Private_GetErrorFromConfig(C_DefaultErrorConfig, "", "", "", []);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get a custom error
+K_Error GetError(Text _Type, Text _Code, Text _Context, Text[] _ComposeElements, Boolean _DisplayWarning) {
+	declare K_ErrorConfig[Text] LibCommonLibs_Error_Errors for This = [];
+	if (LibCommonLibs_Error_Errors.count == 0) {
+		LibCommonLibs_Error_Errors = Private_InitializeErrors(Private_GetErrors());
+	}
+	
+	declare K_ErrorConfig ErrorConfig = C_DefaultErrorConfig;
+	if (ErrorConfig.Number == C_ErrorDefaultNumber && _Context != "") {
+		ErrorConfig = LibCommonLibs_Error_Errors.get(GetErrorIdentifier(_Type, _Code, _Context), C_DefaultErrorConfig);
+	}
+	if (ErrorConfig.Number == C_ErrorDefaultNumber && _Code != "") {
+		ErrorConfig = LibCommonLibs_Error_Errors.get(GetErrorIdentifier(_Type, _Code), C_DefaultErrorConfig);
+	}
+	if (ErrorConfig.Number == C_ErrorDefaultNumber && _Type != "") {
+		ErrorConfig = LibCommonLibs_Error_Errors.get(GetErrorIdentifier(_Type), C_DefaultErrorConfig);
+	}
+
+	declare K_Error Error = Private_GetErrorFromConfig(ErrorConfig, _Type, _Code, _Context, _ComposeElements);
+	// If we could not find an exact match for our error
+	// Output the requested identifier to the log so we can
+	// try to identify the error more precisely
+	if (_DisplayWarning && !Error.IsExactError) {
+		log("""WARNING [Error] Could not find error for identifier '{{{GetErrorIdentifier(Error.Source.Type, Error.Source.Code, Error.Source.Context)}}}'""");
+	}
+
+	return Error;
+}
+K_Error GetError(Text _Type, Text _Code, Text _Context, Boolean _DisplayWarning) {
+	return GetError(_Type, _Code, _Context, [], _DisplayWarning);
+}
+K_Error GetError(Text _Type, Text _Code, Text _Context, Text[] _ComposeElements) {
+	return GetError(_Type, _Code, _Context, _ComposeElements, True);
+}
+K_Error GetError(Text _Type, Text _Code, Text _Context) {
+	return GetError(_Type, _Code, _Context, [], True);
+}
+K_Error GetError(Text _Type, Text _Code, Text[] _ComposeElements) {
+	return GetError(_Type, _Code, "", _ComposeElements);
+}
+K_Error GetError(Text _Type, Text _Code) {
+	return GetError(_Type, _Code, "", []);
+}
+K_Error GetError(Text _Type, Text[] _ComposeElements) {
+	return GetError(_Type, "", "", _ComposeElements);
+}
+K_Error GetError(Text _Type) {
+	return GetError(_Type, "", "", []);
+}
+K_Error GetError(Text[] _ComposeElements) {
+	return GetError("", "", "", _ComposeElements);
+}
+K_Error GetError() {
+	return GetError("", "", "", []);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if an error exists for the exact Type/Code/Context triplet
+Boolean HasExactError(Text _Type, Text _Code, Text _Context) {
+	return GetError(_Type, _Code, _Context, False).IsExactError;
+}
+Boolean HasExactError(Text _Type, Text _Code) {
+	return HasExactError(_Type, _Code, "");
+}
+Boolean HasExactError(Text _Type) {
+	return HasExactError(_Type, "", "");
+}
+Boolean HasExactError() {
+	return HasExactError("", "", "");
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get an error message
+Text GetErrorMessage(Text _Type, Text _Code, Text _Context, Text[] _ComposeElements) {
+	return GetError(_Type, _Code, _Context, _ComposeElements).Message;
+}
+Text GetErrorMessage(Text _Type, Text _Code, Text _Context) {
+	return GetErrorMessage(_Type, _Code, _Context, []);
+}
+Text GetErrorMessage(Text _Type, Text _Code, Text[] _ComposeElements) {
+	return GetErrorMessage(_Type, _Code, "", _ComposeElements);
+}
+Text GetErrorMessage(Text _Type, Text _Code) {
+	return GetErrorMessage(_Type, _Code, "", []);
+}
+Text GetErrorMessage(Text _Type, Text[] _ComposeElements) {
+	return GetErrorMessage(_Type, "", "", _ComposeElements);
+}
+Text GetErrorMessage(Text _Type) {
+	return GetErrorMessage(_Type, "", "", []);
+}
+Text GetErrorMessage(Text[] _ComposeElements) {
+	return GetErrorMessage("", "", "", _ComposeElements);
+}
+Text GetErrorMessage() {
+	return GetErrorMessage("", "", "", []);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Return the original error message if we have an exact match or the alternative message otherwise
+Text GetAlternativeErrorMessage(Text _AlternativeMessage, Text[] _ComposeElements, K_Error _Error) {
+	if (_Error.IsExactError) {
+		return _Error.Message;
+	}
+	return TL::Compose(C_ErrorFormat, Private_ComposeArray(_AlternativeMessage, _ComposeElements), _Error.Code);
+}
+Text GetAlternativeErrorMessage(Text _AlternativeMessage, K_Error _Error) {
+	return GetAlternativeErrorMessage(_AlternativeMessage, [], _Error);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get an error code
+Text GetErrorCode(Text _Type, Text _Code, Text _Context) {
+	return GetError(_Type, _Code, _Context).Code;
+}
+Text GetErrorCode(Text _Type, Text _Code) {
+	return GetErrorCode(_Type, _Code, "");
+}
+Text GetErrorCode(Text _Type) {
+	return GetErrorCode(_Type, "", "");
+}
+Text GetErrorCode() {
+	return GetErrorCode("", "", "");
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the message to display for the connection errors
+Text GetConnectionErrorMessage(Text _ConnectionErrorType, Text _ConnectionErrorCode, Text _Network) {
+	declare Text ErrorMessage = "";
+	if (_ConnectionErrorCode == C_Code_WebServices_FirstPartySignedOut) {
+		ErrorMessage = GetErrorMessage(C_Type_ManiaScript, C_Code_ManiaScript_FirstPartySignedOut, [_Network]);
+	} else if (_ConnectionErrorCode == C_Code_WebServices_AccountBanned) {
+		ErrorMessage = GetErrorMessage(C_Type_WebServices, C_Code_WebServices_AccountBanned);
+	} else {
+		ErrorMessage = GetAlternativeErrorMessage(C_Description_ManiaScript_DisconnectedFrom, [_Network], GetError(_ConnectionErrorType, _ConnectionErrorCode));
+	}
+	return ErrorMessage;
+}

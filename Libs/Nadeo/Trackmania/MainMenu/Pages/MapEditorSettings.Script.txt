@@ -1,0 +1,1308 @@
+/**
+ *	Page: MapEditorSettings
+ */
+#Const Version		"1.1.2"
+#Const ScriptName	"Libs/Nadeo/Trackmania/MainMenu/Pages/MapEditorSettings.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/CMGame/Utils/Platform.Script.txt" as Platform
+#Include "Libs/Nadeo/CMGame/Utils/MLHelpers.Script.txt" as MLHelpers
+#Include "Libs/Nadeo/CMGame/Utils/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/CMGame/Utils/Stylesheet.Script.txt" as Stylesheet
+#Include "Libs/Nadeo/CMGame/Components/MenuSounds.Script.txt" as MenuSounds
+#Include "Libs/Nadeo/CMGame/Components/Navigation.Script.txt" as Navigation
+#Include "Libs/Nadeo/CMGame/Components/Transition.Script.txt" as Transition
+#Include "Libs/Nadeo/CMGame/Menus/Router_ML.Script.txt" as Router
+#Include "Libs/Nadeo/CMGame/Components/Button.Script.txt" as Button
+#Include "Libs/Nadeo/CMGame/Components/ExpendableButton.Script.txt" as ExpendableButton
+#Include "Libs/Nadeo/Trackmania/Components/PopUpMultiChoice.Script.txt" as PopUpMultiChoice
+#Include "Libs/Nadeo/Trackmania/Components/TrackBrowser.Script.txt" as TrackBrowser
+#Include "Libs/Nadeo/Trackmania/MainMenu/Constants.Script.txt" as Const
+#Include "Libs/Nadeo/Trackmania/MainMenu/Pages/LoadingScreen.Script.txt" as LoadingScreen
+#Include "Libs/Nadeo/Trackmania/MainMenu/RoutePaths.Script.txt" as RoutePaths
+#Include "Libs/Nadeo/Trackmania/Stores/UserStore_ML.Script.txt" as UserStore
+#Include "Libs/Nadeo/Trackmania/Structures/CampaignStruct.Script.txt" as CampaignStruct
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "Page_MapEditorSettings"
+#Const C_NavGroup_Page "navgroup-page-mapeditor-settings"
+
+#Const C_SettingsStep_MainMenu 0
+#Const C_SettingsStep_BrowseMaps 1
+#Const C_SettingsStep_Controller 2
+#Const C_SettingsStep_DifficultyMouse 3
+#Const C_SettingsStep_DifficultyGamepad 4
+#Const C_SettingsStep_Mood 5
+
+#Const C_SettingsStep_NavGroups [
+	0 => "navgroup-page-mapeditor-settings-map",
+	1 => "navgroup-page-mapeditor-settings-browse-maps",
+	2 => "navgroup-page-mapeditor-settings-controller",
+	3 => "navgroup-page-mapeditor-settings-difficulty-mouse",
+	4 => "navgroup-page-mapeditor-settings-difficulty-gamepad",
+	5 => "navgroup-page-mapeditor-settings-mood"
+]
+
+#Const C_Mood_Sunrise "48x48Screen155Sunrise"
+#Const C_Mood_Day "48x48Screen155Day"
+#Const C_Mood_Sunset "48x48Screen155Sunset"
+#Const C_Mood_Night "48x48Screen155Night"
+
+#Const C_Difficulty_Simple 0
+#Const C_Difficulty_Advanced 1
+#Const C_Difficulty_Expert 2
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the page manialink
+ *
+ *	@return														The page manialink
+ */
+Text GetManialink() {
+	//L16N [MapEditorSettings] Title of the loading page when entering the track editor/
+	declare Text Text_TrackEditor = _("Track editor");
+	//L16N [MapEditorSettings] Create a new track for the Race game mode.
+	declare Text Text_CreateRaceMap = _("Create a new track");
+	//L16N [MapEditorSettings] Create a new track for the Royal game mode.
+	declare Text Text_CreateRoyalMap = _("Create a new Royal track");
+	//L16N [MapEditorSettings] Edit a track.
+	declare Text Text_EditTrack = _("Edit a track");
+	//L16N [MapEditorSettings] Button to open the page of the club items
+	declare Text Text_ClubItems = _("Club items");
+	//L16N [MapEditorSettings]
+	declare Text Text_MouseAndKeyboard = _("|MapEditorDevice|Mouse and keyboard");
+	//L16N [MapEditorSettings]
+	declare Text Text_Gamepad = _("|MapEditorDevice|Gamepad");
+	//L16N [MapEditorSettings]
+	declare Text Text_Simple = _("|MapEditorDifficulty|Simple");
+	//L16N [MapEditorSettings]
+	declare Text Text_Advanced = _("|MapEditorDifficulty|Advanced");
+	//L16N [MapEditorSettings] Button for the expert editor with gamepad
+	declare Text Text_Expert = _("|MapEditorDifficulty|Expert");
+	//L16N [MapEditorSettings]
+	declare Text Text_Sunrise = _("|MapMood|Sunrise");
+	//L16N [MapEditorSettings]
+	declare Text Text_Day = _("|MapMood|Day");
+	//L16N [MapEditorSettings]
+	declare Text Text_Sunset = _("|MapMood|Sunset");
+	//L16N [MapEditorSettings]
+	declare Text Text_Night = _("|MapMood|Night");
+	//L16N [MapEditorSettings] Message to inform that the quick start feature is on, meaning the track editor will launch without prompting.
+	declare Text Text_QuickStart = _("Quick start is enabled");
+
+	//L16N The player cannot edit a track created with the mouse/keyboard editor on console
+	declare Text Text_GamepadEditor_Description1 = _("This track was created with the keyboard and mouse editor.");
+	//L16N The player cannot edit a track created with the mouse/keyboard editor on console
+	declare Text Text_GamepadEditor_Description2 = _("You can only edit tracks created with the gamepad editor.");
+	if (!Platform::IsPC(System)) {
+		//L16N [Create Campaign] The player cannot edit a track created with the mouse/keyboard editor on console
+		Text_GamepadEditor_Description1 = _("This track was created with other input methods.");
+		//L16N [Create Campaign] The player cannot edit a track created with the mouse/keyboard editor on console
+		Text_GamepadEditor_Description2 = _("You can only edit tracks created with the track editor using a controller.");
+	}
+
+	/* Variables */
+	declare Vec2 Size_HorizontalButton = MLHelpers::KeepRatioFromY(1232., 556., 46.3);
+	declare Vec2 Size_VerticalButton = MLHelpers::KeepRatioFromY(1004., 1152., 95.8);
+	declare Vec2 Pos_ButtonTopLeft = MLHelpers::SkewX(<-48., 17.1>, 10.);
+	declare Vec2 Pos_ButtonBottomLeft = MLHelpers::SkewX(<-48., -32.5>, 10.);
+	declare Vec2 Pos_ButtonTopRight = MLHelpers::SkewX(<50., 17.1>, 10.);
+	declare Vec2 Pos_ButtonBottomRight = MLHelpers::SkewX(<50., -32.5>, 10.);
+	declare Vec2 Pos_ButtonControllerExpert = <34.8, -7.65>;
+	declare Vec2 Pos_ButtonCreateRaceConsole = <-35.5, -7.65>;
+	declare Vec2 Pos_LabelQuickStartConsole = <-Size_VerticalButton.X*0.42, -Size_VerticalButton.Y*0.47>;
+	declare Vec2 Pos_LabelQuickStart = <-Size_HorizontalButton.X*0.42, -Size_HorizontalButton.Y*0.43>;
+
+	return MV::Create(
+C_Name, 3,
+"""
+<stylesheet>
+	<style class="text-semibold" halign="center" valign="center2" textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_SemiBold)}}}" textprefix="$t$i" textcolor="FFFFFF"/>
+</stylesheet>
+
+<!--Frame global -->
+<frame id="frame-global" z-index="{{{Const::C_ZIndex_MapEditorSettings}}}">
+	<!-- Track Browser pop up -->
+	<frameinstance
+		id="frame-track-browser" z-index="1"
+		modelid="{{{TrackBrowser::C_Name}}}"
+		data-browsing-for-edition="1"
+	/>
+
+	<!-- Multi choice pop up (z-index must be superior than track browser z-index) -->
+	<frameinstance id="frame-pop-up-multichoice" modelid="{{{PopUpMultiChoice::C_Name}}}" hidden="1" z-index="2"/>
+
+	<!-- Step main menu -->
+	<frame id="frame-main-menu">
+		<frame id="frame-create-race" pos="{{{Pos_ButtonTopLeft.X}}} {{{Pos_ButtonTopLeft.Y}}}">
+			<label id="label-quick-start" pos="{{{Pos_LabelQuickStart.X}}} {{{Pos_LabelQuickStart.Y}}}" size="{{{Size_HorizontalButton.X*0.75}}} 10" class="text-semibold" text="{{{Text_QuickStart}}}" textsize="2" valign="bottom" halign="left" z-index="2" opacity="0.8" hidden="1"/>
+			<frameinstance
+				id="button-create-race"
+				modelid="{{{Button::C_Name}}}"
+				class="{{{Navigation::C_Class}}}"
+				data-text="{{{Text_CreateRaceMap}}}"
+				data-secondarylabel="label-quick-start"
+				data-size="{{{Size_HorizontalButton.X}}} {{{Size_HorizontalButton.Y}}}"
+				data-labelsize="{{{Size_HorizontalButton.X*0.8}}} 10"
+				data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+				data-image="{{{Const::C_ImageUrl_MapReview_TOTD}}}"
+				data-gradientimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Gradient}}}"
+				data-gradientimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDark)}}}"
+				data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+				data-contourimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Contour}}}"
+				data-contourimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_ComponentButtonOutlineFocus)}}}"
+				data-contouropacityunfocus=".0"
+				data-tilthitbox="10"
+				data-textsize="5"
+				data-textitalicslope="0.2"
+				data-textopacityunfocus="0.8"
+				data-textxpos="0.13" data-textypos="-0.13"
+				data-texthalign="left" data-textvalign="top"
+				data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}"
+				data-autonewline="1" data-maxline="2"
+				data-valign="center" data-halign="center"
+				data-nav-inputs="select;cancel;right;down"
+				data-nav-targets="_;_;button-edit;button-create-royal"
+				data-nav-group="{{{C_SettingsStep_NavGroups[C_SettingsStep_MainMenu]}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+			/>
+		</frame>
+
+		<frameinstance
+			id="button-create-royal" pos="{{{Pos_ButtonBottomLeft.X}}} {{{Pos_ButtonBottomLeft.Y}}}"
+			modelid="{{{Button::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-text="{{{Text_CreateRoyalMap}}}"
+			data-size="{{{Size_HorizontalButton.X}}} {{{Size_HorizontalButton.Y}}}"
+			data-labelsize="{{{Size_HorizontalButton.X*0.8}}} 10"
+			data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+			data-image="{{{Const::C_ImageUrl_MapReview_Royal}}}"
+			data-gradientimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Gradient}}}"
+			data-gradientimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDark)}}}"
+			data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+			data-contourimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Contour}}}"
+			data-contourimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_ComponentButtonOutlineFocus)}}}"
+			data-contouropacityunfocus=".0"
+			data-tilthitbox="10"
+			data-textsize="5"
+			data-textitalicslope="0.2"
+			data-textopacityunfocus="0.8"
+			data-textxpos="0.13" data-textypos="-0.13"
+			data-texthalign="left" data-textvalign="top"
+			data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}"
+			data-autonewline="1" data-maxline="2"
+			data-valign="center" data-halign="center"
+			data-nav-inputs="select;cancel;right;up;down"
+			data-nav-targets="_;_;button-club-items;button-create-race;button-back"
+			data-nav-group="{{{C_SettingsStep_NavGroups[C_SettingsStep_MainMenu]}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+			data-nav-locked="{{{Platform::IsFromFirstParty(System)}}}"
+			hidden="{{{Platform::IsFromFirstParty(System)}}}"
+		/>
+
+		<frameinstance
+			id="button-edit" pos="{{{Pos_ButtonTopRight.X}}} {{{Pos_ButtonTopRight.Y}}}"
+			modelid="{{{Button::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-text="{{{Text_EditTrack}}}"
+			data-size="{{{Size_HorizontalButton.X}}} {{{Size_HorizontalButton.Y}}}"
+			data-labelsize="{{{Size_HorizontalButton.X*0.8}}} 10"
+			data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+			data-image="{{{Const::C_ImageUrl_TrackEditor_EditTrack}}}"
+			data-gradientimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Gradient}}}"
+			data-gradientimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDark)}}}"
+			data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+			data-contourimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Contour}}}"
+			data-contourimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_ComponentButtonOutlineFocus)}}}"
+			data-contouropacityunfocus=".0"
+			data-tilthitbox="10"
+			data-textsize="5"
+			data-textitalicslope="0.2"
+			data-textopacityunfocus="0.8"
+			data-textxpos="0.13" data-textypos="-0.13"
+			data-texthalign="left" data-textvalign="top"
+			data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}"
+			data-autonewline="1" data-maxline="2"
+			data-valign="center" data-halign="center"
+			data-nav-inputs="select;cancel;left;down"
+			data-nav-targets="_;_;button-create-race;button-club-items"
+			data-nav-group="{{{C_SettingsStep_NavGroups[C_SettingsStep_MainMenu]}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+
+		<frameinstance
+			id="button-club-items" pos="{{{Pos_ButtonBottomRight.X}}} {{{Pos_ButtonBottomRight.Y}}}"
+			modelid="{{{Button::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-text="{{{Text_ClubItems}}}"
+			data-size="{{{Size_HorizontalButton.X}}} {{{Size_HorizontalButton.Y}}}"
+			data-labelsize="{{{Size_HorizontalButton.X*0.8}}} 10"
+			data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+			data-image="{{{Const::C_ImageUrl_TrackEditor_ClubItems}}}"
+			data-gradientimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Gradient}}}"
+			data-gradientimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDark)}}}"
+			data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+			data-contourimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Contour}}}"
+			data-contourimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_ComponentButtonOutlineFocus)}}}"
+			data-contouropacityunfocus=".0"
+			data-tilthitbox="10"
+			data-textsize="5"
+			data-textitalicslope="0.2"
+			data-textopacityunfocus="0.8"
+			data-textxpos="0.13" data-textypos="-0.13"
+			data-texthalign="left" data-textvalign="top"
+			data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}"
+			data-autonewline="1" data-maxline="2"
+			data-valign="center" data-halign="center"
+			data-nav-inputs="select;cancel;left;up;down"
+			data-nav-targets="_;_;button-create-royal;button-edit;button-back"
+			data-nav-group="{{{C_SettingsStep_NavGroups[C_SettingsStep_MainMenu]}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+	</frame>
+
+	<!-- Step controller selection -->
+	<frame id="frame-controller">
+		<frameinstance
+			id="button-mouse" pos="{{{MLHelpers::Skew(-48., 0., 10.)}}}"
+			modelid="{{{Button::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-text="{{{Text_MouseAndKeyboard}}}"
+			data-size="{{{Size_HorizontalButton.X}}} {{{Size_HorizontalButton.Y}}}"
+			data-labelsize="{{{Size_HorizontalButton.X*0.8}}} 10"
+			data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+			data-image="{{{Const::C_ImageUrl_TrackEditor_Keyboard}}}"
+			data-gradientimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Gradient}}}"
+			data-gradientimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDark)}}}"
+			data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+			data-contourimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Contour}}}"
+			data-contourimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_ComponentButtonOutlineFocus)}}}"
+			data-contouropacityunfocus=".0"
+			data-tilthitbox="10"
+			data-textsize="5"
+			data-textitalicslope="0.2"
+			data-textopacityunfocus="0.8"
+			data-textxpos="0.13" data-textypos="-0.13"
+			data-texthalign="left" data-textvalign="top"
+			data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}"
+			data-autonewline="1" data-maxline="2"
+			data-valign="center" data-halign="center"
+			data-nav-inputs="select;cancel;right;down"
+			data-nav-targets="_;_;button-gamepad;button-back"
+			data-nav-group="{{{C_SettingsStep_NavGroups[C_SettingsStep_Controller]}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+
+		<frameinstance
+			id="button-gamepad" pos="{{{MLHelpers::Skew(50., 0., 10.)}}}"
+			modelid="{{{Button::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-text="{{{Text_Gamepad}}}"
+			data-size="{{{Size_HorizontalButton.X}}} {{{Size_HorizontalButton.Y}}}"
+			data-labelsize="{{{Size_HorizontalButton.X*0.8}}} 10"
+			data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+			data-image="{{{Const::C_ImageUrl_TrackEditor_Controller}}}"
+			data-gradientimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Gradient}}}"
+			data-gradientimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDark)}}}"
+			data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+			data-contourimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Contour}}}"
+			data-contourimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_ComponentButtonOutlineFocus)}}}"
+			data-contouropacityunfocus=".0"
+			data-tilthitbox="10"
+			data-textsize="5"
+			data-textitalicslope="0.2"
+			data-textopacityunfocus="0.8"
+			data-textxpos="0.13" data-textypos="-0.13"
+			data-texthalign="left" data-textvalign="top"
+			data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}"
+			data-autonewline="1" data-maxline="2"
+			data-valign="center" data-halign="center"
+			data-nav-inputs="select;cancel;left;down"
+			data-nav-targets="_;_;button-mouse;button-back"
+			data-nav-group="{{{C_SettingsStep_NavGroups[C_SettingsStep_Controller]}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+	</frame>
+
+	<!-- Step track editor mouse difficulty -->
+	<frame id="frame-difficulty-mouse" hidden="1">
+		<frameinstance
+			id="button-difficulty-mouse-simple" pos="{{{MLHelpers::Skew(-48., 0., 10.)}}}"
+			modelid="{{{Button::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-difficulty="{{{C_Difficulty_Simple}}}"
+			data-text="{{{Text_Simple}}}"
+			data-size="{{{Size_HorizontalButton.X}}} {{{Size_HorizontalButton.Y}}}"
+			data-labelsize="{{{Size_HorizontalButton.X*0.8}}} 10"
+			data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+			data-image="{{{Const::C_ImageUrl_TrackEditor_Difficulty_Simple}}}"
+			data-gradientimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Gradient}}}"
+			data-gradientimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDark)}}}"
+			data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+			data-contourimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Contour}}}"
+			data-contourimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_ComponentButtonOutlineFocus)}}}"
+			data-contouropacityunfocus=".0"
+			data-tilthitbox="10"
+			data-textsize="5"
+			data-textitalicslope="0.2"
+			data-textopacityunfocus="0.8"
+			data-textxpos="0.13" data-textypos="-0.13"
+			data-texthalign="left" data-textvalign="top"
+			data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}"
+			data-autonewline="1" data-maxline="2"
+			data-valign="center" data-halign="center"
+			data-nav-inputs="select;cancel;right;down"
+			data-nav-targets="_;_;button-difficulty-mouse-advanced;button-back"
+			data-nav-group="{{{C_SettingsStep_NavGroups[C_SettingsStep_DifficultyMouse]}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+		<frameinstance
+			id="button-difficulty-mouse-advanced" pos="{{{MLHelpers::Skew(50., 0., 10.)}}}"
+			modelid="{{{Button::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-difficulty="{{{C_Difficulty_Advanced}}}"
+			data-text="{{{Text_Advanced}}}"
+			data-size="{{{Size_HorizontalButton.X}}} {{{Size_HorizontalButton.Y}}}"
+			data-labelsize="{{{Size_HorizontalButton.X*0.8}}} 10"
+			data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+			data-image="{{{Const::C_ImageUrl_TrackEditor_Difficulty_Advanced}}}"
+			data-gradientimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Gradient}}}"
+			data-gradientimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDark)}}}"
+			data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+			data-contourimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Contour}}}"
+			data-contourimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_ComponentButtonOutlineFocus)}}}"
+			data-contouropacityunfocus=".0"
+			data-tilthitbox="10"
+			data-textsize="5"
+			data-textitalicslope="0.2"
+			data-textopacityunfocus="0.8"
+			data-textxpos="0.13" data-textypos="-0.13"
+			data-texthalign="left" data-textvalign="top"
+			data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}"
+			data-autonewline="1" data-maxline="2"
+			data-valign="center" data-halign="center"
+			data-nav-inputs="select;cancel;left;down"
+			data-nav-targets="_;_;button-difficulty-mouse-simple;button-back"
+			data-nav-group="{{{C_SettingsStep_NavGroups[C_SettingsStep_DifficultyMouse]}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+	</frame>
+
+	<!-- Step track editor gamepad difficulty -->
+	<frame id="frame-difficulty-gamepad" pos="12.8 0" hidden="1">
+		<frameinstance
+			id="button-difficulty-gamepad-simple" pos="{{{Pos_ButtonTopLeft.X}}} {{{Pos_ButtonTopLeft.Y}}}"
+			modelid="{{{Button::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-difficulty="{{{C_Difficulty_Simple}}}"
+			data-text="{{{Text_Simple}}}"
+			data-size="{{{Size_HorizontalButton.X}}} {{{Size_HorizontalButton.Y}}}"
+			data-labelsize="{{{Size_HorizontalButton.X*0.8}}} 10"
+			data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+			data-image="{{{Const::C_ImageUrl_TrackEditor_Difficulty_Simple}}}"
+			data-gradientimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Gradient}}}"
+			data-gradientimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDark)}}}"
+			data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+			data-contourimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Contour}}}"
+			data-contourimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_ComponentButtonOutlineFocus)}}}"
+			data-contouropacityunfocus=".0"
+			data-tilthitbox="10"
+			data-textsize="5"
+			data-textitalicslope="0.2"
+			data-textopacityunfocus="0.8"
+			data-textxpos="0.13" data-textypos="-0.13"
+			data-texthalign="left" data-textvalign="top"
+			data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}"
+			data-autonewline="1" data-maxline="2"
+			data-valign="center" data-halign="center"
+			data-nav-inputs="select;cancel;left;right;down"
+			data-nav-targets="_;_;button-back;button-difficulty-gamepad-expert;button-difficulty-gamepad-advanced"
+			data-nav-group="{{{C_SettingsStep_NavGroups[C_SettingsStep_DifficultyGamepad]}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+		<frameinstance
+			id="button-difficulty-gamepad-advanced" pos="{{{Pos_ButtonBottomLeft.X}}} {{{Pos_ButtonBottomLeft.Y}}}"
+			modelid="{{{Button::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-difficulty="{{{C_Difficulty_Advanced}}}"
+			data-text="{{{Text_Advanced}}}"
+			data-size="{{{Size_HorizontalButton.X}}} {{{Size_HorizontalButton.Y}}}"
+			data-labelsize="{{{Size_HorizontalButton.X*0.8}}} 10"
+			data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+			data-image="{{{Const::C_ImageUrl_TrackEditor_Difficulty_Advanced}}}"
+			data-gradientimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Gradient}}}"
+			data-gradientimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDark)}}}"
+			data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+			data-contourimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Contour}}}"
+			data-contourimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_ComponentButtonOutlineFocus)}}}"
+			data-contouropacityunfocus=".0"
+			data-tilthitbox="10"
+			data-textsize="5"
+			data-textitalicslope="0.2"
+			data-textopacityunfocus="0.8"
+			data-textxpos="0.13" data-textypos="-0.13"
+			data-texthalign="left" data-textvalign="top"
+			data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}"
+			data-autonewline="1" data-maxline="2"
+			data-valign="center" data-halign="center"
+			data-nav-inputs="select;cancel;left;right;up;down"
+			data-nav-targets="_;_;button-back;button-difficulty-gamepad-expert;button-difficulty-gamepad-simple;button-back"
+			data-nav-group="{{{C_SettingsStep_NavGroups[C_SettingsStep_DifficultyGamepad]}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+		<frameinstance
+			id="button-difficulty-gamepad-expert" pos="{{{Pos_ButtonControllerExpert.X}}} {{{Pos_ButtonControllerExpert.Y}}}"
+			modelid="{{{Button::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-difficulty="{{{C_Difficulty_Expert}}}"
+			data-text="{{{Text_Expert}}}"
+			data-size="{{{Size_VerticalButton.X}}} {{{Size_VerticalButton.Y}}}"
+			data-labelsize="{{{Size_VerticalButton.X*0.65}}} 10"
+			data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+			data-image="{{{Const::C_ImageUrl_TrackEditor_Difficulty_Expert}}}"
+			data-gradientimage="{{{Const::C_ImageUrl_Common_VerticalButton_Gradient}}}"
+			data-gradientimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDark)}}}"
+			data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+			data-contourimage="{{{Const::C_ImageUrl_Common_VerticalButton_Contour}}}"
+			data-contourimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_ComponentButtonOutlineFocus)}}}"
+			data-contouropacityunfocus=".0"
+			data-tilthitbox="10"
+			data-textsize="5"
+			data-textitalicslope="0.2"
+			data-textopacityunfocus="0.8"
+			data-textxpos="0.26" data-textypos="-0.063"
+			data-texthalign="left" data-textvalign="top"
+			data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}"
+			data-autonewline="1" data-maxline="2"
+			data-valign="center" data-halign="center"
+			data-nav-inputs="select;cancel;left;down"
+			data-nav-targets="_;_;button-difficulty-gamepad-simple;button-back"
+			data-nav-group="{{{C_SettingsStep_NavGroups[C_SettingsStep_DifficultyGamepad]}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+	</frame>
+
+	<!-- Step track móod -->
+	<frame id="frame-mood" hidden="1">
+		<frameinstance
+			id="button-mood-{{{C_Mood_Sunrise}}}" pos="{{{Pos_ButtonTopLeft.X}}} {{{Pos_ButtonTopLeft.Y}}}"
+			modelid="{{{Button::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-mood="{{{C_Mood_Sunrise}}}"
+			data-text="{{{Text_Sunrise}}}"
+			data-size="{{{Size_HorizontalButton.X}}} {{{Size_HorizontalButton.Y}}}"
+			data-labelsize="{{{Size_HorizontalButton.X*0.8}}} 10"
+			data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+			data-image="{{{Const::C_ImageUrl_TrackEditor_Sunrise}}}"
+			data-gradientimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Gradient}}}"
+			data-gradientimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDark)}}}"
+			data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+			data-contourimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Contour}}}"
+			data-contourimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_ComponentButtonOutlineFocus)}}}"
+			data-contouropacityunfocus=".0"
+			data-tilthitbox="10"
+			data-textsize="5"
+			data-textitalicslope="0.2"
+			data-textopacityunfocus="0.8"
+			data-textxpos="0.13" data-textypos="-0.13"
+			data-texthalign="left" data-textvalign="top"
+			data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}"
+			data-valign="center" data-halign="center"
+			data-nav-inputs="select;cancel;left;right;down"
+			data-nav-targets="_;_;button-back;button-mood-{{{C_Mood_Day}}};button-mood-{{{C_Mood_Sunset}}}"
+			data-nav-group="{{{C_SettingsStep_NavGroups[C_SettingsStep_Mood]}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+		<frameinstance
+			id="button-mood-{{{C_Mood_Day}}}" pos="{{{Pos_ButtonTopRight.X}}} {{{Pos_ButtonTopRight.Y}}}"
+			modelid="{{{Button::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-mood="{{{C_Mood_Day}}}"
+			data-text="{{{Text_Day}}}"
+			data-size="{{{Size_HorizontalButton.X}}} {{{Size_HorizontalButton.Y}}}"
+			data-labelsize="{{{Size_HorizontalButton.X*0.8}}} 10"
+			data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+			data-image="{{{Const::C_ImageUrl_TrackEditor_Day}}}"
+			data-gradientimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Gradient}}}"
+			data-gradientimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDark)}}}"
+			data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+			data-contourimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Contour}}}"
+			data-contourimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_ComponentButtonOutlineFocus)}}}"
+			data-contouropacityunfocus=".0"
+			data-tilthitbox="10"
+			data-textsize="5"
+			data-textitalicslope="0.2"
+			data-textopacityunfocus="0.8"
+			data-textxpos="0.13" data-textypos="-0.13"
+			data-texthalign="left" data-textvalign="top"
+			data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}"
+			data-valign="center" data-halign="center"
+			data-nav-inputs="select;cancel;left;down"
+			data-nav-targets="_;_;button-mood-{{{C_Mood_Sunrise}}};button-mood-{{{C_Mood_Night}}}"
+			data-nav-group="{{{C_SettingsStep_NavGroups[C_SettingsStep_Mood]}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+		<frameinstance
+			id="button-mood-{{{C_Mood_Sunset}}}" pos="{{{Pos_ButtonBottomLeft.X}}} {{{Pos_ButtonBottomLeft.Y}}}"
+			modelid="{{{Button::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-mood="{{{C_Mood_Sunset}}}"
+			data-text="{{{Text_Sunset}}}"
+			data-size="{{{Size_HorizontalButton.X}}} {{{Size_HorizontalButton.Y}}}"
+			data-labelsize="{{{Size_HorizontalButton.X*0.8}}} 10"
+			data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+			data-image="{{{Const::C_ImageUrl_TrackEditor_Sunset}}}"
+			data-gradientimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Gradient}}}"
+			data-gradientimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDark)}}}"
+			data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+			data-contourimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Contour}}}"
+			data-contourimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_ComponentButtonOutlineFocus)}}}"
+			data-contouropacityunfocus=".0"
+			data-tilthitbox="10"
+			data-textsize="5"
+			data-textitalicslope="0.2"
+			data-textopacityunfocus="0.8"
+			data-textxpos="0.13" data-textypos="-0.13"
+			data-texthalign="left" data-textvalign="top"
+			data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}"
+			data-valign="center" data-halign="center"
+			data-nav-inputs="select;cancel;left;right;up;down"
+			data-nav-targets="_;_;button-back;button-mood-{{{C_Mood_Night}}};button-mood-{{{C_Mood_Sunrise}}};button-back"
+			data-nav-group="{{{C_SettingsStep_NavGroups[C_SettingsStep_Mood]}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+		<frameinstance
+			id="button-mood-{{{C_Mood_Night}}}" pos="{{{Pos_ButtonBottomRight.X}}} {{{Pos_ButtonBottomRight.Y}}}"
+			modelid="{{{Button::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-mood="{{{C_Mood_Night}}}"
+			data-text="{{{Text_Night}}}"
+			data-size="{{{Size_HorizontalButton.X}}} {{{Size_HorizontalButton.Y}}}"
+			data-labelsize="{{{Size_HorizontalButton.X*0.8}}} 10"
+			data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+			data-image="{{{Const::C_ImageUrl_TrackEditor_Night}}}"
+			data-gradientimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Gradient}}}"
+			data-gradientimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDark)}}}"
+			data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+			data-contourimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Contour}}}"
+			data-contourimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_ComponentButtonOutlineFocus)}}}"
+			data-contouropacityunfocus=".0"
+			data-tilthitbox="10"
+			data-textsize="5"
+			data-textitalicslope="0.2"
+			data-textopacityunfocus="0.8"
+			data-textxpos="0.13" data-textypos="-0.13"
+			data-texthalign="left" data-textvalign="top"
+			data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}"
+			data-valign="center" data-halign="center"
+			data-nav-inputs="select;cancel;left;up;down"
+			data-nav-targets="_;_;button-mood-{{{C_Mood_Sunset}}};button-mood-{{{C_Mood_Day}}};button-back"
+			data-nav-group="{{{C_SettingsStep_NavGroups[C_SettingsStep_Mood]}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+	</frame>
+
+	<!-- Footer -->
+	<frameinstance
+		id="button-back" pos="-151.5 -73" z-index="1"
+		modelid="{{{ExpendableButton::C_Name}}}"
+		class="{{{Navigation::C_Class}}}"
+		data-styles="{{{ExpendableButton::C_Style_SizeExpendable}}} {{{ExpendableButton::C_Style_AlignCenter}}} {{{ExpendableButton::C_Style_PageBack}}}"
+		data-nav-inputs="select;cancel;up"
+		data-nav-targets="_;_;button-create-royal"
+		data-nav-group="{{{C_NavGroup_Page}}}"
+		data-nav-zone="{{{ExpendableButton::C_NavZone}}}"
+	/>
+</frame>
+""",
+"""
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/CMGame/Utils/Platform.Script.txt" as Platform
+#Include "Libs/Nadeo/Trackmania/RBAC.Script.txt" as RBAC
+#Include "Libs/Nadeo/Trackmania/Share.Script.txt" as Share
+#Include "Libs/Nadeo/Trackmania/MainMenu/TitleControl.Script.txt" as TitleControl
+#Include "Libs/Nadeo/Trackmania/MainMenu/Overlays/ControllerInfo_ML.Script.txt" as ControllerInfo
+#Include "Libs/Nadeo/Trackmania/ClubEdition.Script.txt" as ClubEdition
+
+#Const C_SettingsStep_MainMenu {{{dump(C_SettingsStep_MainMenu)}}}
+#Const C_SettingsStep_BrowseMaps {{{dump(C_SettingsStep_BrowseMaps)}}}
+#Const C_SettingsStep_Controller {{{dump(C_SettingsStep_Controller)}}}
+#Const C_SettingsStep_DifficultyMouse {{{dump(C_SettingsStep_DifficultyMouse)}}}
+#Const C_SettingsStep_DifficultyGamepad {{{dump(C_SettingsStep_DifficultyGamepad)}}}
+#Const C_SettingsStep_Mood {{{dump(C_SettingsStep_Mood)}}}
+
+#Const C_SettingsStep_NavGroups {{{dump(C_SettingsStep_NavGroups)}}}
+
+#Const C_SettingsStep_Subtitles [
+	{{{dump(C_SettingsStep_MainMenu)}}} => "",
+	{{{dump(C_SettingsStep_BrowseMaps)}}} => "",
+	{{{dump(C_SettingsStep_Controller)}}} => _("Pick the controller"),
+	{{{dump(C_SettingsStep_DifficultyMouse)}}} => _("Pick the difficulty"),
+	{{{dump(C_SettingsStep_DifficultyGamepad)}}} => _("Pick the difficulty"),
+	{{{dump(C_SettingsStep_Mood)}}} => _("Pick the mood")
+]
+
+#Const C_Controller_Mouse 0
+#Const C_Controller_Gamepad 1
+
+#Const C_Difficulty_Simple {{{dump(C_Difficulty_Simple)}}}
+#Const C_Difficulty_Advanced {{{dump(C_Difficulty_Advanced)}}}
+#Const C_Difficulty_Expert {{{dump(C_Difficulty_Expert)}}}
+
+#Const C_Mood_Sunrise {{{dump(C_Mood_Sunrise)}}}
+#Const C_Mood_Day {{{dump(C_Mood_Day)}}}
+#Const C_Mood_Sunset {{{dump(C_Mood_Sunset)}}}
+#Const C_Mood_Night {{{dump(C_Mood_Night)}}}
+
+#Const C_Buttons_Default_Online ["A" => _("Select"), "{{{Const::C_NavInput_ProfileWidget}}}" => "{{{Const::C_Text_ProfileWidget}}}", "{{{Const::C_NavInput_ClubWidget}}}" => "{{{Const::C_Text_ClubWidget}}}", "B" => _("Back")]
+#Const C_Buttons_Default_Offline ["A" => _("Select"), "{{{Const::C_NavInput_ProfileWidget}}}" => "{{{Const::C_Text_ProfileWidget}}}", "B" => _("Back")]
+
+//L16N Title of the pop-up informing the player that they cannot edit a track created with the mouse/keyboard editor on console
+#Const C_GamepadEditor_Title _("Track edition impossible")
+#Const C_GamepadEditor_Description1 {{{dump(Text_GamepadEditor_Description1)}}}
+#Const C_GamepadEditor_Description2 {{{dump(Text_GamepadEditor_Description2)}}}
+
+//L16N Title of the pop-up informing the player that they do not have enough space on disk to create a new track
+#Const C_DiskSpaceNewMapPopUp_Title _("Disk space insufficient")
+//L16N The player does not have enough space on disk to create a new track, we explain to them the minimum space needed and their actual space left, %1 will be replaced by the kB left on disk and %2 by the minimum number of kB needed, e.g "You have only 120kB left on your disk. You need to have at least 5000kB free to create a new track."
+#Const C_DiskSpaceNewMapPopUp_Description1 _("You have only %1kB left on your disk. You need to have at least %2kB free to create a new track.")
+//L16N The players need to delete some of their old tracks to make some space in order to create a new track
+#Const C_DiskSpaceNewMapPopUp_Description2 _("Delete some of your tracks to create a new one")
+
+#Const C_MinSpaceNeededForTrackCreationInkB {{{dump(Const::C_MinSpaceNeededForTrackCreationInkB)}}}
+
+#Struct K_Controls {
+	CMlFrame Button_Back;
+	CMlFrame Button_CreateRace;
+	CMlFrame Frame_Global;
+	CMlFrame Frame_MainMenu;
+	CMlFrame Frame_MultiChoice;
+	CMlLabel Label_QuickStart;
+}
+
+#Struct K_State {
+	Integer CurrentStep;
+	Integer Controller;
+	Integer Difficulty;
+	{{{CampaignStruct::P}}}K_Map EditedMap;
+}
+""",
+"""
+Void SetLabelOpacity(CMlLabel _Label, Boolean _IsFocused) {
+	AnimMgr.Flush(_Label);
+	if (_IsFocused) {
+		AnimMgr.Add(_Label, "<anim opacity=\"1.\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+	} else {
+		AnimMgr.Add(_Label, "<anim opacity=\"0.8\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+	}
+}
+
+Void Focus(CMlControl _From, CMlControl _To) {
+	if ({{{Transition::P}}}IsInTransition(This)) return;
+
+	if (_From != Null) {
+		{{{Navigation::P}}}Unfocus(This, _From);
+		if ({{{ExpendableButton::P}}}IsButton(_From)) {
+			{{{ExpendableButton::P}}}Unfocus(This, (_From as CMlFrame));
+		} else if ({{{Button::P}}}IsButton(_From)) {
+			{{{Button::P}}}Unfocus(This, (_From as CMlFrame));
+			if (_From.DataAttributeExists("secondarylabel")) {
+				SetLabelOpacity(_From.Parent.GetFirstChild(_From.DataAttributeGet("secondarylabel")) as CMlLabel, False);
+			}
+		}
+	}
+
+	if (_To != Null) {
+		{{{Navigation::P}}}Focus(This, _To);
+		if ({{{ExpendableButton::P}}}IsButton(_To)) {
+			{{{ExpendableButton::P}}}Focus(This, (_To as CMlFrame));
+		} else if ({{{Button::P}}}IsButton(_To)) {
+			{{{Button::P}}}Focus(This, (_To as CMlFrame));
+			if (_To.DataAttributeExists("secondarylabel")) {
+				SetLabelOpacity(_To.Parent.GetFirstChild(_To.DataAttributeGet("secondarylabel")) as CMlLabel, True);
+			}
+		}
+	}
+}
+
+Void DisplayTrackBrowser(K_Controls _Controls, Boolean _Visible, Boolean _SendEvent) {
+	{{{TrackBrowser::P}}}Display(This, _Visible, _SendEvent);
+	{{{Router::P}}}LockOverlay(This, "{{{RoutePaths::C_Path_OverlayName_ProfileWidget}}}", _Visible);
+	{{{Router::P}}}LockOverlay(This, "{{{RoutePaths::C_Path_OverlayName_ClubWidget}}}", _Visible);
+	if (_Visible) {
+		{{{Button::P}}}HideAndLock(_Controls.Button_Back);
+	} else {
+		{{{Button::P}}}ShowAndUnlock(_Controls.Button_Back);
+	}
+}
+
+K_State UpdateStep(K_State _State, K_Controls _Controls, Integer _Step) {
+	declare K_State State = _State;
+	declare CMlControl[CMlScriptEvent::EMenuNavAction] NavigationMemory for _Controls.Button_Back;
+	declare CMlFrame Frame_Controller = (_Controls.Frame_Global.GetFirstChild("frame-controller") as CMlFrame);
+	declare CMlFrame Frame_DifficultyMouse = (_Controls.Frame_Global.GetFirstChild("frame-difficulty-mouse") as CMlFrame);
+	declare CMlFrame Frame_DifficultyController = (_Controls.Frame_Global.GetFirstChild("frame-difficulty-gamepad") as CMlFrame);
+	declare CMlFrame Frame_Mood = (_Controls.Frame_Global.GetFirstChild("frame-mood") as CMlFrame);
+	declare Boolean BackButtonFocused = (
+		{{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroup_Page}}}") != Null &&
+		{{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroup_Page}}}").ControlId == _Controls.Button_Back.ControlId
+	);
+
+	// Reset navigation
+	NavigationMemory = [];
+	foreach (Step => NavGroup in C_SettingsStep_NavGroups) {
+		{{{Navigation::P}}}EnableGroup(This, NavGroup, Step == _Step);
+	}
+
+	// Frames visibility
+	_Controls.Frame_MainMenu.Visible = _Step == C_SettingsStep_MainMenu;
+	Frame_Controller.Visible = _Step == C_SettingsStep_Controller;
+	Frame_DifficultyMouse.Visible = _Step == C_SettingsStep_DifficultyMouse;
+	Frame_DifficultyController.Visible = _Step == C_SettingsStep_DifficultyGamepad;
+	Frame_Mood.Visible = _Step == C_SettingsStep_Mood;
+	if (_Step != C_SettingsStep_BrowseMaps) {
+		DisplayTrackBrowser(_Controls, False, False);
+	}
+
+	// Update step
+	State.CurrentStep = _Step;
+	switch (State.CurrentStep) {
+		case C_SettingsStep_MainMenu: {
+			Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroup_Page}}}"), _Controls.Button_CreateRace);
+			{{{Navigation::P}}}ChangeControlTarget(This, _Controls.Button_Back, "up", "button-create-royal");
+		}
+		case C_SettingsStep_BrowseMaps: {
+			DisplayTrackBrowser(_Controls, True, True);
+		}
+		case C_SettingsStep_Controller: {
+			if (Platform::IsFromFirstParty(System)) {
+				State.Controller = C_Controller_Gamepad;
+				State = UpdateStep(State, _Controls, C_SettingsStep_DifficultyGamepad);
+			} else {
+				declare CMlControl Button_Mouse = Frame_Controller.GetFirstChild("button-mouse");
+				Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroup_Page}}}"), Button_Mouse);
+				{{{Navigation::P}}}ChangeControlTarget(This, _Controls.Button_Back, "up", Button_Mouse.ControlId);
+			}
+		}
+		case C_SettingsStep_DifficultyMouse: {
+			declare CMlControl Button_MouseSimple = Frame_DifficultyMouse.GetFirstChild("button-difficulty-mouse-simple");
+			Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroup_Page}}}"), Button_MouseSimple);
+			{{{Navigation::P}}}ChangeControlTarget(This, _Controls.Button_Back, "up", Button_MouseSimple.ControlId);
+		}
+		case C_SettingsStep_DifficultyGamepad: {
+			Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroup_Page}}}"), Frame_DifficultyController.GetFirstChild("button-difficulty-gamepad-simple"));
+			{{{Navigation::P}}}ChangeControlTarget(This, _Controls.Button_Back, "up", "button-difficulty-gamepad-advanced");
+		}
+		case C_SettingsStep_Mood: {
+			Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroup_Page}}}"), Frame_Mood.GetFirstChild("button-mood-{{{C_Mood_Day}}}"));
+			{{{Navigation::P}}}ChangeControlTarget(This, _Controls.Button_Back, "up", "button-mood-{{{C_Mood_Sunset}}}");
+		}
+	}
+
+	if (BackButtonFocused) {
+		Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroup_Page}}}"), _Controls.Button_Back);
+	}
+
+	return State;
+}
+
+K_State Cancel(K_State _State, K_Controls _Controls) {
+	declare K_State State = _State;
+
+	switch (State.CurrentStep) {
+		case C_SettingsStep_MainMenu: {{{Router::P}}}PushParent(This);
+		case C_SettingsStep_BrowseMaps: State = UpdateStep(State, _Controls, C_SettingsStep_MainMenu);
+		case C_SettingsStep_Controller: {
+			if (
+				{{{Router::P}}}GetCurrentParentPath(This) == "{{{RoutePaths::C_Path_ServerReview}}}" ||
+				{{{Router::P}}}GetCurrentParentPath(This) == "{{{RoutePaths::C_Path_LocalMultiSettings}}}"
+			) {
+				{{{Router::P}}}PushParent(This);
+			} else if ({{{Router::P}}}GetCurrentParentPath(This) == "{{{RoutePaths::C_Path_CreateCampaign}}}") {
+				declare {{{CampaignStruct::P}}}K_Map Map;
+				declare {{{Router::P}}}K_URL_Config Config = {{{Router::P}}}K_URL_Config {
+					SaveHistory = True,
+					ResetPreviousPagesDisplayed = True,
+					KeepPreviousPagesDisplayed = False,
+					HidePreviousPage = True,
+					ShowParentPage = True
+				};
+				{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_CreateCampaign}}}", ["{{{RoutePaths::C_Query_Map}}}" => Map.tojson()], Config);
+			} else {
+				State = UpdateStep(State, _Controls, C_SettingsStep_MainMenu);
+			}
+		}
+		case C_SettingsStep_DifficultyMouse: State = UpdateStep(State, _Controls, C_SettingsStep_Controller);
+		case C_SettingsStep_DifficultyGamepad: {
+			if (Platform::IsFromFirstParty(System)) {
+				State.CurrentStep = C_SettingsStep_Controller;
+				State = Cancel(State, _Controls);
+			} else {
+				State = UpdateStep(State, _Controls, C_SettingsStep_Controller);
+			}
+		}
+		case C_SettingsStep_Mood: {
+			if (State.Controller == C_Controller_Mouse) {
+				State = UpdateStep(State, _Controls, C_SettingsStep_DifficultyMouse);
+			} else {
+				State = UpdateStep(State, _Controls, C_SettingsStep_DifficultyGamepad);
+			}
+		}
+	}
+
+	return State;
+}
+
+K_State LaunchEditor(K_State _State, K_Controls _Controls, Text _Mood, Boolean _IsRoyalMap) {
+	declare K_State State = _State;
+
+	declare Text[] EditorPluginScripts;
+	declare Text[] EditorPluginSettings;
+	declare Boolean	OnlyUseForcedPlugins = False;
+
+	EditorPluginScripts.add("TrackMania/Nadeo/Trackmania/PlayMapAtSave.Script.txt");
+	declare Text PlayMapAtSaveSettings = "";
+	if ({{{Router::P}}}GetCurrentParentPath(This) == "{{{RoutePaths::C_Path_CreateCampaign}}}") {
+		PlayMapAtSaveSettings = "<root>";
+		PlayMapAtSaveSettings ^= "<setting name=\"S_ShowMenuAfterSave\" value=\""^False^"\" type=\"boolean\"/>";
+		PlayMapAtSaveSettings ^= "</root>";
+	}
+	EditorPluginSettings.add(PlayMapAtSaveSettings);
+
+	if (!_IsRoyalMap && State.Controller == C_Controller_Gamepad) { // Can't currently make a royal map with Gamepad editor
+		EditorPluginScripts.add("TrackMania/Nadeo/TMEditor/GamepadTrackEditor.Script.txt");
+		declare Text GamepadEditorSettings = "<root>";
+		GamepadEditorSettings ^= "<setting name=\"S_EditorLevel\" value=\""^State.Difficulty^"\" type=\"integer\"/>";
+		GamepadEditorSettings ^= "</root>";
+
+		EditorPluginSettings.add(GamepadEditorSettings);
+		// When opening the gamepad editor, we don't want to allow plugins that were saved in the profile
+		// opened in previous Map Editor session to be opened alongside GamepadTrackEditor.Script.txt
+		OnlyUseForcedPlugins = True;
+	} else {
+		// always show Color&Animation plugin except in Gamepad Editor mode
+		EditorPluginScripts.add("TrackMania/Nadeo/TMGame/ColorAndAnimation.Script.txt");
+		declare Text ColorAnimationSettings = "<root></root>";
+
+		EditorPluginSettings.add(ColorAnimationSettings);
+	}
+
+	Share::ResetLastMapCreated();
+	if (State.EditedMap.Uid != "") {
+		declare Text FileName = State.EditedMap.LocalFileName;
+		if (FileName == "") FileName = State.EditedMap.DownloadUrl;
+		if (TitleControl::IsRoyalMapType(State.EditedMap.Type)) {
+			SendCustomEvent("{{{Const::C_Event_UpdateLoadingScreen}}}", [State.EditedMap.Name, "{{{LoadingScreen::C_Background_Royal}}}"]);
+		} else {
+			SendCustomEvent("{{{Const::C_Event_UpdateLoadingScreen}}}", [State.EditedMap.Name]);
+		}
+		TitleControl::EditMap(
+			TitleControl,
+			FileName,
+			_Mood,
+			"",
+			"",
+			EditorPluginScripts,
+			EditorPluginSettings,
+			State.Difficulty != C_Difficulty_Simple,
+			OnlyUseForcedPlugins
+		);
+	} else if (_IsRoyalMap) {
+		SendCustomEvent("{{{Const::C_Event_UpdateLoadingScreen}}}", ["{{{Text_TrackEditor}}}", "{{{LoadingScreen::C_Background_Royal}}}"]);
+		TitleControl::EditNewMapFromBaseMap(
+			TitleControl,
+			"RoyalBaseMap.Map.Gbx",
+			_Mood,
+			"",
+			"CarSport",
+			"TrackMania/TM_Royal",
+			EditorPluginScripts,
+			EditorPluginSettings,
+			OnlyUseForcedPlugins
+		);
+	} else {
+		SendCustomEvent("{{{Const::C_Event_UpdateLoadingScreen}}}", ["{{{Text_TrackEditor}}}"]);
+		TitleControl::EditNewMap(
+			TitleControl,
+			"Stadium",
+			_Mood,
+			"",
+			"CarSport",
+			"",
+			State.Controller == C_Controller_Mouse && State.Difficulty == C_Difficulty_Simple,
+			EditorPluginScripts,
+			EditorPluginSettings,
+			OnlyUseForcedPlugins
+		);
+	}
+
+	declare Share::K_MapInfo MapInfo = Share::GetLastMapCreated();
+	DisplayTrackBrowser(_Controls, False, False);
+	if (Share::GetGoToServerReview()) {
+		if ({{{UserStore::P}}}HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_AccessServerReview)) {
+			declare {{{CampaignStruct::P}}}K_Map Map = Share::ConvertToMap(MapInfo);
+			{{{Router::P}}}SetParentPath(This, "{{{RoutePaths::C_Path_ServerReview}}}", {{{Router::P}}}GetCurrentRoutePath(This));
+			{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_ServerReview}}}", ["{{{RoutePaths::C_Query_Map}}}" => Map.tojson()]);
+		} else {
+			ClubEdition::GoToPage(This, "{{{RoutePaths::C_Path_Create}}}", RBAC::GetGamePermissionMessage(RBAC::C_GamePermissionMessage_AccessServerReview));
+		}
+	} else if (Share::GetGoToHotSeat()) {
+		if ({{{UserStore::P}}}HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_PlayHotSeat)) {
+			declare {{{CampaignStruct::P}}}K_Map Map = Share::ConvertToMap(MapInfo);
+			{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_LocalMultiSettings}}}", ["{{{RoutePaths::C_Query_Map}}}" => Map.tojson(), "{{{RoutePaths::C_Query_LocalMultiType}}}" => "{{{Const::C_LocalMultiType_HotSeat}}}"]);
+		} else {
+			ClubEdition::GoToPage(This, "{{{RoutePaths::C_Path_Local}}}", RBAC::GetGamePermissionMessage(RBAC::C_GamePermissionMessage_PlayHotSeat));
+		}
+	} else if ({{{Router::P}}}GetCurrentParentPath(This) == "{{{RoutePaths::C_Path_CreateCampaign}}}") {
+		declare {{{CampaignStruct::P}}}K_Map Map = Share::ConvertToMap(MapInfo);
+		declare {{{Router::P}}}K_URL_Config Config = {{{Router::P}}}K_URL_Config {
+			SaveHistory = True,
+			ResetPreviousPagesDisplayed = True,
+			KeepPreviousPagesDisplayed = False,
+			HidePreviousPage = True,
+			ShowParentPage = True
+		};
+		{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_CreateCampaign}}}", ["{{{RoutePaths::C_Query_Map}}}" => Map.tojson()], Config);
+	} else {
+		if (MapInfo.Uid != "") {
+			State = UpdateStep(State, _Controls, C_SettingsStep_BrowseMaps);
+		} else {
+			State = UpdateStep(State, _Controls, C_SettingsStep_MainMenu);
+		}
+	}
+	Share::ResetLastMapCreated();
+
+	return State;
+}
+K_State LaunchEditor(K_State _State, K_Controls _Controls, Text _Mood) {
+	return LaunchEditor(_State, _Controls, _Mood, False);
+}
+
+Text GetMoodFromEMapEditorMood(CUserV2Profile::EMapEditorMood _EMapEditorMood) {
+	switch (_EMapEditorMood) {
+		case CUserV2Profile::EMapEditorMood::Sunrise: return C_Mood_Sunrise;
+		case CUserV2Profile::EMapEditorMood::Day: return C_Mood_Day;
+		case CUserV2Profile::EMapEditorMood::Sunset: return C_Mood_Sunset;
+		case CUserV2Profile::EMapEditorMood::Night: return C_Mood_Night;
+	}
+	return C_Mood_Day;
+}
+
+Integer GetDifficultyFromEMapEditorDifficulty(CUserV2Profile::EMapEditorDifficulty _EMapEditorDifficulty) {
+	switch (_EMapEditorDifficulty) {
+		case CUserV2Profile::EMapEditorDifficulty::Simple: return C_Difficulty_Simple;
+		case CUserV2Profile::EMapEditorDifficulty::Advanced: return C_Difficulty_Advanced;
+		case CUserV2Profile::EMapEditorDifficulty::Expert: return C_Difficulty_Expert;
+	}
+	return C_Difficulty_Simple;
+}
+
+Void OpenGamepadEditorPopUp(CMlFrame _Frame_MultiChoice) {
+	{{{PopUpMultiChoice::P}}}SetTitle(This, _Frame_MultiChoice, C_GamepadEditor_Title, False);
+	{{{PopUpMultiChoice::P}}}SetDescription(This,
+		_Frame_MultiChoice,
+		[
+			{{{PopUpMultiChoice::P}}}CreateDescriptionPart(C_GamepadEditor_Description1, <130., 20.>, 3., "{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_Regular)}}}", "$t$i", <1., 1., 1.>, False),
+			{{{PopUpMultiChoice::P}}}CreateDescriptionPart(C_GamepadEditor_Description2, <130., 10.>, 3., "{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_SemiBold)}}}", "$t$i", {{{Stylesheet::GetColorRGB(Stylesheet::C_Color_AccentOne)}}}, False)
+		],
+		False
+	);
+	{{{PopUpMultiChoice::P}}}RedrawPopUpMultiChoice(This, _Frame_MultiChoice, True);
+	{{{PopUpMultiChoice::P}}}Open(This, _Frame_MultiChoice);
+}
+
+Void OpenDiskSpacePopUp(CMlFrame _Frame_MultiChoice) {
+	{{{PopUpMultiChoice::P}}}SetTitle(This, _Frame_MultiChoice, C_DiskSpaceNewMapPopUp_Title, False);
+	{{{PopUpMultiChoice::P}}}SetDescription(This,
+		_Frame_MultiChoice,
+		[
+			{{{PopUpMultiChoice::P}}}CreateDescriptionPart(TL::Compose(C_DiskSpaceNewMapPopUp_Description1, ""^DataFileMgr.UserSave_AvailableSpace, ""^C_MinSpaceNeededForTrackCreationInkB), <130., 20.>, 3., "{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_Regular)}}}", "$t$i", <1., 1., 1.>, False),
+			{{{PopUpMultiChoice::P}}}CreateDescriptionPart(C_DiskSpaceNewMapPopUp_Description2, <130., 10.>, 3., "{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_SemiBold)}}}", "$t$i", {{{Stylesheet::GetColorRGB(Stylesheet::C_Color_AccentOne)}}}, False)
+		],
+		False
+	);
+	{{{PopUpMultiChoice::P}}}RedrawPopUpMultiChoice(This, _Frame_MultiChoice, True);
+	{{{PopUpMultiChoice::P}}}Open(This, _Frame_MultiChoice);
+}
+
+K_State Select(K_State _State, K_Controls _Controls, CMlControl _SelectedControl) {
+	if (_SelectedControl == Null || {{{Transition::P}}}IsInTransition(This)) return _State;
+	declare K_State State = _State;
+
+	switch (_SelectedControl.ControlId) {
+		case "button-back": State = Cancel(State, _Controls);
+		case "button-mouse": {
+			State.Controller = C_Controller_Mouse;
+			// Editing a map done in advanced editor
+			if (State.EditedMap.Uid != "" && !State.EditedMap.CreatedWithSimpleEditor) {
+				if (!{{{UserStore::P}}}HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_OpenAdvancedMapEditor)) {
+					ClubEdition::GoToPage(This, {{{Router::P}}}GetCurrentRoutePath(This), RBAC::GetGamePermissionMessage(RBAC::C_GamePermissionMessage_OpenAdvancedMapEditor));
+				} else {
+					State = UpdateStep(State, _Controls, C_SettingsStep_Mood);
+				}
+			} else {
+				State = UpdateStep(State, _Controls, C_SettingsStep_DifficultyMouse);
+			}
+		}
+		case "button-gamepad": {
+			State.Controller = C_Controller_Gamepad;
+			State = UpdateStep(State, _Controls, C_SettingsStep_DifficultyGamepad);
+		}
+		case "button-create-race": {
+			if (DataFileMgr.UserSave_AvailableSpace < C_MinSpaceNeededForTrackCreationInkB) {
+				OpenDiskSpacePopUp(_Controls.Frame_MultiChoice);
+			} else {
+				State.EditedMap = {{{CampaignStruct::P}}}K_Map {};
+				if (
+					{{{UserStore::P}}}HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_OpenAdvancedMapEditor) && //< Quick start is only available with advanced features
+					UserMgr != Null && UserMgr.MainUserProfile != Null && UserMgr.MainUserProfile.Editors_MapEditorUseQuickstart
+				) {
+					if (UserMgr.MainUserProfile.Editors_MapEditorQuickstartUseGamepad || Platform::IsFromFirstParty(System)) {
+						State.Controller = C_Controller_Gamepad;
+					} else {
+						State.Controller = C_Controller_Mouse;
+					}
+
+					State.Difficulty = GetDifficultyFromEMapEditorDifficulty(UserMgr.MainUserProfile.Editors_MapEditorQuickstartDifficulty);
+					State = LaunchEditor(State, _Controls, GetMoodFromEMapEditorMood(UserMgr.MainUserProfile.Editors_MapEditorQuickstartMood));
+				} else {
+					State = UpdateStep(State, _Controls, C_SettingsStep_Controller);
+				}
+			}
+		}
+		case "button-create-royal": {
+			State.EditedMap = {{{CampaignStruct::P}}}K_Map {};
+			if ({{{UserStore::P}}}HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_OpenAdvancedMapEditor)) {
+				State = LaunchEditor(State, _Controls, GetMoodFromEMapEditorMood(UserMgr.MainUserProfile.Editors_MapEditorQuickstartMood), True);
+			} else {
+				ClubEdition::GoToPage(This, {{{Router::P}}}GetCurrentRoutePath(This), RBAC::GetGamePermissionMessage(RBAC::C_GamePermissionMessage_OpenAdvancedMapEditor));
+			}
+		}
+		case "button-edit": {
+			State = UpdateStep(State, _Controls, C_SettingsStep_BrowseMaps);
+		}
+		case "button-club-items": {
+			{{{Router::P}}}SetParentPath(This, "{{{RoutePaths::C_Path_LibraryClubItems}}}", {{{Router::P}}}GetCurrentRoutePath(This));
+			{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_LibraryClubItems}}}");
+		}
+		default: {
+			if (_SelectedControl.DataAttributeExists("difficulty")) {
+				State.Difficulty = TL::ToInteger(_SelectedControl.DataAttributeGet("difficulty"));
+				if (State.Difficulty == C_Difficulty_Simple && {{{UserStore::P}}}HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_OpenSimpleMapEditor)) {
+					State = LaunchEditor(State, _Controls, C_Mood_Day);
+				} else if (State.Difficulty != C_Difficulty_Simple && {{{UserStore::P}}}HasGamePermission(PrivilegeMgr, RBAC::C_GamePermission_OpenAdvancedMapEditor)) {
+					State = UpdateStep(State, _Controls, C_SettingsStep_Mood);
+				} else {
+					if (State.Difficulty == C_Difficulty_Simple) {
+						ClubEdition::GoToPage(This, {{{Router::P}}}GetCurrentRoutePath(This), RBAC::GetGamePermissionMessage(RBAC::C_GamePermissionMessage_OpenSimpleMapEditor));
+					} else {
+						ClubEdition::GoToPage(This, {{{Router::P}}}GetCurrentRoutePath(This), RBAC::GetGamePermissionMessage(RBAC::C_GamePermissionMessage_OpenAdvancedMapEditor));
+					}
+				}
+			} else if (_SelectedControl.DataAttributeExists("mood")) {
+				State = LaunchEditor(State, _Controls, _SelectedControl.DataAttributeGet("mood"));
+			}
+		}
+	}
+
+	return State;
+}
+
+Void InitMainMenu(K_Controls _Controls) {
+	Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroup_Page}}}"), _Controls.Button_CreateRace);
+
+	if (Platform::IsFromFirstParty(System)) {
+		declare CMlFrame Button_ClubItems = (_Controls.Frame_MainMenu.GetFirstChild("button-club-items") as CMlFrame);
+
+		_Controls.Frame_MainMenu.RelativePosition_V3.X = _Controls.Frame_MainMenu.RelativePosition_V3.X - 15.;
+		_Controls.Button_CreateRace.Parent.RelativePosition_V3 = {{{Pos_ButtonCreateRaceConsole}}};
+		_Controls.Label_QuickStart.RelativePosition_V3 = <{{{Pos_LabelQuickStartConsole.X}}}, {{{Pos_LabelQuickStartConsole.Y}}}>;
+		{{{Button::P}}}SetSize(This, _Controls.Button_CreateRace, {{{Size_VerticalButton}}});
+		{{{Button::P}}}SetLabelSize(This, _Controls.Button_CreateRace, <{{{Size_VerticalButton.X * 0.65}}}, 10.>);
+		{{{Button::P}}}SetImage(This, _Controls.Button_CreateRace, "{{{Const::C_ImageUrl_TrackEditor_CreateTrack_Vertical}}}");
+		{{{Button::P}}}SetContourImage(This, _Controls.Button_CreateRace, "{{{Const::C_ImageUrl_Common_VerticalButton_Contour}}}");
+		{{{Button::P}}}SetGradientImage(This, _Controls.Button_CreateRace, "{{{Const::C_ImageUrl_Common_VerticalButton_Gradient}}}");
+		{{{Button::P}}}SetTextXPos(This, _Controls.Button_CreateRace, 0.26);
+		{{{Button::P}}}SetTextYPos(This, _Controls.Button_CreateRace, -0.063);
+
+		{{{Navigation::P}}}ChangeControlTarget(This, _Controls.Button_CreateRace, "down", _Controls.Button_Back.ControlId);
+		{{{Navigation::P}}}ChangeControlTarget(This, Button_ClubItems, "left", _Controls.Button_CreateRace.ControlId);
+	}
+}
+
+***MainInit***
+***
+declare CMlFrame Frame_Global;
+
+declare K_Controls Controls;
+declare K_State State;
+***
+
+***MainStart***
+***
+Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+
+Controls = K_Controls {
+	Frame_Global = Frame_Global,
+	Button_Back = (Frame_Global.GetFirstChild("button-back") as CMlFrame),
+	Button_CreateRace = (Frame_Global.GetFirstChild("button-create-race") as CMlFrame),
+	Frame_MainMenu = (Frame_Global.GetFirstChild("frame-main-menu") as CMlFrame),
+	Frame_MultiChoice = (Page.GetFirstChild("frame-pop-up-multichoice") as CMlFrame),
+	Label_QuickStart = (Frame_Global.GetFirstChild("label-quick-start") as CMlLabel)
+};
+
+foreach (NavGroup in C_SettingsStep_NavGroups) {
+	{{{Navigation::P}}}SetGroupParent(This, NavGroup, "{{{C_NavGroup_Page}}}");
+}
+InitMainMenu(Controls);
+// Players can't create Royal maps on console so they can't edit them
+if (Platform::IsFromFirstParty(System)) {
+	{{{TrackBrowser::P}}}SetMapTypeFilters(This, ["{{{Const::C_MapType_Race}}}"]);
+}
+***
+
+***MainLoop***
+***
+if ({{{Router::P}}}PageIsRunning(This, "{{{RoutePaths::C_Path_MapEditorSettings}}}")) {
+	foreach (Event in {{{Router::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case {{{Router::P}}}C_Event_EnteringRoute: {
+				declare Text[Text] Query = {{{Router::P}}}GetCurrentRouteQuery(This);
+				if (!Query.existskey("{{{RoutePaths::C_Query_LeaveClubEditioninfo}}}")) {
+					State.EditedMap = {{{CampaignStruct::P}}}K_Map {};
+					if (
+						{{{Router::P}}}GetCurrentParentPath(This) == "{{{RoutePaths::C_Path_ServerReview}}}" ||
+						{{{Router::P}}}GetCurrentParentPath(This) == "{{{RoutePaths::C_Path_CreateCampaign}}}" ||
+						{{{Router::P}}}GetCurrentParentPath(This) == "{{{RoutePaths::C_Path_LocalMultiSettings}}}" ||
+						Query.existskey("{{{RoutePaths::C_Query_DirectLinkNewMap}}}")
+					) {
+						State = UpdateStep(State, Controls, C_SettingsStep_Controller);
+					} else {
+						State = UpdateStep(State, Controls, C_SettingsStep_MainMenu);
+					}
+					if ({{{UserStore::P}}}IsOfflineMode()) ControllerInfo::SetButtons(C_Buttons_Default_Offline);
+					else ControllerInfo::SetButtons(C_Buttons_Default_Online);
+				}
+			}
+		}
+	}
+
+	/* Quick start label visibility */
+	if (UserMgr != Null && UserMgr.MainUserProfile != Null && Controls.Label_QuickStart.Visible != UserMgr.MainUserProfile.Editors_MapEditorUseQuickstart) {
+		Controls.Label_QuickStart.Visible = UserMgr.MainUserProfile.Editors_MapEditorUseQuickstart;
+	}
+
+	if (State.CurrentStep != C_SettingsStep_BrowseMaps) {
+		foreach (Event in {{{Navigation::P}}}GetPendingEvents(This)) {
+			switch (Event.Type) {
+				case {{{Navigation::P}}}C_EventType_NavigateInput: {
+					if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroup_Page}}}")) {
+						switch (Event.Input) {
+							case CMlScriptEvent::EMenuNavAction::Select: State = Select(State, Controls, Event.To);
+							case CMlScriptEvent::EMenuNavAction::Cancel: State = Cancel(State, Controls);
+							default: {
+								declare CMlControl To = Event.To;
+								if (Event.To != Null && {{{Navigation::P}}}GetControlTarget(Event.From, Event.Input) == Event.To) {
+									declare CMlControl[CMlScriptEvent::EMenuNavAction] NavigationMemory for Event.To;
+									NavigationMemory[{{{Navigation::P}}}InvertInput(Event.Input)] = Event.From;
+								}
+								if (Event.From != Null) {
+									declare CMlControl[CMlScriptEvent::EMenuNavAction] NavigationMemory for Event.From;
+									if (NavigationMemory.existskey(Event.Input) && !{{{Navigation::P}}}IsLocked(NavigationMemory.get(Event.Input, Null))) {
+										To = NavigationMemory[Event.Input];
+									}
+								}
+								Focus(Event.From, To);
+							}
+						}
+					}
+				}
+				case {{{Navigation::P}}}C_EventType_NavigateMouse: {
+					if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroup_Page}}}")) {
+						switch (Event.Mouse) {
+							case CMlScriptEvent::Type::MouseClick: State = Select(State, Controls, Event.To);
+							case CMlScriptEvent::Type::MouseOver: Focus(Event.From, Event.To);
+						}
+					}
+				}
+			}
+		}
+	} else {
+		foreach (Event in {{{TrackBrowser::P}}}GetPendingEvents(This)) {
+			switch (Event.Type) {
+				case {{{TrackBrowser::P}}}C_Event_Select: {
+					State.EditedMap = Event.Track;
+					if (Platform::IsFromFirstParty(System) && !State.EditedMap.CreatedWithGamepadEditor) {
+						OpenGamepadEditorPopUp(Controls.Frame_MultiChoice);
+					} else {
+						State.Controller = C_Controller_Gamepad;
+						if (Platform::IsPC(System) && !State.EditedMap.CreatedWithGamepadEditor) {
+							State.Controller = C_Controller_Mouse;
+						}
+						State.Difficulty = C_Difficulty_Expert;
+						if (State.EditedMap.CreatedWithSimpleEditor) {
+							State.Difficulty = C_Difficulty_Simple;
+						}
+						State = LaunchEditor(State, Controls, "");
+					}
+				}
+				case {{{TrackBrowser::P}}}C_Event_Exit: {
+					if ({{{UserStore::P}}}IsOfflineMode()) ControllerInfo::SetButtons(C_Buttons_Default_Offline);
+					else ControllerInfo::SetButtons(C_Buttons_Default_Online);
+					State = Cancel(State, Controls);
+				}
+			}
+		}
+	}
+
+	/* Pop up multi choice events */
+	foreach (Event in {{{PopUpMultiChoice::P}}}GetPendingEvents(This)) {
+		if (Event.PopUpMultiChoice != Null && Event.PopUpMultiChoice.Id == Controls.Frame_MultiChoice.Id) {
+			switch (Event.Type) {
+				case {{{PopUpMultiChoice::P}}}C_EventType_Display: {
+					{{{TrackBrowser::P}}}LockBrowser(This, Controls.Frame_MultiChoice.Visible);
+					if (C_SettingsStep_NavGroups.existskey(State.CurrentStep)) {
+						{{{Navigation::P}}}EnableGroup(This, C_SettingsStep_NavGroups[State.CurrentStep], !Controls.Frame_MultiChoice.Visible);
+					}
+					{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroup_Page}}}", !Controls.Frame_MultiChoice.Visible);
+				}
+			}
+		}
+	}
+}
+foreach (Event in {{{Router::P}}}GetPendingEvents(This)) {
+	switch (Event.Type) {
+		case {{{Router::P}}}C_Event_LeavingRoute: {
+			State = UpdateStep(State, Controls, C_SettingsStep_MainMenu);
+		}
+	}
+}
+***
+""",
+[
+	Button::ComponentV2(),
+	CampaignStruct::Component(),
+	ExpendableButton::ComponentV2(),
+	MenuSounds::ComponentV2(),
+	Navigation::ComponentV2(),
+	PopUpMultiChoice::ComponentV2(),
+	Router::ComponentV2(),
+	TrackBrowser::ComponentV2(),
+	Transition::ComponentV2(),
+	UserStore::ComponentV2()
+],
+[]
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update from the ManiaApp
+Void Yield() {
+
+}

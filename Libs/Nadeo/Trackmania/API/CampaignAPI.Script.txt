@@ -1,0 +1,561 @@
+/**
+ *  Component : CampaignAPI
+ */
+#Const Version    "1.1.1"
+#Const ScriptName "Libs/Nadeo/Trackmania/API/CampaignAPI.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/CMGame/Utils/Config.Script.txt" as Config
+#Include "Libs/Nadeo/CMGame/Utils/Http.Script.txt" as Http
+#Include "Libs/Nadeo/TMGame/API/CampaignAPI.Script.txt" as CampaignAPI
+#Include "Libs/Nadeo/Trackmania/Structures/CampaignStruct.Script.txt" as CampaignStruct
+#Include "Libs/Nadeo/Trackmania/Structures/HttpStruct.Script.txt" as HttpStruct
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_API_Campaign "/api/token/campaign"
+
+#Const C_QueryParameter_Offset "offset"
+#Const C_QueryParameter_Length "length"
+#Const C_QueryParameter_Royal "royal"
+
+#Const C_Route_GetList "/official"
+#Const C_Route_GetMonth "/month"
+#Const C_Route_GetMedia "/menu/media"
+
+#Const C_Headers [
+	"Accept" => "application/json",
+	"Content-Type" => "application/json"
+]
+
+#Const C_CacheLimit_CampaignOfficial 80 //< 80 campaigns divided by 4 campaigns per year equal 20 years of campaigns in the cache
+#Const C_CachePreload_CampaignOfficial 20 //< Number of campaigns preloaded at the launch of the game
+#Const C_CacheLimit_CampaignMonthly 60 //< 60 campaigns divided by 12 campaigns per year equal 5 years of campaigns in the cache
+#Const C_CachePreload_CampaignMonthly 36 //< Number of campaigns preloaded at the launch of the game
+
+#Const C_CampaignMediaType_Training 0
+#Const C_CampaignMediaType_Official 1
+#Const C_CampaignMediaType_TOTD 2
+#Const C_CampaignMediaType_Club 3
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct LibCampaignAPI_K_HttpCampaignList {
+	HttpStruct::LibHttpStruct_K_HttpCampaign[] campaignList;
+	Integer itemCount;
+	Integer nextRequestTimestamp;
+	Integer relativeNextRequest;
+}
+
+#Struct LibCampaignAPI_K_ResponseGetCampaignList {
+	CampaignStruct::LibCampaignStruct_K_Campaign[] CampaignList;
+	Integer CampaignsTotal;
+}
+
+#Struct LibCampaignAPI_K_ResponseGetMonthlyCampaignList {
+	CampaignStruct::LibCampaignStruct_K_MonthlyCampaign[] CampaignList;
+	Integer CampaignsTotal;
+}
+
+#Struct LibCampaignAPI_K_HttpResponseGetMonthlyCampaignList {
+	HttpStruct::LibHttpStruct_K_HttpMonthlyCampaign[] monthList;
+	Integer itemCount;
+	Integer nextRequestTimestamp;
+	Integer relativeNextRequest;
+}
+
+#Struct CampaignAPI::LibCampaignAPI_K_HttpResponseGetMapInfo as LibCampaignAPI_K_HttpResponseGetMapInfo
+#Struct CampaignAPI::LibCampaignAPI_K_ResponseGetMapInfo as LibCampaignAPI_K_ResponseGetMapInfo
+
+#Struct LibCampaignAPI_K_HttpCampaignMedia {
+	Text uid;
+	Text url;
+}
+#Struct LibCampaignAPI_K_HttpResponseFromGetMedia {
+	LibCampaignAPI_K_HttpCampaignMedia[] trainingMedias;
+	LibCampaignAPI_K_HttpCampaignMedia[] officialMedias;
+	LibCampaignAPI_K_HttpCampaignMedia[] totdMedias;
+	LibCampaignAPI_K_HttpCampaignMedia[] clubMedias;
+}
+
+#Struct LibCampaignAPI_K_CacheCampaignOfficial {
+	Integer[] CampaignKeys;
+	CampaignStruct::LibCampaignStruct_K_Campaign[Integer] Campaigns;
+	Integer CampaignsTotal;
+	Integer NewCampaignTimestamp;
+	Integer NewCampaignRelativeTime;
+	Integer NewCampaignRelativeNow;
+}
+
+#Struct LibCampaignAPI_K_CacheCampaignMonthly {
+	Integer[] CampaignKeys;
+	CampaignStruct::LibCampaignStruct_K_MonthlyCampaign[Integer] Campaigns;
+	Integer CampaignsTotal;
+	Integer NewCampaignTimestamp;
+	Integer NewCampaignRelativeTime;
+	Integer NewCampaignRelativeNow;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Globales
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+declare LibCampaignAPI_K_CacheCampaignOfficial G_Cache_CampaignOfficial;
+declare LibCampaignAPI_K_CacheCampaignMonthly G_Cache_CampaignMonthly;
+declare LibCampaignAPI_K_CacheCampaignMonthly G_Cache_CampaignRoyal;
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Clear all caches for the campaign API
+Void ClearCache() {
+	G_Cache_CampaignOfficial = LibCampaignAPI_K_CacheCampaignOfficial {};
+	G_Cache_CampaignMonthly = LibCampaignAPI_K_CacheCampaignMonthly {};
+	G_Cache_CampaignRoyal = LibCampaignAPI_K_CacheCampaignMonthly {};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if the cache for the official campaigns expired
+Boolean Private_HasCacheExpired_CampaignOfficial(LibCampaignAPI_K_CacheCampaignOfficial _Cache) {
+	return _Cache.NewCampaignTimestamp <= 0 || (Now - _Cache.NewCampaignRelativeNow) / 1000 >= _Cache.NewCampaignRelativeTime;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if the requested campaigns are already cached
+Boolean Private_IsCached_CampaignOfficial(LibCampaignAPI_K_CacheCampaignOfficial _Cache, Integer _Offset, Integer _Length) {
+	// Campaign is not cached if the cache expired
+	if (Private_HasCacheExpired_CampaignOfficial(_Cache)) return False;
+	for (Key, _Offset, _Offset + _Length - 1) {
+		if (Key > _Cache.CampaignsTotal - 1) break; //< No more campaigns after this key, stop the loop
+		if (!_Cache.CampaignKeys.exists(Key)) return False;
+	}
+	return True;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update the official campaigns cache
+LibCampaignAPI_K_CacheCampaignOfficial Private_UpdateCache_CampaignOfficial(
+	LibCampaignAPI_K_CacheCampaignOfficial _Cache,
+	Integer _NewCampaignTimestamp,
+	Integer _NewCampaignRelativeTime,
+	Integer _NewCampaignRelativeNow,
+	Integer _Offset,
+	CampaignStruct::LibCampaignStruct_K_Campaign[] _Campaigns,
+	Integer _CampaignsTotal
+) {
+	declare LibCampaignAPI_K_CacheCampaignOfficial Cache = _Cache;
+
+	// Latest campaign changed, reset cache
+	if (Cache.NewCampaignTimestamp != _NewCampaignTimestamp) {
+		Cache = LibCampaignAPI_K_CacheCampaignOfficial {
+			CampaignKeys = [],
+			Campaigns = [],
+			CampaignsTotal = 0,
+			NewCampaignTimestamp = _NewCampaignTimestamp
+		};
+	}
+
+	Cache.NewCampaignRelativeTime = _NewCampaignRelativeTime;
+	Cache.NewCampaignRelativeNow = _NewCampaignRelativeNow;
+
+	declare Boolean RemoveOldCampaigns = False;
+	foreach (Key => Campaign in _Campaigns) {
+		declare Integer CampaignKey = _Offset + Key;
+
+		// Check if the campaign at this key was already cached
+		// If it is the case, check if the new campaign is the same than the cached one
+		// If it is not the same, it probably means that the campaigns order changed
+		// (because a new campaign was published for example) so we must reset the cache
+		declare CampaignStruct::LibCampaignStruct_K_Campaign CachedCampaign = Cache.Campaigns.get(CampaignKey, CampaignStruct::GetEmptyCampaign());
+		if (CachedCampaign.Id != CampaignStruct::C_Campaign_NullId && CachedCampaign.Id != Campaign.Id) {
+			RemoveOldCampaigns = True;
+		}
+
+		// Put the latest updated campaigns at the end of the array
+		Cache.CampaignKeys.remove(CampaignKey);
+		Cache.CampaignKeys.add(CampaignKey);
+		Cache.Campaigns[CampaignKey] = Campaign;
+	}
+
+	// Remove the oldest campaigns
+	while (Cache.CampaignKeys.count > C_CacheLimit_CampaignOfficial) {
+		declare Integer KeyToDelete = Cache.CampaignKeys[0];
+		Cache.Campaigns.removekey(KeyToDelete);
+		Cache.CampaignKeys.removekey(0);
+	}
+
+	// Remove campaigns cached before this call to `Private_UpdateCache_CampaignOfficial()`
+	if (RemoveOldCampaigns) {
+		declare Integer[] KeysToRemove;
+		foreach (Key in Cache.CampaignKeys) {
+			if (Key < _Offset || (_Campaigns.count > 0 && Key > _Offset + _Campaigns.count - 1)) {
+				KeysToRemove.add(Key);
+			}
+		}
+		foreach (Key in KeysToRemove) {
+			Cache.Campaigns.removekey(Key);
+			Cache.CampaignKeys.remove(Key);
+		}
+	}
+
+	Cache.CampaignsTotal = _CampaignsTotal;
+
+	return Cache;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if the cache for the monthly campaigns expired
+Boolean Private_HasCacheExpired_CampaignMonthly(LibCampaignAPI_K_CacheCampaignMonthly _Cache) {
+	return _Cache.NewCampaignTimestamp <= 0 || (Now - _Cache.NewCampaignRelativeNow) / 1000 >= _Cache.NewCampaignRelativeTime;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if the requested campaigns are already cached
+Boolean Private_IsCached_CampaignMonthly(LibCampaignAPI_K_CacheCampaignMonthly _Cache, Integer _Offset, Integer _Length) {
+	// Campaign is not cached if the cache expired
+	if (Private_HasCacheExpired_CampaignMonthly(_Cache)) return False;
+	for (Key, _Offset, _Offset + _Length - 1) {
+		if (Key > _Cache.CampaignsTotal - 1) break; //< No more campaigns after this key, stop the loop
+		if (!_Cache.CampaignKeys.exists(Key)) return False;
+	}
+	return True;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update the monthly campaigns cache
+LibCampaignAPI_K_CacheCampaignMonthly Private_UpdateCache_CampaignMonthly(
+	LibCampaignAPI_K_CacheCampaignMonthly _Cache,
+	Integer _NewCampaignTimestamp,
+	Integer _NewCampaignRelativeTime,
+	Integer _NewCampaignRelativeNow,
+	Integer _Offset,
+	CampaignStruct::LibCampaignStruct_K_MonthlyCampaign[] _Campaigns,
+	Integer _CampaignsTotal
+) {
+	declare LibCampaignAPI_K_CacheCampaignMonthly Cache = _Cache;
+
+	// Latest campaign changed, reset cache
+	if (Cache.NewCampaignTimestamp != _NewCampaignTimestamp) {
+		Cache = LibCampaignAPI_K_CacheCampaignMonthly {
+			CampaignKeys = [],
+			Campaigns = [],
+			CampaignsTotal = 0,
+			NewCampaignTimestamp = _NewCampaignTimestamp
+		};
+	}
+
+	Cache.NewCampaignRelativeTime = _NewCampaignRelativeTime;
+	Cache.NewCampaignRelativeNow = _NewCampaignRelativeNow;
+
+	declare Boolean RemoveOldCampaigns = False;
+	foreach (Key => Campaign in _Campaigns) {
+		declare Integer CampaignKey = _Offset + Key;
+
+		// Check if the campaign at this key was already cached
+		// If it is the case, check if the new campaign is the same than the cached one
+		// If it is not the same, it probably means that the campaigns order changed
+		// (because a new campaign was published for example) so we must reset the cache
+		declare CampaignStruct::LibCampaignStruct_K_MonthlyCampaign CachedCampaign = Cache.Campaigns.get(CampaignKey, CampaignStruct::GetEmptyMonthlyCampaign());
+		if (CachedCampaign.Id != CampaignStruct::C_Campaign_NullId && CachedCampaign.Id != Campaign.Id) {
+			RemoveOldCampaigns = True;
+		}
+
+		// Put the latest updated campaigns at the end of the array
+		Cache.CampaignKeys.remove(CampaignKey);
+		Cache.CampaignKeys.add(CampaignKey);
+		Cache.Campaigns[CampaignKey] = Campaign;
+	}
+
+	// Remove the oldest campaigns
+	while (Cache.CampaignKeys.count > C_CacheLimit_CampaignMonthly) {
+		declare Integer KeyToDelete = Cache.CampaignKeys[0];
+		Cache.Campaigns.removekey(KeyToDelete);
+		Cache.CampaignKeys.removekey(0);
+	}
+
+	// Remove campaigns cached before this call to `Private_UpdateCache_CampaignMonthly()`
+	if (RemoveOldCampaigns) {
+		declare Integer[] KeysToRemove;
+		foreach (Key in Cache.CampaignKeys) {
+			if (Key < _Offset || (_Campaigns.count > 0 && Key > _Offset + _Campaigns.count - 1)) {
+				KeysToRemove.add(Key);
+			}
+		}
+		foreach (Key in KeysToRemove) {
+			Cache.Campaigns.removekey(Key);
+			Cache.CampaignKeys.remove(Key);
+		}
+	}
+
+	Cache.CampaignsTotal = _CampaignsTotal;
+
+	return Cache;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a list of campaigns
+ *
+ *	@param	_Offset										The starting index
+ *	@param	_Length										The length of the list
+ *
+ *	@return														The request
+ */
+Http::K_Request GetCampaignList(Integer _Offset, Integer _Length) {
+	if (Private_IsCached_CampaignOfficial(G_Cache_CampaignOfficial, _Offset, _Length)) {
+		return Http::SetMetadata(
+			Http::CreateCacheHit(),
+			["Offset" => ""^_Offset, "Length" => ""^_Length]
+		);
+	}
+
+	declare Text[Text] QueryArray = [
+		C_QueryParameter_Offset => ""^_Offset,
+		C_QueryParameter_Length => ""^_Length
+	];
+	declare Text Query = Http::CreateQueryString(QueryArray);
+	return Http::SetMetadata(
+		Http::CreateGet(Config::Get().APIBaseUrl^C_API_Campaign^C_Route_GetList^Query, C_Headers),
+		["Offset" => ""^_Offset]
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetCampaignList request
+LibCampaignAPI_K_ResponseGetCampaignList GetResponseFromGetCampaignList(Http::K_Request _Request) {
+	declare LibCampaignAPI_K_ResponseGetCampaignList ResponseGetCampaignList;
+
+	if (Http::IsCacheHit(_Request)) {
+		declare Integer Offset = TL::ToInteger(Http::GetMetadata(_Request, "Offset"));
+		declare Integer Length = TL::ToInteger(Http::GetMetadata(_Request, "Length"));
+		for (Key, Offset, Offset + Length - 1) {
+			ResponseGetCampaignList.CampaignList.add(G_Cache_CampaignOfficial.Campaigns.get(Key, CampaignStruct::GetEmptyCampaign()));
+		}
+		ResponseGetCampaignList.CampaignsTotal = G_Cache_CampaignOfficial.CampaignsTotal;
+	} else {
+		declare LibCampaignAPI_K_HttpCampaignList HttpCampaignList;
+		HttpCampaignList.fromjson(Http::GetResult(_Request));
+
+		foreach (HttpCampaign in HttpCampaignList.campaignList) {
+			ResponseGetCampaignList.CampaignList.add(CampaignStruct::GetCampaignFromHttpCampaign(HttpCampaign));
+		}
+
+		ResponseGetCampaignList.CampaignsTotal = HttpCampaignList.itemCount;
+
+		G_Cache_CampaignOfficial = Private_UpdateCache_CampaignOfficial(
+			G_Cache_CampaignOfficial,
+			HttpCampaignList.nextRequestTimestamp,
+			HttpCampaignList.relativeNextRequest,
+			Now,
+			TL::ToInteger(Http::GetMetadata(_Request, "Offset")),
+			ResponseGetCampaignList.CampaignList,
+			ResponseGetCampaignList.CampaignsTotal
+		);
+	}
+
+	return ResponseGetCampaignList;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to get a list of monthly campaigns
+ *
+ *	@param	_Offset										The starting index
+ *	@param	_Length										The length of the list
+ *
+ *	@return														The request
+ */
+Http::K_Request GetMonthlyCampaignList(Integer _Offset, Integer _Length, Boolean _Royal) {
+	if (
+		(!_Royal && Private_IsCached_CampaignMonthly(G_Cache_CampaignMonthly, _Offset, _Length)) ||
+		(_Royal && Private_IsCached_CampaignMonthly(G_Cache_CampaignRoyal, _Offset, _Length))
+	) {
+		return Http::SetMetadata(
+			Http::CreateCacheHit(),
+			["Offset" => ""^_Offset, "Length" => ""^_Length]
+		);
+	}
+
+	declare Text[Text] QueryArray = [
+		C_QueryParameter_Offset => ""^_Offset,
+		C_QueryParameter_Length => ""^_Length
+	];
+	if (_Royal) {
+		QueryArray[C_QueryParameter_Royal] = "1";
+	}
+	declare Text Query = Http::CreateQueryString(QueryArray);
+	return Http::SetMetadata(
+		Http::CreateGet(Config::Get().APIBaseUrl^C_API_Campaign^C_Route_GetMonth^Query, C_Headers),
+		["Offset" => ""^_Offset]
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetMonthlyCampaignList request
+LibCampaignAPI_K_ResponseGetMonthlyCampaignList GetResponseFromGetMonthlyCampaignList(Http::K_Request _Request, Boolean _IsRoyal) {
+	declare LibCampaignAPI_K_ResponseGetMonthlyCampaignList ResponseMonthlyCampaignList;
+
+	if (Http::IsCacheHit(_Request)) {
+		declare Integer Offset = TL::ToInteger(Http::GetMetadata(_Request, "Offset"));
+		declare Integer Length = TL::ToInteger(Http::GetMetadata(_Request, "Length"));
+		if (_IsRoyal) {
+			for (Key, Offset, Offset + Length - 1) {
+				ResponseMonthlyCampaignList.CampaignList.add(G_Cache_CampaignRoyal.Campaigns.get(Key, CampaignStruct::GetEmptyMonthlyCampaign()));
+			}
+			ResponseMonthlyCampaignList.CampaignsTotal = G_Cache_CampaignRoyal.CampaignsTotal;
+		} else {
+			for (Key, Offset, Offset + Length - 1) {
+				ResponseMonthlyCampaignList.CampaignList.add(G_Cache_CampaignMonthly.Campaigns.get(Key, CampaignStruct::GetEmptyMonthlyCampaign()));
+			}
+			ResponseMonthlyCampaignList.CampaignsTotal = G_Cache_CampaignMonthly.CampaignsTotal;
+		}
+	} else {
+		declare LibCampaignAPI_K_HttpResponseGetMonthlyCampaignList HttpResponseGetMonthlyCampaignList;
+		HttpResponseGetMonthlyCampaignList.fromjson(Http::GetResult(_Request));
+
+		ResponseMonthlyCampaignList.CampaignsTotal = HttpResponseGetMonthlyCampaignList.itemCount;
+
+		foreach (HttpMonthlyCampaign in HttpResponseGetMonthlyCampaignList.monthList) {
+			declare CampaignStruct::LibCampaignStruct_K_MonthlyCampaign MonthlyCampaign = CampaignStruct::LibCampaignStruct_K_MonthlyCampaign {
+				Id = TL::ToInteger(HttpMonthlyCampaign.month^""^HttpMonthlyCampaign.year),
+				Year = HttpMonthlyCampaign.year,
+				Month = HttpMonthlyCampaign.month,
+				LastDay = HttpMonthlyCampaign.lastDay,
+				Media = CampaignStruct::LibCampaignStruct_K_Media {
+					ButtonBackgroundUrl = HttpMonthlyCampaign.media.buttonBackgroundUrl,
+					ButtonForegroundUrl = HttpMonthlyCampaign.media.buttonForegroundUrl,
+					DecalUrl = HttpMonthlyCampaign.media.decalUrl,
+					PopUpBackgroundUrl = HttpMonthlyCampaign.media.popUpBackgroundUrl,
+					PopUpImageUrl = HttpMonthlyCampaign.media.popUpImageUrl,
+					LiveButtonBackgroundUrl = HttpMonthlyCampaign.media.liveButtonBackgroundUrl,
+					LiveButtonForegroundUrl = HttpMonthlyCampaign.media.liveButtonForegroundUrl
+				},
+				IsLive = False
+			};
+			for (MonthDay, 1, MonthlyCampaign.LastDay) {
+				MonthlyCampaign.DailyMaps[MonthDay-1] = CampaignStruct::LibCampaignStruct_K_DailyMap {
+					MonthDay = MonthDay
+				};
+			}
+
+			foreach (HttpDailyMap in HttpMonthlyCampaign.days) {
+				MonthlyCampaign.DailyMaps[HttpDailyMap.monthDay-1] = CampaignStruct::LibCampaignStruct_K_DailyMap {
+					CampaignId = HttpDailyMap.campaignId,
+					SeasonId = HttpDailyMap.seasonUid,
+					Day = HttpDailyMap.day,
+					MonthDay = HttpDailyMap.monthDay,
+					Map = CampaignStruct::LibCampaignStruct_K_Map {
+						Uid = HttpDailyMap.mapUid
+					},
+					RelativeStart = HttpDailyMap.relativeStart,
+					RelativeEnd = HttpDailyMap.relativeEnd,
+					RelativeNow = Now,
+					LoadStatus = CampaignStruct::C_LoadStatus_NotLoaded
+				};
+
+				if (
+					!MonthlyCampaign.IsLive && (
+						MonthlyCampaign.DailyMaps[HttpDailyMap.monthDay-1].RelativeStart > 0 ||
+						MonthlyCampaign.DailyMaps[HttpDailyMap.monthDay-1].RelativeEnd > 0
+					)
+				) {
+					MonthlyCampaign.IsLive = True;
+				}
+			}
+			ResponseMonthlyCampaignList.CampaignList.add(MonthlyCampaign);
+		}
+
+		if (_IsRoyal) {
+			G_Cache_CampaignRoyal = Private_UpdateCache_CampaignMonthly(
+				G_Cache_CampaignRoyal,
+				HttpResponseGetMonthlyCampaignList.nextRequestTimestamp,
+				HttpResponseGetMonthlyCampaignList.relativeNextRequest,
+				Now,
+				TL::ToInteger(Http::GetMetadata(_Request, "Offset")),
+				ResponseMonthlyCampaignList.CampaignList,
+				ResponseMonthlyCampaignList.CampaignsTotal
+			);
+		} else {
+			G_Cache_CampaignMonthly = Private_UpdateCache_CampaignMonthly(
+				G_Cache_CampaignMonthly,
+				HttpResponseGetMonthlyCampaignList.nextRequestTimestamp,
+				HttpResponseGetMonthlyCampaignList.relativeNextRequest,
+				Now,
+				TL::ToInteger(Http::GetMetadata(_Request, "Offset")),
+				ResponseMonthlyCampaignList.CampaignList,
+				ResponseMonthlyCampaignList.CampaignsTotal
+			);
+		}
+	}
+
+	return ResponseMonthlyCampaignList;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Start a request to check if a track in an official campaign or TOTD track
+ *
+ *	@param	_MapUid										The map uid of the track
+ *
+ *	@return														The request
+ */
+Http::K_Request GetMapInfo(Text _MapUid) {
+	return CampaignAPI::GetMapInfo(_MapUid);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Parse the response to the GetMapInfo request
+LibCampaignAPI_K_ResponseGetMapInfo GetResponseFromGetMapInfo(Http::K_Request _Request) {
+	return CampaignAPI::GetResponseFromGetMapInfo(_Request);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/**
+ * Start a request to get the campaigns media to display in menu buttons
+ *
+ * @return    The request
+ */
+Http::K_Request GetMedia() {
+	return Http::CreateGet(Config::Get().APIBaseUrl^C_API_Campaign^C_Route_GetMedia, C_Headers);
+}
+
+/**
+ * Parse the response of the GetMedia request
+ *
+ * @param _Request    The GetMedia request
+ * @return            The parsed request
+ */
+Text[][Integer] GetResponseFromGetMedia(Http::K_Request _Request) {
+	declare LibCampaignAPI_K_HttpResponseFromGetMedia HttpResponseFromGetMedia;
+	HttpResponseFromGetMedia.fromjson(Http::GetResult(_Request));
+
+	declare Text[][Integer] CampaignsMedia;
+	foreach (Media in HttpResponseFromGetMedia.trainingMedias) {
+		if (Http.IsValidUrl(Media.url)) {
+			if (!CampaignsMedia.existskey(C_CampaignMediaType_Training)) CampaignsMedia[C_CampaignMediaType_Training] = [];
+			CampaignsMedia[C_CampaignMediaType_Training].add(Media.url);
+		}
+	}
+	foreach (Media in HttpResponseFromGetMedia.officialMedias) {
+		if (Http.IsValidUrl(Media.url)) {
+			if (!CampaignsMedia.existskey(C_CampaignMediaType_Official)) CampaignsMedia[C_CampaignMediaType_Official] = [];
+			CampaignsMedia[C_CampaignMediaType_Official].add(Media.url);
+		}
+	}
+	foreach (Media in HttpResponseFromGetMedia.totdMedias) {
+		if (Http.IsValidUrl(Media.url)) {
+			if (!CampaignsMedia.existskey(C_CampaignMediaType_TOTD)) CampaignsMedia[C_CampaignMediaType_TOTD] = [];
+			CampaignsMedia[C_CampaignMediaType_TOTD].add(Media.url);
+		}
+	}
+	foreach (Media in HttpResponseFromGetMedia.clubMedias) {
+		if (Http.IsValidUrl(Media.url)) {
+			if (!CampaignsMedia.existskey(C_CampaignMediaType_Club)) CampaignsMedia[C_CampaignMediaType_Club] = [];
+			CampaignsMedia[C_CampaignMediaType_Club].add(Media.url);
+		}
+	}
+
+	return CampaignsMedia;
+}

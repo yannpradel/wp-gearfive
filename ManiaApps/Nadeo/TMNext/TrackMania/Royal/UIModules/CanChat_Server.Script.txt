@@ -1,0 +1,173 @@
+/**
+ *	UI module: CanChat server side
+ */
+#Const Version		"2022-03-04"
+#Const ScriptName	"ManiaApps/Nadeo/TMNext/TrackMania/Royal/UIModules/CanChat_Server.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Common.Script.txt" as UIModules_Common
+#Include "ManiaApps/Nadeo/TMNext/TrackMania/Royal/UIModules/CanChat_Common.Script.txt" as UIModules_CanChat_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_UpdateInterval 5000
+#Const C_IncludeOurselves True
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Globales
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+declare Integer G_NextUpdateTime;
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the id of the UI module
+Text GetId() {
+	return UIModules_CanChat_Common::C_Id;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the configuration of the UI module
+UIModules_Common::ComponentModeLibsUIModules_K_ModuleConfig GetConfig() {
+	return UIModules_CanChat_Common::C_UIModuleConfig;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Initialize a player
+ *
+ *	@param	_Player										The player to initialize
+ */
+Void InitializePlayer(CPlayer _Player) {
+	if (_Player == Null) return;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Send a message to all teams about players
+ *	with starter access that cannot chat
+ */
+Void SendGroupedCannotChatMessages() {
+	declare CUser[][Integer] ClansCannotChatUsers;
+	foreach (Player in AllPlayers) {
+		if (Player.CurrentClan > 0 && Player.User != Null && !Player.User.IsFakeUser) {
+			declare CUIConfig UI <=> UIManager.GetUI(Player);
+			if (UI != Null) {
+				declare netread Boolean Net_Royal_CanChat_CanChat for UI;
+				if (!Net_Royal_CanChat_CanChat) {
+					if (ClansCannotChatUsers.existskey(Player.CurrentClan)) {
+						ClansCannotChatUsers[Player.CurrentClan].add(Player.User);
+					} else {
+						ClansCannotChatUsers[Player.CurrentClan] = [Player.User];
+					}
+				}
+			}
+		}
+	}
+	
+	foreach (Player in AllPlayers) {
+		if (Player.CurrentClan > 0 && Player.User != Null && !Player.User.IsFakeUser && ClansCannotChatUsers.existskey(Player.CurrentClan)) {
+			declare CUIConfig UI <=> UIManager.GetUI(Player);
+			if (UI != Null) {
+				declare netwrite Text[] Net_Royal_CanChat_StarterAccessPlayersAccountIds for UI;
+				declare Boolean Royal_CanChat_CanDisplayMessage for Player.User = True;
+
+				Royal_CanChat_CanDisplayMessage = False;
+				Net_Royal_CanChat_StarterAccessPlayersAccountIds.clear();
+				foreach (ChatUser in ClansCannotChatUsers[Player.CurrentClan]) {
+					if (ChatUser.WebServicesUserId != Player.User.WebServicesUserId || C_IncludeOurselves) {
+						Net_Royal_CanChat_StarterAccessPlayersAccountIds.add(ChatUser.WebServicesUserId);
+					}
+				}
+			}
+		}
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/**	Send a message to the player's team
+ *	that they cannot chat
+ */
+Void SendCannotChatMessage(CSmPlayer _CannotChatPlayer) {
+	if (_CannotChatPlayer == Null || _CannotChatPlayer.CurrentClan <= 0) return;
+	
+	foreach (Player in AllPlayers) {
+		if (Player.CurrentClan == _CannotChatPlayer.CurrentClan && Player.Id != _CannotChatPlayer.Id) {
+			declare CUIConfig UI <=> UIManager.GetUI(Player);
+			if (UI != Null) {
+				declare netwrite Text[] Net_Royal_CanChat_StarterAccessPlayersAccountIds for UI;
+				Net_Royal_CanChat_StarterAccessPlayersAccountIds.clear();
+				Net_Royal_CanChat_StarterAccessPlayersAccountIds.add(_CannotChatPlayer.User.WebServicesUserId);
+			}
+		}
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check who cannot chat
+Void CheckCannotChat() {
+	foreach (Player in AllPlayers) {
+		if (Player.CurrentClan > 0 && Player.User != Null && !Player.User.IsFakeUser) {
+			declare Boolean Royal_CanChat_CanDisplayMessage for Player.User = True;
+			if (Royal_CanChat_CanDisplayMessage) {
+				declare CUIConfig UI <=> UIManager.GetUI(Player);
+				if (UI != Null) {
+					declare netread Integer Net_Royal_CanChat_CanChatUpdate for UI;
+					declare Integer Royal_CanChat_CanChatUpdate for Player.User;
+					if (Royal_CanChat_CanChatUpdate != Net_Royal_CanChat_CanChatUpdate) {
+						Royal_CanChat_CanChatUpdate = Net_Royal_CanChat_CanChatUpdate;
+						declare netread Boolean Net_Royal_CanChat_CanChat for UI;
+						if (!Net_Royal_CanChat_CanChat) {
+							Royal_CanChat_CanDisplayMessage = False;
+							SendCannotChatMessage(Player);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update the library
+Void Yield() {
+	if (G_NextUpdateTime >= 0 && Now >= G_NextUpdateTime) {
+		G_NextUpdateTime = Now + C_UpdateInterval;
+		CheckCannotChat();
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Unload the library
+Void Unload() {
+	G_NextUpdateTime = -1;
+	
+	foreach (Player in AllPlayers) {
+		InitializePlayer(Player);
+	}
+	
+	foreach (User in Users) {
+		// The CSmPlayer objects can be destroyed and recreated between maps
+		// This will trigger the `OnPlayerAdded` event and `InitializePlayer()` function
+		// We do not want to display the "cannot chat" message at the beginning of each map
+		// So we must initialize `declare for` variables one time only here
+		declare Boolean Royal_CanChat_CanDisplayMessage for User;
+		declare Integer Royal_CanChat_CanChatUpdate for User;
+		Royal_CanChat_CanDisplayMessage = True;
+		Royal_CanChat_CanChatUpdate = -1;
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Load the library
+Void Load() {
+	Unload();
+	
+	G_NextUpdateTime = Now;
+}

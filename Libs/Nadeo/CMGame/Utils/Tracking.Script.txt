@@ -1,0 +1,88 @@
+/**
+ *	Tracking management
+ */
+#Const Version		"1.0.0"
+#Const ScriptName	"Libs/Nadeo/CMGame/Utils/Tracking.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/CMGame/Utils/MainUser.Script.txt" as MainUser
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structure
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_State {
+	Text MenuPageId;
+	CTrackingMgr::EPlayTimeContext MenuSection;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constant
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_DefaultState K_State {
+	MenuPageId = "",
+	MenuSection = CTrackingMgr::EPlayTimeContext::None
+}
+#Const C_Page_NullId ""
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update the section of the menu the user is viewing
+K_State Private_SetMenuSection(CTrackingMgr _TrackingMgr, K_State _State, Text _ForceSection) {
+	declare CTrackingMgr::EPlayTimeContext NewMenuSection = CTrackingMgr::EPlayTimeContext::None;
+	declare Text RawMenuSection = _ForceSection;
+
+	if (_ForceSection == "") {
+		declare Text[] Matches = TL::RegexMatch("^/(clubs|create|live|local|solo)(?:/.*)?$", _State.MenuPageId, "");
+		if (Matches.count >= 2) {
+			RawMenuSection = Matches[1];
+		}
+	}
+	switch (RawMenuSection) {
+		case "clubs": NewMenuSection = CTrackingMgr::EPlayTimeContext::Club;
+		case "create": NewMenuSection = CTrackingMgr::EPlayTimeContext::Create;
+		case "live": NewMenuSection = CTrackingMgr::EPlayTimeContext::Live;
+		case "local": NewMenuSection = CTrackingMgr::EPlayTimeContext::Local;
+		case "solo": NewMenuSection = CTrackingMgr::EPlayTimeContext::Solo;
+	}
+
+	if (_State.MenuSection == NewMenuSection) return _State;
+
+	declare K_State State = _State;
+
+	State.MenuSection = NewMenuSection;
+	_TrackingMgr.Track_Context_PlayTime(MainUser::GetMainUserId(), State.MenuSection);
+
+	return State;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update the menu page the user is viewing
+K_State Private_SetMenuPage(CTrackingMgr _TrackingMgr, K_State _State, Text _NewMenuPageId, Text _ForceSection) {
+	if (_State.MenuPageId == _NewMenuPageId) return _State;
+
+	declare K_State State = _State;
+
+	// Stop previous page
+	if (State.MenuPageId != C_Page_NullId) {
+		_TrackingMgr.Track_Context_MenuStop(MainUser::GetMainUserId(), State.MenuPageId);
+	}
+
+	// Start new page
+	State.MenuPageId = _NewMenuPageId;
+	if (State.MenuPageId != C_Page_NullId) {
+		_TrackingMgr.Track_Context_MenuStart(MainUser::GetMainUserId(), State.MenuPageId);
+	}
+
+	State = Private_SetMenuSection(_TrackingMgr, State, _ForceSection);
+
+	return State;
+}
+Void SetMenuPage(CTrackingMgr _TrackingMgr, CSystemPlatform _System, Text _PageId, Text _ForceSection) {
+	declare K_State CMGame_Tracking_State for _System = C_DefaultState;
+	CMGame_Tracking_State = Private_SetMenuPage(_TrackingMgr, CMGame_Tracking_State, _PageId, _ForceSection);
+}

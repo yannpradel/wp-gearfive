@@ -1,0 +1,45 @@
+/**
+ *	UI module: ScoresTable common
+ */
+#Const Version		"2022-12-07"
+#Const ScriptName	"ManiaApps/Nadeo/TMxSM/Race/UIModules/ScoresTable_Common.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Common.Script.txt" as UIModules_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structure
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_CustomName {
+	Text Name;
+	Boolean IsFirstPartyDisplayName;
+	Boolean DisplayFirstParty;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Id "UIModule_Race_ScoresTable"
+#Const C_SplitScreenId "UIModule_Race_ScoresTable_Splitscreen"
+#Const C_LayerType CUILayer::EUILayerType::Normal
+#Const C_UIModuleConfig UIModules_Common::ComponentModeLibsUIModules_K_ModuleConfig {
+	Id = "Race_ScoresTable", //< Do not modify this Id once in production. It is used by the xmlrpc protocole and would break compatibility.
+	IsCustomizable = True,
+	Properties = UIModules_Common::ComponentModeLibsUIModules_K_ModuleProperties {
+		Position = <0., 0.>,
+		Scale = 1.,
+		Visible = True
+	}
+}
+
+#Const C_DefaultEchelon 0
+
+#Const C_Mode_BestTime 0
+#Const C_Mode_PrevTime 1
+#Const C_Mode_LapTime 2
+#Const C_Mode_Points 3
+#Const C_Mode_Laps 4
+#Const C_Mode_Trophy 5
+#Const C_Mode_RaceProgression 6

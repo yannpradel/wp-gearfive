@@ -1,0 +1,194 @@
+/** 
+ *	Configuration management
+ */
+#Const Version		"2023-04-27"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Config.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_Loading {
+	CHttpRequest Request;
+	Integer Source;
+}
+#Struct LibTMNextConfig_K_Config {
+	Text ConfigName;
+	Text APIBaseUrl;
+	Text APIBordeauxClubUrl;
+	Text APICompetitionUrl;
+	Text APIMatchmakingUrl;
+	Text WebsiteAdminClubUrl;
+	Text WebsitePlayersPageUrl;
+	Text WebsiteOnlineServicesStatusPage;
+	Text ScriptEnvironment;
+	Text BuildEnvironment;
+	Text DefaultSubscription;
+	Text DefaultMasterZone;
+	Text OfflineCampaignJsonName;
+	Text[] Features;
+	// Do not forget to update the MergeConfig() function with any new property added to the structure!
+	// also update Config.dev.json, Config.production.json, Config.production-cn.json, Config.production-lt.json and Config.uat.json
+	// also update the struct here: https://gitlab.nadeo.org/nadeo-live/maniaplanet-live-scripts/-/blob/dev/Scripts/Libs/Nadeo/System/Settings/SettingsStructs.Script.txt#L48
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_DefaultConfig LibTMNextConfig_K_Config {
+	ConfigName = "default-0",
+	APIBaseUrl = "https://live-services.trackmania.nadeo.live",
+	APIBordeauxClubUrl = "https://club.trackmania.nadeo.club",
+	APICompetitionUrl = "https://competition.trackmania.nadeo.club",
+	APIMatchmakingUrl = "https://matchmaking.trackmania.nadeo.club",
+	WebsiteAdminClubUrl = "https://admin.trackmania.nadeo.club",
+	WebsitePlayersPageUrl = "https://www.trackmania.com",
+	WebsiteOnlineServicesStatusPage = "https://trackmania-status.s3.eu-west-1.amazonaws.com",
+	ScriptEnvironment = "production",
+	BuildEnvironment = "",
+	DefaultSubscription = "",
+	DefaultMasterZone = "World",
+	OfflineCampaignJsonName = "Campaign.production.json",
+	Features = []
+}
+
+#Const C_Feature_MatchmakingDebugQueue "MatchmakingDebugQueue"
+#Const C_Feature_Squadding "Squadding"
+#Const C_Feature_DebugShortcut "DebugShortcut"
+#Const C_Feature_DebugToolBox "DebugToolBox"
+#Const C_Feature_CustomLogUI "CustomLogUI"
+#Const C_Feature_DebugBrowserAllData "DebugBrowserAllData"
+#Const C_Feature_DisplayMenuPagesCreationProgress "DisplayMenuPagesCreationProgress"
+#Const C_Feature_DebugFastBoot "DebugFastBoot"
+#Const C_Feature_DebugFakeCampaignUnlock "DebugFakeCampaignUnlock"
+
+#Const C_Source_Null 0
+#Const C_Source_ClientTitle 1
+#Const C_Source_ClientOnline 2
+#Const C_Source_ServerTitle 3
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the configuration object
+LibTMNextConfig_K_Config Get() {
+	declare LibTMNextConfig_K_Config LibTMNextConfig_Config for System = C_DefaultConfig;
+	return LibTMNextConfig_Config;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Is the given feature enabled
+Boolean HasFeature(Text _Feature) {
+	declare LibTMNextConfig_K_Config LibTMNextConfig_Config for System = C_DefaultConfig;
+	return LibTMNextConfig_Config.Features.exists(_Feature);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update the configuration object
+Void Set(LibTMNextConfig_K_Config _Config, Integer _Source) {
+	declare LibTMNextConfig_K_Config LibTMNextConfig_Config for System = C_DefaultConfig;
+	declare Integer LibTMNextConfig_Source for System = C_Source_Null;
+	declare Integer LibTMNextConfig_ConfigDirtyCounter for System = 0;
+	LibTMNextConfig_Config = _Config;
+	LibTMNextConfig_Source = _Source;
+	LibTMNextConfig_ConfigDirtyCounter += 1;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the source of the config
+Integer GetSource() {
+	declare Integer LibTMNextConfig_Source for System = C_Source_Null;
+	return LibTMNextConfig_Source;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the value of the config dirty counter
+Integer GetDirtyCounter() {
+	declare Integer LibTMNextConfig_ConfigDirtyCounter for System = 0;
+	return LibTMNextConfig_ConfigDirtyCounter;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Load the configuration from a file
+K_Loading StartLoadFile(CHttpManager _Http, Text _FilePath, Integer _Source) {
+	return K_Loading {
+		Request = _Http.CreateGet(_FilePath, False),
+		Source = _Source
+	};
+}
+Boolean IsLoadingFile(K_Loading _Loading) {
+	if (_Loading.Request == Null) return False;
+	
+	if (_Loading.Request.IsCompleted && _Loading.Request.Result != "") {
+		declare LibTMNextConfig_K_Config Config;
+		Config.fromjson(_Loading.Request.Result);
+		Set(Config, _Loading.Source);
+	}
+	
+	return !_Loading.Request.IsCompleted;
+}
+Void StopLoadingFile(CHttpManager _Http, K_Loading _Loading) {
+	_Http.Destroy(_Loading.Request);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Merge configuration B into configuration A
+LibTMNextConfig_K_Config MergeConfig(LibTMNextConfig_K_Config _ConfigA, LibTMNextConfig_K_Config _ConfigB) {
+	declare LibTMNextConfig_K_Config ConfigMerged = _ConfigA;
+	if (_ConfigB.ConfigName != "") ConfigMerged.ConfigName = _ConfigB.ConfigName;
+	if (_ConfigB.APIBaseUrl != "") ConfigMerged.APIBaseUrl = _ConfigB.APIBaseUrl;
+	if (_ConfigB.APIBordeauxClubUrl != "") ConfigMerged.APIBordeauxClubUrl = _ConfigB.APIBordeauxClubUrl;
+	if (_ConfigB.APICompetitionUrl != "") ConfigMerged.APICompetitionUrl = _ConfigB.APICompetitionUrl;
+	if (_ConfigB.APIMatchmakingUrl != "") ConfigMerged.APIMatchmakingUrl = _ConfigB.APIMatchmakingUrl;
+	if (_ConfigB.WebsiteAdminClubUrl != "") ConfigMerged.WebsiteAdminClubUrl = _ConfigB.WebsiteAdminClubUrl;
+	if (_ConfigB.WebsitePlayersPageUrl != "") ConfigMerged.WebsitePlayersPageUrl = _ConfigB.WebsitePlayersPageUrl;
+	if (_ConfigB.WebsiteOnlineServicesStatusPage != "") ConfigMerged.WebsiteOnlineServicesStatusPage = _ConfigB.WebsiteOnlineServicesStatusPage;
+	if (_ConfigB.ScriptEnvironment != "") ConfigMerged.ScriptEnvironment = _ConfigB.ScriptEnvironment;
+	if (_ConfigB.BuildEnvironment != "") ConfigMerged.BuildEnvironment = _ConfigB.BuildEnvironment;
+	if (_ConfigB.DefaultSubscription != "") ConfigMerged.DefaultSubscription = _ConfigB.DefaultSubscription;
+	if (_ConfigB.DefaultMasterZone != "") ConfigMerged.DefaultMasterZone = _ConfigB.DefaultMasterZone;
+	if (_ConfigB.OfflineCampaignJsonName != "") ConfigMerged.OfflineCampaignJsonName = _ConfigB.OfflineCampaignJsonName;
+	if (_ConfigB.Features.count > 0) ConfigMerged.Features = _ConfigB.Features;
+	return ConfigMerged;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Merge configuration from a json string into the current configuration
+Void MergeJson(Text _ConfigJson, Integer _Source) {
+	declare LibTMNextConfig_K_Config ConfigJson;
+	ConfigJson.fromjson(_ConfigJson);
+	Set(MergeConfig(Get(), ConfigJson), _Source);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Merge configuration from file into the current configuration
+K_Loading StartMergeFile(CHttpManager _Http, Text _FilePath, Integer _Source) {
+	return K_Loading {
+		Request = _Http.CreateGet(_FilePath, False),
+		Source = _Source
+	};
+}
+Boolean IsMergingFile(K_Loading _Loading) {
+	if (_Loading.Request == Null) return False;
+	
+	if (_Loading.Request.IsCompleted && _Loading.Request.Result != "") {
+		MergeJson(_Loading.Request.Result, _Loading.Source);
+	}
+	
+	return !_Loading.Request.IsCompleted;
+}
+Void StopMergeFile(CHttpManager _Http, K_Loading _Loading) {
+	_Http.Destroy(_Loading.Request);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Unload library
+Void Unload() {
+	Set(C_DefaultConfig, C_Source_Null);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Load library
+Void Load() {
+	Unload();
+}

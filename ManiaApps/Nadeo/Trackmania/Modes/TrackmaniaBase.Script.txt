@@ -1,0 +1,81 @@
+/**
+ *  Common ManiaApp for Trackmania
+ */
+#Extends "ManiaApps/Nadeo/TMGame/Modes/RaceBase.Script.txt"
+
+#Const C_TrackmaniaBase_Version    "1.0.0"
+#Const C_TrackmaniaBase_ScriptName "ManiaApps/Nadeo/Trackmania/Modes/TrackmaniaBase.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/CMGame/Components/MedalStack.Script.txt" as MedalStack
+#Include "Libs/Nadeo/CMGame/Utils/Platform.Script.txt" as Platform
+#Include "Libs/Nadeo/CMGame/Utils/Store_MA.Script.txt" as Store
+#Include "Libs/Nadeo/TMGame/Utils/Tracking.Script.txt" as Tracking
+// #Include "Libs/Nadeo/Trackmania/MainMenu/Pages/ConnectionError.Script.txt" as ConnectionError
+#Include "Libs/Nadeo/Trackmania/MainMenu/Constants.Script.txt" as MenuConst
+#Include "Libs/Nadeo/Trackmania/Stores/CampaignStore_MA.Script.txt" as CampaignStore
+#Include "Libs/Nadeo/Trackmania/Stores/MapStore_MA.Script.txt" as MapStore
+#Include "Libs/Nadeo/Trackmania/Stores/OnlineServicesStatusStore_MA.Script.txt" as OnlineServicesStatusStore
+#Include "Libs/Nadeo/Trackmania/Stores/UserStore_MA.Script.txt" as UserStore
+#Include "Libs/Nadeo/Trackmania/Modes/UIModules/ConnectionError_Client.Script.txt" as UIModules_ConnectionError
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Extends
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+***LoadLibraries***
+***
+Store::Load();
+CampaignStore::Initialize(False);
+UserStore::Initialize(False);
+MapStore::Initialize(False);
+OnlineServicesStatusStore::Initialize(False);
+MedalStack::Load(
+	[MenuConst::C_ImageUrl_Medal_Bronze, MenuConst::C_ImageUrl_Medal_Silver, MenuConst::C_ImageUrl_Medal_Gold, MenuConst::C_ImageUrl_Medal_Nadeo],
+	[MenuConst::C_ImageUrl_Medal_Bronze_Small, MenuConst::C_ImageUrl_Medal_Silver_Small, MenuConst::C_ImageUrl_Medal_Gold_Small, MenuConst::C_ImageUrl_Medal_Nadeo_Small],
+	[MenuConst::C_ImageUrl_Medal_Bronze_VerySmall, MenuConst::C_ImageUrl_Medal_Silver_VerySmall, MenuConst::C_ImageUrl_Medal_Gold_VerySmall, MenuConst::C_ImageUrl_Medal_Nadeo_VerySmall],
+	MenuConst::C_ImageUrl_Medal_Shadow
+);
+// @Todo
+// Do not enable ingame reconnection
+// It has issues at the moment
+// Check /trackmania-next/tmnext/-/issues/1865
+//ConnectionError::Load();
+***
+
+***InitApp***
+***
+declare Text CurrentMapUid;
+***
+
+***StartApp***
+***
+UIModules::CreateModule(UIModules_ConnectionError::C_Id, UIModules_ConnectionError::GetML(), UIModules_ConnectionError::C_Type, SplitScreenEnable, UIModules::C_SplitScreen_Everyone);
+
+// On Sony consoles the chat must be in the safe area
+// see: /trackmania-next/tmnext/-/issues/4839
+if (Platform::IsSony(System)) {
+	ClientUI.OverlayChatOffset = <-0.15, 0.02>;
+	ClientUI.OverlayChatWidthCoef = 0.83;
+}
+***
+
+***AppLoop***
+***
+Store::Yield(This);
+CampaignStore::Yield();
+UserStore::Yield();
+MapStore::Yield();
+OnlineServicesStatusStore::Yield();
+// @Todo
+// Do not enable ingame reconnection
+// It has issues at the moment
+// Check /trackmania-next/tmnext/-/issues/1865
+//ConnectionError::Yield();
+***
+
+***Yield***
+***
+Tracking::Yield(System, This);
+***

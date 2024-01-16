@@ -1,0 +1,1169 @@
+/**
+ *	Page: Solo
+ */
+#Const Version		"1.2.2"
+#Const ScriptName	"Libs/Nadeo/Trackmania/MainMenu/Pages/Solo.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/CMGame/Utils/Privileges.Script.txt" as Privileges
+#Include "Libs/Nadeo/CMGame/Utils/Icons.Script.txt" as Icons
+#Include "Libs/Nadeo/CMGame/Utils/MLHelpers.Script.txt" as MLHelpers
+#Include "Libs/Nadeo/CMGame/Utils/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/CMGame/Utils/Stylesheet.Script.txt" as Stylesheet
+#Include "Libs/Nadeo/CMGame/Components/LoadingSpinner.Script.txt" as LoadingSpinner
+#Include "Libs/Nadeo/CMGame/Components/MenuSounds.Script.txt" as MenuSounds
+#Include "Libs/Nadeo/CMGame/Components/Navigation.Script.txt" as Navigation
+#Include "Libs/Nadeo/CMGame/Components/Transition.Script.txt" as Transition
+#Include "Libs/Nadeo/CMGame/Menus/Router_ML.Script.txt" as Router
+#Include "Libs/Nadeo/CMGame/Components/Button.Script.txt" as Button
+#Include "Libs/Nadeo/CMGame/Components/ExpendableButton.Script.txt" as ExpendableButton
+#Include "Libs/Nadeo/Trackmania/MainMenu/Constants.Script.txt" as Const
+#Include "Libs/Nadeo/Trackmania/MainMenu/RoutePaths.Script.txt" as RoutePaths
+#Include "Libs/Nadeo/Trackmania/Stores/CampaignStore_ML.Script.txt" as CampaignStore
+#Include "Libs/Nadeo/Trackmania/Structures/CampaignStruct.Script.txt" as CampaignStruct
+#Include "Libs/Nadeo/Trackmania/Components/PopUpMultiChoice.Script.txt" as PopUpMultiChoice
+#Include "Libs/Nadeo/Trackmania/Stores/UserStore_ML.Script.txt" as UserStore
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "Page_Solo"
+#Const C_NavGroupName "navgroup-page-solo"
+#Const C_Class_Pager "class-page-solo-pager"
+
+#Const C_Color_Campaign_Spring "76ef73"
+#Const C_Color_Campaign_Summer "ffff00"
+#Const C_Color_Campaign_Fall "9e311b"
+#Const C_Color_Campaign_Winter "6eedfa"
+#Const C_Color_TOTD_Month "60d9e7"
+#Const C_Color_TOTD_Day_Focused "135178"
+#Const C_Color_TOTD_Day_Unfocused "14476B"
+
+#Const C_ImageUrl_Button_Library "file://Media/Manialinks/Nadeo/Trackmania/Menus/PageSolo/Menu_Play_Solo_Library.dds"
+#Const C_ImageUrl_Button_TOTD "file://Media/Manialinks/Nadeo/Trackmania/Menus/PageSolo/Menu_Play_TOTD.dds"
+#Const C_ImageUrl_Button_Training "file://Media/Manialinks/Nadeo/Trackmania/Menus/PageSolo/Menu_Play_Solo_Training.dds"
+#Const Const::C_ImageUrls_Solo_Campaign_Background as C_ImageUrls_Solo_Campaign_Background
+#Const Const::C_ImageUrls_Solo_Campaign_Foreground as C_ImageUrls_Solo_Campaign_Foreground
+#Const Const::C_ImageUrls_Solo_Campaign_Pager_Next as C_ImageUrls_Solo_Campaign_Pager_Next
+#Const Const::C_ImageUrls_Solo_Campaign_Pager_Previous as C_ImageUrls_Solo_Campaign_Pager_Previous
+
+#Const Const::C_Choices_ConnectionRestored as C_Choices_ConnectionRestored
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the page manialink
+ *
+ *	@return														The page manialink
+ */
+Text GetManialink() {
+	declare Text Text_Back = _("Back");
+	declare Text Text_Retrieving = _("Retrieving campaign");
+	//L16N [Page Solo] Title of the campaign button.
+	declare Text Text_Campaign = _("Campaign");
+	//L16N [Page Solo] Text displayed on the campaign button above the new season timer.
+	declare Text Text_NewSeason = _("New Season");
+	//L16N [Page Solo] Text displayed on the campaign button above the player current rank position in his region
+	declare Text Text_Rank = _("Rank");
+	//L16N [Page Solo] Title of the previous campaign button.
+	declare Text Text_PreviousCampaign = _("|Season|Previous");
+	//L16N [Page Solo] Title of the next campaign button.
+	declare Text Text_NextCampaign = _("|Season|Next");
+	//L16N [Page Solo] Title of the training button.
+	declare Text Text_Training = _("Training");
+	//L16N [Page Solo] Title of the track of the day button.
+	declare Text Text_TOTD = _("Track of the day");
+	//L16N [Page Solo] Title of the club campaigns library button.
+	declare Text Text_Library = _("Library");
+	//L16N [Page Solo] Text displayed on the library button.
+	declare Text Text_LibraryInfo = _("|Library|Campaigns");
+	//L16N [Page Solo] Text displayed when campaigns are not available.
+	declare Text Text_Unavailable = _("Unavailable");
+	//L16N [Page Solo] Text pronounced when the previous campaign button is focused.
+	declare Text TTS_PreviousCampaign = _("|Season|Previous campaign");
+	//L16N [Page Solo] Text pronounced when the next campaign button is focused.
+	declare Text TTS_NextCampaign = _("|Season|Next campaign");
+	//L16N [Page Solo] The player did not received a campaign ranking yet
+	declare Text Text_NotRanked = _("Not ranked");
+	// Description of the offline pop-up
+	declare PopUpMultiChoice::K_DescriptionPart[] Description_Offline = [
+		PopUpMultiChoice::CreateDescriptionPart(Const::C_OfflinePopUp_Description, <120., 30.>, 3., Stylesheet::GetFont(Stylesheet::C_Font_Weight_SemiBold), "$t$i", <1., 1., 1.>, False)
+	];
+
+	declare Vec2 Size_Campaign = MLHelpers::KeepRatioFromY(1928., 588., 49.);
+	declare Vec2 Size_CampaignPager = MLHelpers::KeepRatioFromY(508., 272., 22.6);
+	declare Vec2 Size_VerticalButton = MLHelpers::KeepRatioFromY(1004., 1152., 95.8);
+	declare Vec2 Size_HorizontalButton = MLHelpers::KeepRatioFromY(1232., 556., 46.3);
+	declare Vec2 Pos_FrameSeasonInfoVisible = <-29., 0.>;
+
+	declare Integer OfficialCampaignsToPreload = 12;
+
+	return MV::Create(
+C_Name, 3,
+"""
+<stylesheet>
+	<style class="quad-default" halign="center" valign="center"/>
+	<style class="text-extrabold" textsize="3" halign="center" valign="center2" textprefix="$t$i" textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}" textcolor="FFFFFF"/>
+	<style class="text-semibold" textsize="2.5" halign="left" valign="center2" textprefix="$t$i" textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_SemiBold)}}}" italicslope=".2" textcolor="FFFFFF"/>
+</stylesheet>
+
+<!-- Pop-ups -->
+<frameinstance
+	id="popupmultichoice-offline" z-index="{{{Const::C_ZIndex_PopUpDisplay}}}"
+	modelid="{{{PopUpMultiChoice::C_Name}}}"
+	data-title="{{{Const::C_OfflinePopUp_Title}}}"
+	data-description="{{{TL::MLEncode(Description_Offline.tojson())}}}"
+	data-choices="{{{TL::MLEncode(C_Choices_ConnectionRestored.tojson())}}}"
+	data-default-focus-second-button="1"
+	hidden="1"
+/>
+
+<!-- Frame global -->
+<frame id="frame-global">
+	<frame id="frame-channels">
+		<frame id="frame-previous-campaign" pos="{{{MLHelpers::Skew(-111.5, 29., 10.)}}}">
+			<label id="label-previous-campaign-title" class="text-extrabold" pos="{{{Size_CampaignPager.X/2 * 0.64}}} {{{-Size_CampaignPager.X/2 * 0.18}}}" size="{{{Size_CampaignPager.X * 0.7}}} 10" text="{{{Text_PreviousCampaign}}}" textsize="2.3" halign="right" z-index="5"/>
+			<frameinstance
+				modelid="{{{Button::C_Name}}}" id="button-previous-campaign"
+				class="{{{Navigation::C_Class}}} {{{C_Class_Pager}}}"
+				data-text="{{{Text_Unavailable}}}"
+				data-size="{{{Size_CampaignPager.X}}} {{{Size_CampaignPager.Y}}}"
+				data-labelsize="{{{Size_CampaignPager.X*0.7}}} 10"
+				data-bgcolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDarkLight)}}}"
+				data-image="{{{TL::MLEncode(C_ImageUrls_Solo_Campaign_Pager_Previous[Const::C_Season_Summer])}}}"
+				data-icon="{{{Icons::C_Icon_128x128_Lock_Oblique}}}"
+				data-iconfocus="{{{Icons::C_Icon_128x128_Lock_Oblique}}}"
+				data-iconxpos="0.26" data-iconypos="-0.29"
+				data-iconopacityunfocus=".8"
+				data-iconsize="7 7"
+				data-textsize="0.3"
+				data-textitalicslope="0.2"
+				data-textopacityunfocus=".8"
+				data-textxpos="0.8" data-textypos="-0.83"
+				data-texthalign="right" data-textvalign="center"
+				data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_SemiBold)}}}"
+				data-valign="center" data-halign="center"
+				data-tilthitbox="10"
+				data-nav-inputs="select;cancel;right;down"
+				data-nav-targets="_;_;button-campaign;button-next-campaign"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+				data-nav-locked="1"
+			/>
+		</frame>
+		<frame id="frame-next-campaign" pos="{{{MLHelpers::Skew(-111.5, 5.1, 10.)}}}">
+			<label id="label-next-campaign-title" class="text-extrabold" pos="{{{-Size_CampaignPager.X/2 * 0.62}}} {{{Size_CampaignPager.X/2 * 0.3}}}" size="{{{Size_CampaignPager.X * 0.7}}} 10" text="{{{Text_NextCampaign}}}" textsize="2.3" halign="left" z-index="5"/>
+			<frameinstance
+				modelid="{{{Button::C_Name}}}" id="button-next-campaign"
+				class="{{{Navigation::C_Class}}} {{{C_Class_Pager}}}"
+				data-text="{{{Text_Unavailable}}}"
+				data-size="{{{Size_CampaignPager.X}}} {{{Size_CampaignPager.Y}}}"
+				data-labelsize="{{{Size_CampaignPager.X*0.7}}} 10"
+				data-bgcolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDarkLight)}}}"
+				data-image="{{{TL::MLEncode(C_ImageUrls_Solo_Campaign_Pager_Next[Const::C_Season_Summer])}}}"
+				data-icon="{{{Icons::C_Icon_128x128_Lock_Oblique}}}"
+				data-iconfocus="{{{Icons::C_Icon_128x128_Lock_Oblique}}}"
+				data-iconxpos="0.73" data-iconypos="-0.7"
+				data-iconopacityunfocus=".8"
+				data-iconsize="7 7"
+				data-textsize="0.3"
+				data-textitalicslope="0.2"
+				data-textopacityunfocus=".8"
+				data-textxpos="0.182" data-textypos="-0.37"
+				data-texthalign="left" data-textvalign="center"
+				data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_SemiBold)}}}"
+				data-valign="center" data-halign="center"
+				data-tilthitbox="10"
+				data-nav-inputs="select;cancel;right;up;down"
+				data-nav-targets="_;_;button-campaign;button-previous-campaign;button-training"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+				data-nav-locked="1"
+			/>
+		</frame>
+		<frame id="frame-campaign" pos="-11.5 15.7">
+			<frameinstance id="frame-loading-spinner" modelid="{{{LoadingSpinner::C_Name}}}" z-index="3" pos="0 5"/>
+			<label id="label-campaign" class="text-extrabold" pos="{{{-Size_Campaign.X/2 * 0.83}}} {{{Size_Campaign.Y/2 * 0.56}}}" size="{{{Size_Campaign.X * 0.8}}} 2" textsize="7.75" text="{{{Text_Campaign}}}" halign="left" opacity="0.8" z-index="5"/>
+			<frameinstance
+				modelid="{{{Button::C_Name}}}" id="button-campaign"
+				class="{{{Navigation::C_Class}}}"
+				data-text="{{{Text_Unavailable}}}"
+				data-secondarylabel="label-campaign"
+				data-size="{{{Size_Campaign.X}}} {{{Size_Campaign.Y}}}"
+				data-labelsize="{{{Size_Campaign.X*0.8}}} 10"
+				data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+				data-icon="{{{TL::MLEncode(C_ImageUrls_Solo_Campaign_Foreground[Const::C_Season_Summer])}}}"
+				data-iconfocus="{{{TL::MLEncode(C_ImageUrls_Solo_Campaign_Foreground[Const::C_Season_Summer])}}}"
+				data-image="{{{TL::MLEncode(C_ImageUrls_Solo_Campaign_Background[Const::C_Season_Summer])}}}"
+				data-gradientimage="{{{Const::C_ImageUrl_Solo_Campaign_Gradient}}}"
+				data-gradientimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDark)}}}"
+				data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+				data-contourimage="{{{Const::C_ImageUrl_Solo_Campaign_Contour}}}"
+				data-contourimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_ComponentButtonOutlineFocus)}}}"
+				data-contouropacityunfocus=".0"
+				data-iconcolortype="{{{Button::C_ColorType_None}}}"
+				data-iconsize="{{{Size_Campaign.X}}} {{{Size_Campaign.Y}}}"
+				data-iconopacityunfocus="1."
+				data-isblink="1"
+				data-textsize="3.5"
+				data-textitalicslope="0.2"
+				data-textopacityunfocus="0.8"
+				data-textxpos="0.08" data-textypos="-0.37"
+				data-texthalign="left" data-textvalign="center"
+				data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_SemiBold)}}}"
+				data-valign="center" data-halign="center"
+				data-tilthitbox="10"
+				data-nav-inputs="select;cancel;left;right;down"
+				data-nav-targets="_;_;button-previous-campaign;button-library;button-totd"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+			/>
+			<frame id="frame-clip-animation" halign="center" valign="center" pos="{{{-Size_Campaign.X * 0.24}}} {{{-Size_Campaign.Y/2 * 0.54}}}" size="{{{Size_Campaign.X * 0.48}}} 15" z-index="5">
+				<frame id="frame-timer" pos="{{{Pos_FrameSeasonInfoVisible.X}}} {{{Pos_FrameSeasonInfoVisible.Y}}}" hidden="1" >
+					<quad id="quad-timer" class="quad-default" size="8 8" image="{{{Icons::C_Icon_128x128_Time}}}" colorize="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_IconLight)}}}" opacity="0.8"/>
+					<label id="label-new-season" class="text-extrabold" pos="{{{MLHelpers::Skew(4.5, 1., 10.)}}}" size="{{{Size_Campaign.X * 0.3}}} 2" text="{{{Text_NewSeason}}}" textsize="1.75" halign="left" opacity="0.8"/>
+					<label id="label-timer" class="text-semibold" pos="{{{MLHelpers::Skew(4.5, -2.5, 10.)}}}" size="{{{Size_Campaign.X * 0.3}}} 2" textsize="1.5" opacity="0.8"/>
+				</frame>
+				<frame id="frame-rank" pos="{{{Pos_FrameSeasonInfoVisible.X}}} {{{Pos_FrameSeasonInfoVisible.Y}}}" hidden="1" >
+					<quad id="quad-rank-logo" class="quad-default" size="8 8" image="{{{Icons::C_Icon_128x128_Flag}}}" colorize="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_IconLight)}}}"/>
+					<label id="label-rank" class="text-extrabold" pos="{{{MLHelpers::Skew(4.5, 1., 10.)}}}" size="{{{Size_Campaign.X * 0.3}}} 2" text="{{{Text_Rank}}}" textsize="1.75" halign="left" opacity="0.8"/>
+					<label id="label-rank-zone" class="text-semibold" pos="{{{MLHelpers::Skew(4.5, -2.5, 10.)}}}" size="{{{Size_Campaign.X * 0.3}}} 2" textsize="1.5" opacity="0.8"/>
+					<label id="label-rank-position" class="text-semibold" pos="{{{MLHelpers::Skew(25., -2.5, 10.)}}}" halign="left" size="{{{Size_Campaign.X * 0.2}}} 2" textsize="1.5" textcolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentOne)}}}" opacity="0.8"/>
+				</frame>
+			</frame>
+		</frame>
+
+		<frameinstance
+			modelid="{{{Button::C_Name}}}" id="button-training" pos="-89. -32.5"
+			class="{{{Navigation::C_Class}}}"
+			data-text="{{{Text_Training}}}"
+			data-size="{{{Size_HorizontalButton.X}}} {{{Size_HorizontalButton.Y}}}"
+			data-labelsize="{{{Size_HorizontalButton.X*0.8}}} 10"
+			data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+			data-image="{{{C_ImageUrl_Button_Training}}}"
+			data-gradientimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Gradient}}}"
+			data-gradientimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDark)}}}"
+			data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+			data-contourimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Contour}}}"
+			data-contourimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_ComponentButtonOutlineFocus)}}}"
+			data-contouropacityunfocus=".0"
+			data-isblink="1"
+			data-fitlabel="3"
+			data-textsize="5"
+			data-textitalicslope="0.2"
+			data-textopacityunfocus="0.8"
+			data-textxpos="0.13" data-textypos="-0.13"
+			data-texthalign="left" data-textvalign="top"
+			data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}"
+			data-valign="center" data-halign="center"
+			data-tilthitbox="10"
+			data-nav-inputs="select;cancel;right;up;down"
+			data-nav-targets="_;_;button-totd;button-campaign;button-back"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+
+		<frame id="frame-totd" pos="9. -32.5">
+			<label id="label-totd-date" class="text-semibold" pos="{{{-Size_HorizontalButton.X/2 * 0.75}}} {{{Size_HorizontalButton.Y/2 * 0.28}}}" size="{{{Size_HorizontalButton.X * 0.4}}} 10" textcolor="{{{C_Color_TOTD_Month}}}" opacity="0.8" z-index="5"/>
+			<label id="label-totd-day" class="text-extrabold" pos="{{{Size_HorizontalButton.X/2 * 0.43}}} {{{-Size_HorizontalButton.Y/2 * 0.27}}}" size="{{{Size_HorizontalButton.X * 0.7}}} 10" textsize="5" textcolor="{{{C_Color_TOTD_Day_Unfocused}}}" textprefix="$t" z-index="5"/>
+			<frameinstance
+				modelid="{{{Button::C_Name}}}" id="button-totd"
+				class="{{{Navigation::C_Class}}}"
+				data-text="{{{Text_TOTD}}}"
+				data-secondarylabel="label-totd-date"
+				data-size="{{{Size_HorizontalButton.X}}} {{{Size_HorizontalButton.Y}}}"
+				data-labelsize="{{{Size_HorizontalButton.X*0.8}}} 10"
+				data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+				data-image="{{{C_ImageUrl_Button_TOTD}}}"
+				data-alphamask="{{{Const::C_ImageUrl_Common_HorizontalButton_Mask}}}"
+				data-gradientimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Gradient}}}"
+				data-gradientimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDark)}}}"
+				data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+				data-contourimage="{{{Const::C_ImageUrl_Common_HorizontalButton_Contour}}}"
+				data-contourimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_ComponentButtonOutlineFocus)}}}"
+				data-contouropacityunfocus=".0"
+				data-isblink="1"
+				data-fitlabel="3"
+				data-textsize="5"
+				data-textitalicslope="0.2"
+				data-textopacityunfocus="0.8"
+				data-textxpos="0.13" data-textypos="-0.13"
+				data-texthalign="left" data-textvalign="top"
+				data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}"
+				data-valign="center" data-halign="center"
+				data-tilthitbox="10"
+				data-nav-inputs="select;cancel;left;right;up;down"
+				data-nav-targets="_;_;button-training;button-library;button-campaign;button-back"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+			/>
+		</frame>
+
+		<frame id="frame-library" pos="97.4 -7.7">
+			<label id="label-library-info" class="text-semibold" pos="{{{-Size_VerticalButton.X/2 * 0.49}}} {{{Size_VerticalButton.Y/2 * 0.645}}}" size="{{{Size_VerticalButton.X * 0.63}}} 10" text="{{{Text_LibraryInfo}}}" textcolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentOne)}}}" opacity="0.8" z-index="5"/>
+			<frameinstance
+				modelid="{{{Button::C_Name}}}" id="button-library"
+				class="{{{Navigation::C_Class}}}"
+				data-text="{{{Text_Library}}}"
+				data-secondarylabel="label-library-info"
+				data-tts-text="{{{TL::Compose("%1 - %2", Text_Library, Text_LibraryInfo)}}}"
+				data-size="{{{Size_VerticalButton.X}}} {{{Size_VerticalButton.Y}}}"
+				data-labelsize="{{{Size_VerticalButton.X*0.6}}} 10"
+				data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+				data-image="{{{C_ImageUrl_Button_Library}}}"
+				data-alphamask="{{{Const::C_ImageUrl_Common_VerticalButton_Mask}}}"
+				data-gradientimage="{{{Const::C_ImageUrl_Common_VerticalButton_Gradient}}}"
+				data-gradientimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_BGDark)}}}"
+				data-gradientopacityunfocus="0.6" data-gradientopacityfocus="0."
+				data-contourimage="{{{Const::C_ImageUrl_Common_VerticalButton_Contour}}}"
+				data-contourimagecolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_ComponentButtonOutlineFocus)}}}"
+				data-contouropacityunfocus=".0"
+				data-isblink="1"
+				data-textsize="5"
+				data-textitalicslope="0.2"
+				data-textopacityunfocus="0.8"
+				data-textxpos="0.26" data-textypos="-0.063"
+				data-texthalign="left" data-textvalign="top"
+				data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}"
+				data-valign="center" data-halign="center"
+				data-tilthitbox="10"
+				data-nav-inputs="select;cancel;left;down"
+				data-nav-targets="_;_;button-campaign;button-back"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+			/>
+		</frame>
+
+		<frameinstance
+			id="button-back" pos="-151.5 -73" z-index="1"
+			modelid="{{{ExpendableButton::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-styles="{{{ExpendableButton::C_Style_SizeExpendable}}} {{{ExpendableButton::C_Style_AlignCenter}}} {{{ExpendableButton::C_Style_PageBack}}}"
+			data-nav-inputs="select;cancel;up"
+			data-nav-targets="_;_;button-training"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{ExpendableButton::C_NavZone}}}"
+		/>
+	</frame>
+</frame>
+""",
+"""
+#Include "ColorLib" as CL
+#Include "TextLib" as TL
+#Include "MathLib" as ML
+#Include "Libs/Nadeo/Trackmania/API/CampaignAPI.Script.txt" as CampaignAPI
+#Include "Libs/Nadeo/Trackmania/MainMenu/Overlays/ControllerInfo_ML.Script.txt" as ControllerInfo
+#Include "Libs/Nadeo/CMGame/Utils/Stylesheet.Script.txt" as Stylesheet
+#Include "Libs/Nadeo/CMGame/Utils/Tools.Script.txt" as Tools
+
+#Struct K_Controls {
+	CMlFrame Button_Back;
+	CMlFrame Button_Campaign;
+	CMlFrame Button_Library;
+	CMlFrame Button_Next;
+	CMlFrame Button_Previous;
+	CMlFrame Button_TOTD;
+	CMlFrame Frame_LoadingSpinner;
+	CMlFrame Frame_RankQuarterly;
+	CMlFrame Frame_TimerQuarterly;
+	CMlFrame PopUpMultiChoice_Offline;
+	CMlLabel Label_Campaign;
+	CMlLabel Label_DateTOTD;
+	CMlLabel Label_DayTOTD;
+	CMlLabel Label_LibraryInfo;
+	CMlLabel Label_TimerQuarterly;
+	CMlLabel Label_RankZone;
+	CMlLabel Label_RankPosition;
+}
+
+#Struct K_CampaignPager {
+	Boolean HasCampaigns;
+	Integer PageCurrent;
+	Integer PageMax;
+	Integer PreloadCurrent;
+	Integer PreloadMax;
+	Integer PreloadRequest;
+	Integer PreloadTime;
+	Boolean NeedPreload;
+}
+
+#Struct K_State {
+	{{{CampaignStruct::P}}}K_Campaign[Integer] QuarterlyCampaigns;
+	K_CampaignPager CampaignPager;
+	K_Controls Controls;
+	Boolean IsLiveQuarterlyCampaign;
+	Integer CurrentSeasonRelativeEnd;
+	Integer CurrentSeasonRelativeNow;
+	Integer CurrentCampaignId;
+	Integer SwitchSeasonInfoTime;
+}
+
+#Const C_DelayBetweenRequest 500
+
+#Const C_Duration_SlowDown 2000
+#Const C_Duration_Acceleration 500
+#Const C_Duration_MinWait 6000
+#Const C_Duration_MaxWait 10000
+#Const C_DelayBetweenSeasonInfoSwitch 5000
+#Const C_Duration_SeasonInfoShownedAnim 1000
+#Const C_Duration_SeasonInfoHiddenAnim 500
+
+#Const C_RankFormatLimit 1000
+
+#Const C_Month_Names {{{dump(Const::C_Month_Names)}}}
+#Const C_Season_Names {{{dump(Const::C_Season_Names)}}}
+#Const C_ImageUrls_Solo_Campaign_Background {{{dump(Const::C_ImageUrls_Solo_Campaign_Background)}}}
+#Const C_ImageUrls_Solo_Campaign_Foreground {{{dump(Const::C_ImageUrls_Solo_Campaign_Foreground)}}}
+#Const C_ImageUrls_Solo_Campaign_Pager_Next {{{dump(Const::C_ImageUrls_Solo_Campaign_Pager_Next)}}}
+#Const C_ImageUrls_Solo_Campaign_Pager_Previous {{{dump(Const::C_ImageUrls_Solo_Campaign_Pager_Previous)}}}
+#Const C_Zone_Translations {{{dump(Const::C_Zone_Translations)}}}
+#Const C_Choice_Reconnect {{{dump(Const::C_Choice_Reconnect)}}}
+""",
+"""
+Text GetQuarterlyCampaignName({{{CampaignStruct::P}}}K_CampaignName _CampaignName) {
+	if (_CampaignName.IsValid) {
+		return _CampaignName.TranslatedName;
+	}
+	return _CampaignName.Name;
+}
+
+Text GetQuarterlyCampaignTTS({{{CampaignStruct::P}}}K_CampaignName _CampaignName, Text _CampaignText) {
+	if (_CampaignName.IsValid) {
+		return TL::Compose("%1 - %2 %3", _CampaignText, C_Season_Names.get(_CampaignName.Season, ""), _CampaignName.Year);
+	}
+	return TL::Compose("%1 - %2", _CampaignText, _CampaignName.Name);
+}
+
+Vec3 GetCampaignFocusColor(Text _CampaignSeason) {
+	switch (_CampaignSeason) {
+		case "{{{Const::C_Season_Spring}}}": return CL::Hex6ToRgb("{{{C_Color_Campaign_Spring}}}");
+		case "{{{Const::C_Season_Summer}}}": return CL::Hex6ToRgb("{{{C_Color_Campaign_Summer}}}");
+		case "{{{Const::C_Season_Fall}}}": return CL::Hex6ToRgb("{{{C_Color_Campaign_Fall}}}");
+		case "{{{Const::C_Season_Winter}}}": return CL::Hex6ToRgb("{{{C_Color_Campaign_Winter}}}");
+	}
+
+	return CL::Hex6ToRgb("{{{C_Color_Campaign_Summer}}}");
+}
+
+{{{CampaignStruct::P}}}K_CampaignName GetPreviousCampaign({{{CampaignStruct::P}}}K_CampaignName _LastAvailableCampaign) {
+	declare Text PreviousCampaignName;
+
+	switch (_LastAvailableCampaign.Season) {
+		case "{{{Const::C_Season_Spring}}}": PreviousCampaignName = "{{{Const::C_Season_Winter}}} "^_LastAvailableCampaign.Year;
+		case "{{{Const::C_Season_Summer}}}": PreviousCampaignName = "{{{Const::C_Season_Spring}}} "^_LastAvailableCampaign.Year;
+		case "{{{Const::C_Season_Fall}}}": PreviousCampaignName = "{{{Const::C_Season_Summer}}} "^_LastAvailableCampaign.Year;
+		case "{{{Const::C_Season_Winter}}}": PreviousCampaignName = "{{{Const::C_Season_Fall}}} "^TL::ToInteger(_LastAvailableCampaign.Year) - 1;
+	}
+
+	return {{{CampaignStruct::P}}}ParseCampaignName(PreviousCampaignName);
+}
+
+{{{CampaignStruct::P}}}K_CampaignName GetIncomingCampaign({{{CampaignStruct::P}}}K_CampaignName _LastAvailableCampaign) {
+	declare Text IncomingCampaignName;
+
+	switch (_LastAvailableCampaign.Season) {
+		case "{{{Const::C_Season_Spring}}}": IncomingCampaignName = "{{{Const::C_Season_Summer}}} "^_LastAvailableCampaign.Year;
+		case "{{{Const::C_Season_Summer}}}": IncomingCampaignName = "{{{Const::C_Season_Fall}}} "^_LastAvailableCampaign.Year;
+		case "{{{Const::C_Season_Fall}}}": IncomingCampaignName = "{{{Const::C_Season_Winter}}} "^TL::ToInteger(_LastAvailableCampaign.Year) + 1;
+		case "{{{Const::C_Season_Winter}}}": IncomingCampaignName = "{{{Const::C_Season_Spring}}} "^_LastAvailableCampaign.Year;
+	}
+
+	return {{{CampaignStruct::P}}}ParseCampaignName(IncomingCampaignName);
+}
+
+Void SetTOTDDayTextColor(CMlLabel _Label_DayTOTD, Boolean _IsFocused) {
+	AnimMgr.Flush(_Label_DayTOTD);
+	if (_IsFocused) {
+		AnimMgr.Add(_Label_DayTOTD, "<anim textcolor=\""^{{{dump(C_Color_TOTD_Day_Focused)}}}^"\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+	} else {
+		AnimMgr.Add(_Label_DayTOTD, "<anim textcolor=\""^{{{dump(C_Color_TOTD_Day_Unfocused)}}}^"\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+	}
+}
+
+Void SetLabelOpacity(CMlLabel _Label, Boolean _IsFocused) {
+	AnimMgr.Flush(_Label);
+	if (_IsFocused) {
+		AnimMgr.Add(_Label, "<anim opacity=\"1.\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+	} else {
+		AnimMgr.Add(_Label, "<anim opacity=\"0.8\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+	}
+}
+
+K_State Focus(K_State _State, CMlControl _From, CMlControl _To) {
+	if ({{{Transition::P}}}IsInTransition(This)) return _State;
+	declare K_State State = _State;
+
+	if (_From != Null) {
+		{{{Navigation::P}}}Unfocus(This, _From);
+		if ({{{ExpendableButton::P}}}IsButton(_From)) {
+			{{{ExpendableButton::P}}}Unfocus(This, (_From as CMlFrame));
+		} else if ({{{Button::P}}}IsButton(_From)) {
+			{{{Button::P}}}Unfocus(This, (_From as CMlFrame));
+			if (_From.Id == State.Controls.Button_TOTD.Id) SetTOTDDayTextColor(State.Controls.Label_DayTOTD, False);
+			if (_From.Id == State.Controls.Button_Campaign.Id && State.IsLiveQuarterlyCampaign) {
+				declare Integer SeasonInfoAppearanceTimestamp = State.SwitchSeasonInfoTime - C_DelayBetweenSeasonInfoSwitch + C_Duration_SeasonInfoHiddenAnim;
+				foreach (Frame in [State.Controls.Frame_TimerQuarterly, State.Controls.Frame_RankQuarterly]) {
+					if (!Frame.Visible) { //< Replace the opacity animation of the frame that will soon be displayed
+						foreach (Control in Frame.Controls) {
+							AnimMgr.Flush(Control);
+							AnimMgr.Add(Control, "<anim opacity=\"0.8\" />", SeasonInfoAppearanceTimestamp, C_Duration_SeasonInfoShownedAnim, CAnimManager::EAnimManagerEasing::QuadOut);
+						}
+					} else if (SeasonInfoAppearanceTimestamp < Now) { //< Update opacity only if visible frame is not disappearing
+						foreach (Control in Frame.Controls) {
+							AnimMgr.Flush(Control);
+							AnimMgr.Add(Control, "<anim opacity=\"0.8\" />", 250, CAnimManager::EAnimManagerEasing::QuadOut);
+						}
+					}
+				}
+			}
+			if (_From.HasClass("{{{C_Class_Pager}}}")) {
+				{{{Button::P}}}SetBgColorType(This, (_From as CMlFrame), {{{Button::C_ColorType_Colorize}}});
+			} else if (_From.DataAttributeExists("secondarylabel")) {
+				SetLabelOpacity(_From.Parent.GetFirstChild(_From.DataAttributeGet("secondarylabel")) as CMlLabel, False);
+			}
+		}
+	}
+
+	if (_To != Null) {
+		{{{Navigation::P}}}Focus(This, _To);
+		if ({{{ExpendableButton::P}}}IsButton(_To)) {
+			{{{ExpendableButton::P}}}Focus(This, (_To as CMlFrame));
+		} else if ({{{Button::P}}}IsButton(_To)) {
+			{{{Button::P}}}Focus(This, (_To as CMlFrame));
+			if (_To.Id == State.Controls.Button_Campaign.Id && State.IsLiveQuarterlyCampaign) State.SwitchSeasonInfoTime = Now;
+			if (_To.Id == State.Controls.Button_TOTD.Id) SetTOTDDayTextColor(State.Controls.Label_DayTOTD, True);
+			if (_To.HasClass("{{{C_Class_Pager}}}")) {
+				{{{Button::P}}}SetBgColorType(This, (_To as CMlFrame), {{{Button::C_ColorType_None}}});
+			} else if (_To.DataAttributeExists("secondarylabel")) {
+				SetLabelOpacity(_To.Parent.GetFirstChild(_To.DataAttributeGet("secondarylabel")) as CMlLabel, True);
+			}
+		}
+	}
+
+	return State;
+}
+
+K_State FocusAvailableControl(K_State _State) {
+	declare K_State State = _State;
+
+	if (!{{{Navigation::P}}}IsLocked(_State.Controls.Button_Campaign)) {
+		State = Focus(_State, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), _State.Controls.Button_Campaign);
+	} else if (!{{{Navigation::P}}}IsLocked(_State.Controls.Button_Next)) {
+		State = Focus(_State, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), _State.Controls.Button_Next);
+	} else if (!{{{Navigation::P}}}IsLocked(_State.Controls.Button_Previous)) {
+		State = Focus(_State, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), _State.Controls.Button_Previous);
+	}
+
+	return State;
+}
+
+K_State UpdatePlayerLiveQuaterlyCampaignRank(K_State _State) {
+	declare K_State State = _State;
+	State.Controls.Frame_RankQuarterly.Visible = State.IsLiveQuarterlyCampaign;
+
+	if (State.IsLiveQuarterlyCampaign) {
+		declare {{{CampaignStruct::P}}}K_Campaign Campaign = {{{CampaignStore::P}}}GetCampaignFromId(State.CurrentCampaignId);
+		declare {{{CampaignStruct::P}}}K_Ranking TopRank = {{{CampaignStore::P}}}GetTopRank(Campaign.CampaignRanking.Rankings);
+
+		if (Campaign.CampaignRanking.Rankings.count > 0 && TopRank.Position > 0) {
+			State.Controls.Label_RankZone.Value = C_Zone_Translations.get(TopRank.ZoneName, TL::GetTranslatedText(TopRank.ZoneName));
+			// Display a rank suffix only if player in Top 999 (after that the player rank will be displayed like "1K")
+			if (TopRank.Position < C_RankFormatLimit) {
+				State.Controls.Label_RankPosition.Value = TL::FormatRank(TopRank.Position, True);
+			} else {
+				State.Controls.Label_RankPosition.Value = Tools::FormatTop(TopRank.Position, False, C_RankFormatLimit);
+			}
+		} else {
+			State.Controls.Label_RankPosition.Value = "{{{Text_NotRanked}}}";
+		}
+		State.Controls.Label_RankPosition.RelativePosition_V3.X = State.Controls.Label_RankZone.RelativePosition_V3.X + ML::Min(State.Controls.Label_RankZone.Size.X, State.Controls.Label_RankZone.ComputeWidth(State.Controls.Label_RankZone.Value));
+
+		State.SwitchSeasonInfoTime = Now + C_DelayBetweenSeasonInfoSwitch;
+	} else {
+		State.SwitchSeasonInfoTime = -1;
+	}
+
+	return State;
+}
+
+Void AnimFrames(CMlFrame _FrameToShow, CMlFrame _FrameToHide) {
+	AnimMgr.Flush(_FrameToShow);
+	AnimMgr.Flush(_FrameToHide);
+
+	declare Vec2 Pos_HiddenStart = <{{{Pos_FrameSeasonInfoVisible.X}}} - 5., 0.>;
+	declare CMlControl FocusedControl = {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}");
+	declare Real FocusedOpacity = 0.8;
+	if (FocusedControl != Null && FocusedControl.ControlId == "button-campaign") {
+		FocusedOpacity = 1.;
+	}
+
+	// Hide previous information frame directly
+	AnimMgr.Add(_FrameToHide, "<anim hidden=\"1\"/>", C_Duration_SeasonInfoHiddenAnim, CAnimManager::EAnimManagerEasing::QuadOut);
+	foreach (Control in _FrameToHide.Controls) {
+		AnimMgr.Add(Control, "<anim opacity=\"0.\" />", C_Duration_SeasonInfoHiddenAnim, CAnimManager::EAnimManagerEasing::QuadOut);
+	}
+
+	// Show new information frame when previous animation is over
+	_FrameToShow.RelativePosition_V3 = Pos_HiddenStart;
+	AnimMgr.Add(_FrameToShow, "<anim pos=\""^{{{Pos_FrameSeasonInfoVisible.X}}}^" "^{{{Pos_FrameSeasonInfoVisible.Y}}}^"\" hidden=\"0\"/>", Now + C_Duration_SeasonInfoHiddenAnim, C_Duration_SeasonInfoShownedAnim, CAnimManager::EAnimManagerEasing::QuadOut);
+	foreach (Control in _FrameToShow.Controls) {
+		if ((Control is CMlQuad) || (Control is CMlLabel)) {
+			AnimMgr.Flush(Control);
+			if (Control is CMlQuad) (Control as CMlQuad).Opacity = 0.;
+			else (Control as CMlLabel).Opacity = 0.;
+			AnimMgr.Add(Control, "<anim opacity=\""^FocusedOpacity^"\" />", Now + C_Duration_SeasonInfoHiddenAnim, C_Duration_SeasonInfoShownedAnim, CAnimManager::EAnimManagerEasing::QuadOut);
+		}
+	}
+}
+
+Void AnimSeasonInfoSwitch(K_State _State, Boolean _ShowRank) {
+	if (_ShowRank) {
+		AnimFrames(_State.Controls.Frame_RankQuarterly, _State.Controls.Frame_TimerQuarterly);
+	} else {
+		AnimFrames(_State.Controls.Frame_TimerQuarterly, _State.Controls.Frame_RankQuarterly);
+	}
+}
+
+Void ResetAnimFrames(CMlFrame _Frame) {
+	declare CMlControl FocusedControl = {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}");
+	declare Real FocusedOpacity = 0.8;
+	if (FocusedControl != Null && FocusedControl.ControlId == "button-campaign") {
+		FocusedOpacity = 1.;
+	}
+
+	AnimMgr.Flush(_Frame);
+	_Frame.RelativePosition_V3 = {{{Pos_FrameSeasonInfoVisible}}};
+	foreach (Control in _Frame.Controls) {
+		AnimMgr.Flush(Control);
+		if (Control is CMlQuad) {
+			(Control as CMlQuad).Opacity = FocusedOpacity;
+		} else if (Control is CMlLabel) {
+			(Control as CMlLabel).Opacity = FocusedOpacity;
+		}
+	}
+}
+
+K_State DisplayCampaign(K_State _State) {
+	declare K_State State = _State;
+
+	if (State.CampaignPager.HasCampaigns && State.CampaignPager.PageMax >= 0) {
+		State.CurrentSeasonRelativeEnd = 0;
+		State.CurrentSeasonRelativeNow = 0;
+		State.CurrentCampaignId = {{{CampaignStruct::P}}}C_Campaign_NullId;
+
+		if (State.QuarterlyCampaigns.existskey(State.CampaignPager.PageCurrent)) {
+			declare Campaign = State.QuarterlyCampaigns[State.CampaignPager.PageCurrent];
+			declare {{{CampaignStruct::P}}}K_CampaignName CampaignName = {{{CampaignStruct::P}}}ParseCampaignName(Campaign.Name);
+
+			/* Update current campaign button */
+			{{{LoadingSpinner::P}}}StopAnimation(This, State.Controls.Frame_LoadingSpinner);
+			{{{Button::P}}}SetValue(This, State.Controls.Button_Campaign, GetQuarterlyCampaignName(CampaignName));
+			{{{Button::P}}}SetTextToSpeech(This, State.Controls.Button_Campaign, GetQuarterlyCampaignTTS(CampaignName, "{{{Text_Campaign}}}"));
+			{{{Button::P}}}SetVisibilityAndNavigation(State.Controls.Button_Campaign, True);
+			State.Controls.Label_Campaign.Show();
+			if (C_ImageUrls_Solo_Campaign_Background.existskey(CampaignName.Season) && C_ImageUrls_Solo_Campaign_Foreground.existskey(CampaignName.Season)) {
+				{{{Button::P}}}SetImage(This, State.Controls.Button_Campaign, C_ImageUrls_Solo_Campaign_Background[CampaignName.Season]);
+				{{{Button::P}}}SetIcon(This, State.Controls.Button_Campaign, C_ImageUrls_Solo_Campaign_Foreground[CampaignName.Season]);
+				{{{Button::P}}}SetIconFocus(This, State.Controls.Button_Campaign, C_ImageUrls_Solo_Campaign_Foreground[CampaignName.Season]);
+			} else if (Campaign.Media.ButtonBackgroundUrl != "" && Campaign.Media.ButtonForegroundUrl != "") {
+				{{{Button::P}}}SetImage(This, State.Controls.Button_Campaign, Campaign.Media.ButtonBackgroundUrl);
+				{{{Button::P}}}SetIcon(This, State.Controls.Button_Campaign, Campaign.Media.ButtonForegroundUrl);
+				{{{Button::P}}}SetIconFocus(This, State.Controls.Button_Campaign, Campaign.Media.ButtonForegroundUrl);
+			} else {
+				{{{Button::P}}}SetImage(This, State.Controls.Button_Campaign, C_ImageUrls_Solo_Campaign_Background["{{{Const::C_Season_Summer}}}"]);
+				{{{Button::P}}}SetIcon(This, State.Controls.Button_Campaign, C_ImageUrls_Solo_Campaign_Foreground["{{{Const::C_Season_Summer}}}"]);
+				{{{Button::P}}}SetIconFocus(This, State.Controls.Button_Campaign, C_ImageUrls_Solo_Campaign_Foreground["{{{Const::C_Season_Summer}}}"]);
+			}
+
+			/* Update current season relative end */
+			if (Campaign.IsSeasonLive) {
+				foreach (Season in Campaign.Seasons) {
+					if (Season.Active && Season.Uid == Campaign.LeaderboardGroupUid) {
+						State.CurrentSeasonRelativeEnd = Season.RelativeEnd;
+						State.CurrentSeasonRelativeNow = Season.RelativeNow;
+						break;
+					}
+				}
+			}
+
+			/* Update current campaign id */
+			State.CurrentCampaignId = Campaign.Id;
+			State.IsLiveQuarterlyCampaign = Campaign.Id == {{{CampaignStore::P}}}GetLiveQuarterlyCampaign().Id;
+		} else {
+			State.Controls.Label_Campaign.Hide();
+			State.Controls.Frame_RankQuarterly.Hide();
+			State.Controls.Frame_TimerQuarterly.Hide();
+			{{{Button::P}}}SetVisibilityAndNavigation(State.Controls.Button_Campaign, False);
+			{{{LoadingSpinner::P}}}StartAnimation(This, State.Controls.Frame_LoadingSpinner, TL::Compose(
+				"%1 %2/%3",
+				"{{{Text_Retrieving}}}",
+				""^State.CampaignPager.PageCurrent + 1,
+				""^State.CampaignPager.PageMax + 1
+			));
+		}
+
+		/* Update campaign rank visibility */
+		ResetAnimFrames(_State.Controls.Frame_RankQuarterly);
+		State = UpdatePlayerLiveQuaterlyCampaignRank(State);
+
+		/* Update campaign timer visibility */
+		ResetAnimFrames(_State.Controls.Frame_TimerQuarterly);
+		State.Controls.Frame_TimerQuarterly.Visible = !State.Controls.Frame_RankQuarterly.Visible && State.CurrentSeasonRelativeEnd > 0;
+
+		/* Update previous campaign button */
+		declare Text PreviousIconImageUrl = "{{{Icons::C_Icon_128x128_Arrow_Left_Encircled}}}";
+		declare {{{CampaignStruct::P}}}K_CampaignName IncomingCampaignName = GetIncomingCampaign({{{CampaignStruct::P}}}ParseCampaignName({{{CampaignStore::P}}}GetLiveQuarterlyCampaign().Name));
+		declare {{{CampaignStruct::P}}}K_CampaignName Campaign = GetPreviousCampaign({{{CampaignStruct::P}}}ParseCampaignName({{{CampaignStore::P}}}GetLiveQuarterlyCampaign().Name));
+		if (State.CampaignPager.PageMax > 0 && State.CampaignPager.PageCurrent + 1 > State.CampaignPager.PageMax && IncomingCampaignName.IsValid) {
+			Campaign = IncomingCampaignName;
+			PreviousIconImageUrl = "{{{Icons::C_Icon_128x128_Lock_Oblique}}}";
+		} else if (State.QuarterlyCampaigns.existskey(State.CampaignPager.PageCurrent + 1)) {
+			Campaign = {{{CampaignStruct::P}}}ParseCampaignName(State.QuarterlyCampaigns[State.CampaignPager.PageCurrent + 1].Name);
+		} else if (!State.CampaignPager.NeedPreload) {
+			PreviousIconImageUrl = "{{{Icons::C_Icon_128x128_Lock_Oblique}}}";
+		}
+
+		{{{Button::P}}}SetValue(This, State.Controls.Button_Previous, GetQuarterlyCampaignName(Campaign));
+		{{{Button::P}}}SetTextToSpeech(This, State.Controls.Button_Previous, GetQuarterlyCampaignTTS(Campaign, "{{{TTS_PreviousCampaign}}}"));
+		{{{Button::P}}}SetIcon(This, State.Controls.Button_Previous, PreviousIconImageUrl);
+		{{{Button::P}}}SetIconFocus(This, State.Controls.Button_Previous, PreviousIconImageUrl);
+		{{{Button::P}}}SetIconFocusColor(This, State.Controls.Button_Previous, GetCampaignFocusColor(Campaign.Season));
+		{{{Button::P}}}SetTextFocusColor(This, State.Controls.Button_Previous, GetCampaignFocusColor(Campaign.Season));
+		if (C_ImageUrls_Solo_Campaign_Pager_Previous.existskey(Campaign.Season)) {
+			{{{Button::P}}}SetImage(This, State.Controls.Button_Previous, C_ImageUrls_Solo_Campaign_Pager_Previous[Campaign.Season]);
+		} else {
+			{{{Button::P}}}SetImage(This, State.Controls.Button_Previous, C_ImageUrls_Solo_Campaign_Pager_Previous["{{{Const::C_Season_Summer}}}"]);
+		}
+
+		/* Update next campaign button */
+		Campaign = IncomingCampaignName;
+		declare Text NextIconImageUrl = "{{{Icons::C_Icon_128x128_Lock_Oblique}}}";
+		if (State.QuarterlyCampaigns.existskey(State.CampaignPager.PageCurrent - 1)) {
+			Campaign = {{{CampaignStruct::P}}}ParseCampaignName(State.QuarterlyCampaigns[State.CampaignPager.PageCurrent - 1].Name);
+			NextIconImageUrl = "{{{Icons::C_Icon_128x128_Arrow_Right_Encircled}}}";
+		}
+
+		{{{Button::P}}}SetValue(This, State.Controls.Button_Next, GetQuarterlyCampaignName(Campaign));
+		{{{Button::P}}}SetTextToSpeech(This, State.Controls.Button_Next, GetQuarterlyCampaignTTS(Campaign, "{{{TTS_NextCampaign}}}"));
+		{{{Button::P}}}SetIcon(This, State.Controls.Button_Next, NextIconImageUrl);
+		{{{Button::P}}}SetIconFocus(This, State.Controls.Button_Next, NextIconImageUrl);
+		{{{Button::P}}}SetIconFocusColor(This, State.Controls.Button_Next, GetCampaignFocusColor(Campaign.Season));
+		{{{Button::P}}}SetTextFocusColor(This, State.Controls.Button_Next, GetCampaignFocusColor(Campaign.Season));
+		if (C_ImageUrls_Solo_Campaign_Pager_Next.existskey(Campaign.Season)) {
+			{{{Button::P}}}SetImage(This, State.Controls.Button_Next, C_ImageUrls_Solo_Campaign_Pager_Next[Campaign.Season]);
+		} else {
+			{{{Button::P}}}SetImage(This, State.Controls.Button_Next, C_ImageUrls_Solo_Campaign_Pager_Next["{{{Const::C_Season_Summer}}}"]);
+		}
+
+		/* Update navigation */
+		{{{Navigation::P}}}Lock(State.Controls.Button_Next, NextIconImageUrl == "{{{Icons::C_Icon_128x128_Lock_Oblique}}}");
+		{{{Navigation::P}}}Lock(State.Controls.Button_Previous, PreviousIconImageUrl == "{{{Icons::C_Icon_128x128_Lock_Oblique}}}");
+		if ({{{Navigation::P}}}IsLocked(State.Controls.Button_Next)) {{{Navigation::P}}}ChangeControlTarget(This, State.Controls.Button_Campaign, "left", State.Controls.Button_Previous.ControlId);
+		if ({{{Navigation::P}}}IsLocked(State.Controls.Button_Previous)) {{{Navigation::P}}}ChangeControlTarget(This, State.Controls.Button_Campaign, "left", State.Controls.Button_Next.ControlId);
+	}
+
+	return State;
+}
+
+K_State BrowseCampaigns(K_State _State, Integer _PageShift) {
+	declare K_State State = _State;
+
+	State.CampaignPager.PageCurrent = ML::Clamp(State.CampaignPager.PageCurrent + _PageShift, 0, State.CampaignPager.PageMax);
+	State.CampaignPager.PreloadCurrent = State.CampaignPager.PageCurrent / {{{OfficialCampaignsToPreload}}};
+	State = DisplayCampaign(State);
+
+	return State;
+}
+
+K_State UpdateCampaignPager(K_State _State, Integer _PageCurrent, Integer _CampaignsTotal) {
+	declare K_State State = _State;
+
+	State.CampaignPager.HasCampaigns = (_CampaignsTotal > 0);
+	State.CampaignPager.PageMax = ML::Max(0, _CampaignsTotal - 1);
+	State.CampaignPager.PageCurrent = ML::Clamp(_PageCurrent, 0, State.CampaignPager.PageMax);
+	State.CampaignPager.PreloadCurrent = State.CampaignPager.PageCurrent / {{{OfficialCampaignsToPreload}}};
+	State.CampaignPager.PreloadMax = State.CampaignPager.PageMax / {{{OfficialCampaignsToPreload}}};
+
+	return State;
+}
+
+K_State UpdateQuarterlyCampaignPager(
+	K_State _State,
+	{{{CampaignStruct::P}}}K_Campaign[Integer] _QuarterlyCampaigns,
+	Integer _PageCurrent,
+	Integer _CampaignsTotal
+) {
+	declare K_State State = _State;
+
+	State.QuarterlyCampaigns = _QuarterlyCampaigns;
+	State = UpdateCampaignPager(State, _PageCurrent, _CampaignsTotal);
+	State = DisplayCampaign(State);
+
+	return State;
+}
+
+Void UpdateTOTDButtonMedia(K_State _State) {
+	declare Text[] TOTDMedia = {{{CampaignStore::P}}}GetCampaignsMedia(CampaignAPI::C_CampaignMediaType_TOTD);
+
+	_State.Controls.Label_DayTOTD.Visible = TOTDMedia.count <= 0;
+	if (TOTDMedia.count > 0) {
+		{{{Button::P}}}SetGradientOpacityFocus(This, _State.Controls.Button_TOTD, 0.35);
+		{{{Button::P}}}SetImage(This, _State.Controls.Button_TOTD, TOTDMedia[0]);
+		_State.Controls.Label_DateTOTD.TextColor = <1., 1., 1.>;
+	} else {
+		{{{Button::P}}}SetGradientOpacityFocus(This, _State.Controls.Button_TOTD, 0.);
+		{{{Button::P}}}SetImage(This, _State.Controls.Button_TOTD, "{{{C_ImageUrl_Button_TOTD}}}");
+		_State.Controls.Label_DateTOTD.TextColor = CL::Hex6ToRgb("{{{C_Color_TOTD_Month}}}");
+	}
+}
+
+Void UpdateLibraryButtonMedia(K_State _State) {
+	declare Text[] LibraryMedia = {{{CampaignStore::P}}}GetCampaignsMedia(CampaignAPI::C_CampaignMediaType_Club);
+
+	if (LibraryMedia.count > 0) {
+		{{{Button::P}}}SetGradientOpacityFocus(This, _State.Controls.Button_Library, 0.35);
+		{{{Button::P}}}SetImage(This, _State.Controls.Button_Library, LibraryMedia[0]);
+		_State.Controls.Label_LibraryInfo.TextColor = <1., 1., 1.>;
+	} else {
+		{{{Button::P}}}SetGradientOpacityFocus(This, _State.Controls.Button_Library, 0.);
+		{{{Button::P}}}SetImage(This, _State.Controls.Button_Library, "{{{C_ImageUrl_Button_Library}}}");
+		_State.Controls.Label_LibraryInfo.TextColor = Stylesheet::GetColorRGB(Stylesheet::C_Color_AccentOne);
+	}
+}
+
+K_State Select(K_State _State, CMlControl _Control) {
+	if (_Control == Null || {{{Transition::P}}}IsInTransition(This)) return _State;
+
+	declare K_State State = _State;
+
+	switch (_Control.ControlId) {
+		case "button-back": {{{Router::P}}}PushParent(This);
+		case "button-training": {
+			{{{Router::P}}}SetParentPath(This, "{{{RoutePaths::C_Path_Trainingdisplay}}}", "{{{RoutePaths::C_Path_Solo}}}");
+			{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_Trainingdisplay}}}", True);
+		}
+		case "button-library": {
+			if ({{{UserStore::P}}}IsOfflineMode()) {
+				{{{PopUpMultiChoice::P}}}Open(This, State.Controls.PopUpMultiChoice_Offline);
+			} else {
+				{{{Router::P}}}SetParentPath(This, "{{{RoutePaths::C_Path_LibraryClubCampaigns}}}", "{{{RoutePaths::C_Path_Solo}}}");
+				{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_LibraryClubCampaigns}}}");
+			}
+		}
+		case "button-totd": {
+			if ({{{UserStore::P}}}IsOfflineMode()) {
+				{{{PopUpMultiChoice::P}}}Open(This, State.Controls.PopUpMultiChoice_Offline);
+			} else {
+				{{{Router::P}}}Push(This, "{{{RoutePaths::C_Path_MonthlyCampaignDisplay}}}", True);
+			}
+		}
+		case "button-campaign": {
+			declare {{{CampaignStruct::P}}}K_Campaign Campaign = State.QuarterlyCampaigns.get(State.CampaignPager.PageCurrent, {{{CampaignStruct::P}}}K_Campaign {});
+			if (Campaign.Id != {{{CampaignStruct::P}}}C_Campaign_NullId) {
+				{{{Router::P}}}SetParentPath(This, "{{{RoutePaths::C_Path_CampaignDisplay}}}", "{{{RoutePaths::C_Path_Solo}}}");
+				{{{Router::P}}}Push(This,
+					"{{{RoutePaths::C_Path_CampaignDisplay}}}",	[
+						"{{{RoutePaths::C_Query_Campaign}}}" => ""^Campaign.tojson(),
+						"{{{Router::C_Query_DisablePrivilege}}}" => "{{{Privileges::PrivilegesToQuery([CPrivilegeMgr::EPrivilege::UseUserCreatedContentRequired])}}}"
+					],
+					True
+				);
+			}
+		}
+		case "button-previous-campaign": State = BrowseCampaigns(State, 1);
+		case "button-next-campaign": State = BrowseCampaigns(State, -1);
+	}
+
+	return State;
+}
+
+***MainInit***
+***
+declare CMlFrame Frame_Global;
+declare CMlFrame Frame_CampaignForeground;
+
+declare K_State State;
+declare Boolean IsCampaignsMediaUpdateAllowed;
+declare Integer NextDayUpdate;
+declare Integer CarAnimEndTime;
+***
+
+***MainStart***
+***
+Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+
+State = K_State {
+	QuarterlyCampaigns = [],
+	CampaignPager = K_CampaignPager {},
+	Controls = K_Controls {
+		Button_Back = (Frame_Global.GetFirstChild("button-back") as CMlFrame),
+		Button_Campaign = (Frame_Global.GetFirstChild("button-campaign") as CMlFrame),
+		Button_Library = (Frame_Global.GetFirstChild("button-library") as CMlFrame),
+		Button_Next = (Frame_Global.GetFirstChild("button-next-campaign") as CMlFrame),
+		Button_Previous = (Frame_Global.GetFirstChild("button-previous-campaign") as CMlFrame),
+		Button_TOTD = (Frame_Global.GetFirstChild("button-totd") as CMlFrame),
+		Frame_LoadingSpinner = (Frame_Global.GetFirstChild("frame-loading-spinner") as CMlFrame),
+		Frame_RankQuarterly = (Frame_Global.GetFirstChild("frame-rank") as CMlFrame),
+		Frame_TimerQuarterly = (Frame_Global.GetFirstChild("frame-timer") as CMlFrame),
+		Label_Campaign = (Frame_Global.GetFirstChild("label-campaign") as CMlLabel),
+		Label_DateTOTD = (Frame_Global.GetFirstChild("label-totd-date") as CMlLabel),
+		Label_DayTOTD = (Frame_Global.GetFirstChild("label-totd-day") as CMlLabel),
+		Label_LibraryInfo = (Frame_Global.GetFirstChild("label-library-info") as CMlLabel),
+		Label_TimerQuarterly = (Frame_Global.GetFirstChild("label-timer") as CMlLabel),
+		Label_RankZone = (Frame_Global.GetFirstChild("label-rank-zone") as CMlLabel),
+		Label_RankPosition = (Frame_Global.GetFirstChild("label-rank-position") as CMlLabel),
+		PopUpMultiChoice_Offline = (Page.GetFirstChild("popupmultichoice-offline") as CMlFrame)
+	}
+};
+
+State = FocusAvailableControl(State);
+Frame_CampaignForeground = {{{Button::P}}}GetIconFrame(State.Controls.Button_Campaign);
+***
+
+***MainLoop***
+***
+if ({{{Router::P}}}PageIsRunning(This, "{{{RoutePaths::C_Path_Solo}}}")) {
+	foreach (Event in {{{Router::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case "{{{Router::C_Event_EnteringRoute}}}": {
+				CarAnimEndTime = Now + C_Duration_MinWait/2;
+				IsCampaignsMediaUpdateAllowed = NextDayUpdate > 0;
+				if (NextDayUpdate <= 0) NextDayUpdate = Now;
+
+				// Update controller info
+				if ({{{UserStore::P}}}IsOfflineMode()) {
+					ControllerInfo::SetButtons(["A" => _("Select"), "{{{Const::C_NavInput_ProfileWidget}}}" => "{{{Const::C_Text_ProfileWidget}}}", "B" => "{{{Text_Back}}}"]);
+				} else {
+					ControllerInfo::SetButtons(["A" => _("Select"), "{{{Const::C_NavInput_ProfileWidget}}}" => "{{{Const::C_Text_ProfileWidget}}}", "{{{Const::C_NavInput_ClubWidget}}}" => "{{{Const::C_Text_ClubWidget}}}", "B" => "{{{Text_Back}}}"]);
+				}
+
+				// Reload campaigns from the API
+				State.CampaignPager.NeedPreload = True;
+				State.CampaignPager.PreloadTime = Now;
+
+				// Update Quarterly campaign
+				State = UpdateQuarterlyCampaignPager(
+					State,
+					{{{CampaignStore::P}}}GetCampaignList({{{CampaignStruct::P}}}C_CampaignType_Quarterly),
+					State.CampaignPager.PageCurrent,
+					{{{CampaignStore::P}}}GetCampaignsTotal({{{CampaignStruct::P}}}C_CampaignType_Quarterly)
+				);
+
+				// Update campaigns media
+				UpdateTOTDButtonMedia(State);
+				UpdateLibraryButtonMedia(State);
+
+				// Refresh current focus for TTS
+				State = Focus(State, Null, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"));
+			}
+		}
+	}
+
+	/* Switch display between player rank and season timer */
+	if (State.SwitchSeasonInfoTime != -1 && Now > State.SwitchSeasonInfoTime && !{{{LoadingSpinner::P}}}IsLoading(State.Controls.Frame_LoadingSpinner)) {
+		State.SwitchSeasonInfoTime = Now + C_DelayBetweenSeasonInfoSwitch;
+		AnimSeasonInfoSwitch(State, State.Controls.Frame_TimerQuarterly.Visible);
+	}
+
+	/* Update next season timer */
+	if (State.Controls.Frame_TimerQuarterly.Visible && State.CurrentSeasonRelativeEnd > 0 && !{{{LoadingSpinner::P}}}IsLoading(State.Controls.Frame_LoadingSpinner)) {
+		declare Integer TimerLeft = (State.CurrentSeasonRelativeEnd - (Now - State.CurrentSeasonRelativeNow) / 1000);
+		declare Integer Days = TimerLeft/(3600*24);
+		if (Days >= 1) { // More than a day
+			if (Days > 1) {
+				//L16N Message displayed to indicate when the new season starts. %1 will be replaced by a number, e.g "23 days"
+				State.Controls.Label_TimerQuarterly.Value = TL::Compose(_("%1 days"), ""^Days);
+			} else {
+				declare Integer Hours = TimerLeft/3600 - Days*24 + 1; // +1 to avoid "and 0 hours"
+				if (Hours > 1) {
+					//L16N Message displayed to indicate when the new season starts. %1 and %2 will be replaced by a number, e.g "1 day and 12 hours"
+					State.Controls.Label_TimerQuarterly.Value = TL::Compose(_("%1 day and %2 hours"), ""^Days, ""^Hours);
+				} else {
+					//L16N Message displayed to indicate when the new season starts. %1 will be replaced by a number, e.g "1 day and 1 hour"
+					State.Controls.Label_TimerQuarterly.Value = TL::Compose(_("%1 day and %2 hour"), ""^Days, ""^Hours);
+				}
+			}
+		} else {
+			//L16N Message displayed to indicate when the new season starts. %1 will be replaced by a timer, e.g "12:10:53"
+			State.Controls.Label_TimerQuarterly.Value = TL::Compose(_("%1"), TL::TimeToText(TimerLeft*1000 + 1, False)); // Add 1 second on the timer to avoid "-0:00" on screen
+		}
+		if (TimerLeft <= 0) {
+			State.CampaignPager.PreloadTime = Now;
+			State.CampaignPager.NeedPreload = True;
+			State.CurrentSeasonRelativeEnd = 0;
+			State.CurrentSeasonRelativeNow = 0;
+		}
+		State.Controls.Frame_TimerQuarterly.Show();
+	} else if (State.Controls.Label_TimerQuarterly.Value != "") {
+		State.Controls.Label_TimerQuarterly.Value = "";
+		State.Controls.Frame_TimerQuarterly.Hide();
+	}
+
+	/* Store events */
+	foreach (Event in PendingEvents) {
+		switch (Event.Type) {
+			case CMlScriptEvent::Type::PluginCustomEvent: {
+				switch (Event.CustomEventType) {
+					case {{{CampaignStore::P}}}C_Event_CampaignListUpdated, {{{CampaignStore::P}}}C_Event_CampaignListUpdateError: {
+						if (Event.CustomEventData.count > 0) {
+							declare Integer CampaignType = TL::ToInteger(Event.CustomEventData[0]);
+							if (CampaignType == {{{CampaignStruct::P}}}C_CampaignType_Quarterly) {
+								State = UpdateQuarterlyCampaignPager(
+									State,
+									{{{CampaignStore::P}}}GetCampaignList({{{CampaignStruct::P}}}C_CampaignType_Quarterly),
+									State.CampaignPager.PageCurrent,
+									{{{CampaignStore::P}}}GetCampaignsTotal({{{CampaignStruct::P}}}C_CampaignType_Quarterly)
+								);
+							}
+						}
+					}
+					case {{{CampaignStore::P}}}C_Event_CampaignPlayerGlobalRankingsUpdated: {
+						if (Event.CustomEventData.count > 0) {
+							declare Integer EventCampaignId = TL::ToInteger(Event.CustomEventData[0]);
+							if (EventCampaignId == State.CurrentCampaignId) {
+								State = UpdatePlayerLiveQuaterlyCampaignRank(State);
+							}
+						}
+					}
+					case {{{CampaignStore::P}}}C_Event_CampaignsMediaUpdated: {
+						UpdateTOTDButtonMedia(State);
+						UpdateLibraryButtonMedia(State);
+					}
+				}
+			}
+		}
+	}
+
+	/* Navigation events */
+	foreach (Event in {{{Navigation::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case {{{Navigation::P}}}C_EventType_NavigateInput: {
+				if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName}}}")) {
+					switch (Event.Input) {
+						case CMlScriptEvent::EMenuNavAction::Cancel: {{{Router::P}}}PushParent(This);
+						case CMlScriptEvent::EMenuNavAction::Select: State = Select(State, Event.To);
+						default: {
+							declare CMlControl To = Event.To;
+							if (Event.To != Null && Event.To.ControlId != "button-training") {
+								declare CMlControl[CMlScriptEvent::EMenuNavAction] NavigationMemory for Event.To;
+								NavigationMemory[{{{Navigation::P}}}InvertInput(Event.Input)] = Event.From;
+							}
+							if (Event.From != Null) {
+								declare CMlControl[CMlScriptEvent::EMenuNavAction] NavigationMemory for Event.From;
+								if (NavigationMemory.existskey(Event.Input) && NavigationMemory[Event.Input] != Null && !{{{Navigation::P}}}IsLocked(NavigationMemory[Event.Input])) {
+									To = NavigationMemory[Event.Input];
+								}
+							}
+							State = Focus(State, Event.From, To);
+						}
+					}
+				}
+			}
+			case {{{Navigation::P}}}C_EventType_NavigateMouse: {
+				if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName}}}")) {
+					if (Event.Mouse == CMlScriptEvent::Type::MouseClick) {
+						State = Select(State, Event.To);
+					} else if (Event.Mouse == CMlScriptEvent::Type::MouseOver) {
+						State = Focus(State, Event.From, Event.To);
+					}
+				}
+			}
+		}
+	}
+
+	/* Campaign pager loading */
+	if (State.CampaignPager.PreloadRequest != State.CampaignPager.PreloadCurrent) {
+		State.CampaignPager.PreloadRequest = State.CampaignPager.PreloadCurrent;
+
+		if (State.CampaignPager.PreloadTime < 0 || Now >= State.CampaignPager.PreloadTime + C_DelayBetweenRequest) {
+			State.CampaignPager.PreloadTime = Now;
+			State.CampaignPager.NeedPreload = True;
+		} else {
+			State.CampaignPager.PreloadTime = Now + C_DelayBetweenRequest;
+			State.CampaignPager.NeedPreload = True;
+		}
+	}
+	if (State.CampaignPager.NeedPreload && Now >= State.CampaignPager.PreloadTime) {
+		State.CampaignPager.NeedPreload = False;
+		declare Integer Offset = ML::Max(0, ((State.CampaignPager.PreloadRequest + 1) - 2)) * {{{OfficialCampaignsToPreload}}};
+		declare Integer Length = {{{OfficialCampaignsToPreload}}} * 3;
+		{{{CampaignStore::P}}}Action_LoadCampaigns(This, {{{CampaignStruct::P}}}C_CampaignType_Quarterly, Offset, Length);
+	}
+
+	/* TOTD day update */
+	if (Now > NextDayUpdate) {
+		State.Controls.Label_DateTOTD.SetText({{{CampaignStore::P}}}GetMonthYearTOTD());
+		State.Controls.Label_DayTOTD.SetText(""^{{{CampaignStore::P}}}GetDayTOTD());
+		NextDayUpdate = Now + {{{CampaignStore::P}}}GetRelativeEndTOTD();
+		{{{Button::P}}}SetTextToSpeech(This, State.Controls.Button_TOTD, TL::Compose("%1 - %2 %3", "{{{Text_TOTD}}}", State.Controls.Label_DayTOTD.Value, TL::GetTranslatedText(State.Controls.Label_DateTOTD.Value)));
+		if (IsCampaignsMediaUpdateAllowed) {{{CampaignStore::P}}}Action_LoadCampaignsMedia(This);
+	}
+
+	/* Animate campaign car */
+	if (Now >= CarAnimEndTime && {{{Navigation::P}}}IsFocused(This, State.Controls.Button_Campaign, "{{{C_NavGroupName}}}")) {
+		AnimMgr.Flush(Frame_CampaignForeground);
+		AnimMgr.Add(Frame_CampaignForeground, "<anim scale=\"0.97\" />", C_Duration_SlowDown, CAnimManager::EAnimManagerEasing::QuadOut);
+		AnimMgr.AddChain(Frame_CampaignForeground, "<anim scale=\"1.\" />", C_Duration_Acceleration, CAnimManager::EAnimManagerEasing::BackInOut);
+		CarAnimEndTime = Now + C_Duration_SlowDown + C_Duration_Acceleration + ML::Rand(C_Duration_MinWait, C_Duration_MaxWait);
+	}
+
+	/* PopUpMultiChoice events */
+	foreach (Event in {{{PopUpMultiChoice::P}}}GetPendingEvents(This)) {
+		if (Event.PopUpMultiChoice != Null && Event.PopUpMultiChoice.Id == State.Controls.PopUpMultiChoice_Offline.Id) {
+			switch (Event.Type) {
+				case {{{PopUpMultiChoice::P}}}C_EventType_Display: {
+					{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", !Event.PopUpMultiChoice.Visible);
+				}
+				case {{{PopUpMultiChoice::P}}}C_EventType_Select: {
+					switch (Event.SelectedIndex) {
+						case C_Choice_Reconnect: {
+							SendCustomEvent("{{{Const::C_Event_ConnectionError_RequestRestart}}}", []);
+						}
+					}
+				}
+			}
+		}
+	}
+} else {
+	foreach (Event in {{{Router::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case "{{{Router::C_Event_LeavingRoute}}}": {
+				// Updates the focus when the player is leaving the page to avoid a visible focus update when entering the page
+				if ({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}") == State.Controls.Button_Back) {
+					State = FocusAvailableControl(State);
+				}
+				if ({{{PopUpMultiChoice::P}}}IsDisplayed(State.Controls.PopUpMultiChoice_Offline)) {
+					{{{PopUpMultiChoice::P}}}Close(This, State.Controls.PopUpMultiChoice_Offline);
+				}
+			}
+		}
+	}
+}
+***
+""",
+[
+	Button::ComponentV2(),
+	ExpendableButton::ComponentV2(),
+	CampaignStore::ComponentV2(),
+	CampaignStruct::Component(),
+	LoadingSpinner::ComponentV2(),
+	Navigation::ComponentV2(),
+	MenuSounds::ComponentV2(),
+	Router::ComponentV2(),
+	Router::ComponentV2(),
+	PopUpMultiChoice::ComponentV2(),
+	UserStore::ComponentV2(),
+	Transition::ComponentV2()
+],
+[]
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update from the ManiaApp
+Void Yield() {
+
+}

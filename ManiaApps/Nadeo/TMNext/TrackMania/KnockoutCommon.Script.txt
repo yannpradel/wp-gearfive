@@ -1,0 +1,35 @@
+/**
+*  Knockout common UI
+*/
+#Extends "ManiaApps/Nadeo/TMNext/TrackMania/TMNextBase.Script.txt"
+
+#Const C_KnockoutCommon_Version    "2021-06-23"
+#Const C_KnockoutCommon_ScriptName "ManiaApps/Nadeo/TMNext/TrackMania/KnockoutCommon.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "ManiaApps/Nadeo/TMNext/TrackMania/Knockout/UIModules/KnockoutInfo_Client.Script.txt" as UIModules_KnockoutInfo
+#Include "ManiaApps/Nadeo/TMNext/TrackMania/TimeAttack/UIModules/BestRaceViewer_Client.Script.txt" as UIModules_BestRaceViewer
+#Include "ManiaApps/Nadeo/TMNext/TrackMania/Knockout/UIModules/KnockedOutPlayers_Client.Script.txt" as UIModules_KnockedOutPlayers
+#Include "ManiaApps/Nadeo/TMNext/TrackMania/Knockout/UIModules/KnockoutReward_Client.Script.txt" as UIModules_KnockoutReward
+#Include "ManiaApps/Nadeo/TMNext/TrackMania/UIModules/EliminationWarning_Client.Script.txt" as UIModules_EliminationWarning
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Extends
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+***StartApp***
+***
+UIModules::CreateModule(UIModules_KnockoutInfo::GetId(), UIModules_KnockoutInfo::GetML(), UIModules_KnockoutInfo::GetLayerType());
+UIModules::CreateModule(UIModules_BestRaceViewer::GetId(), UIModules_BestRaceViewer::GetML(), UIModules_BestRaceViewer::GetLayerType());
+UIModules::CreateModule(UIModules_KnockedOutPlayers::C_Id, UIModules_KnockedOutPlayers::GetML(), UIModules_KnockedOutPlayers::C_Type);
+UIModules::CreateModule(UIModules_KnockoutReward::C_Id, UIModules_KnockoutReward::GetML(), UIModules_KnockoutReward::C_Type);
+UIModules::CreateModule(UIModules_EliminationWarning::GetId(), UIModules_EliminationWarning::GetML(), UIModules_EliminationWarning::GetLayerType());
+***
+
+/*
+***AppLoop***
+***
+
+***
+*/

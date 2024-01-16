@@ -1,0 +1,20 @@
+/**
+ *	UI modules common code
+ */		
+#Const Version		"2020-10-08"
+#Const ScriptName	"Script/Libs/Nadeo/ModeLibs/Common/UIModules_Common.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct ComponentModeLibsUIModules_K_ModuleProperties {
+	Vec2 Position;
+	Real Scale;
+	Boolean Visible;
+}
+
+#Struct ComponentModeLibsUIModules_K_ModuleConfig {
+	Text Id;
+	Boolean IsCustomizable;
+	ComponentModeLibsUIModules_K_ModuleProperties Properties;
+}

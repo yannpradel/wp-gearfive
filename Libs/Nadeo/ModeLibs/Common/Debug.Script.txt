@@ -1,0 +1,168 @@
+/** 
+ *	Debug utilities for game modes
+ */
+#Const Version		"2021-01-22"
+#Const ScriptName	"Libs/Nadeo/ModeLibs/Common/Debug.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "MathLib" as ML
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_State {
+	Integer FakeUsersCounter;
+	Real[] TargetSpeed;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Globales
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+declare K_State G_State;
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the target speed value
+Real Private_GetTargetSpeed(Real[] _TargetSpeed) {
+	declare Real TargetSpeed = 0.;
+	if (G_State.TargetSpeed.count == 1) {
+		TargetSpeed = G_State.TargetSpeed[0];
+	} else if (G_State.TargetSpeed.count == 2) {
+		TargetSpeed = ML::Rand(G_State.TargetSpeed[0], G_State.TargetSpeed[1]);
+	} else if (G_State.TargetSpeed.count >= 3) {
+		TargetSpeed = G_State.TargetSpeed[ML::Rand(0, G_State.TargetSpeed.count - 1)];
+	}
+	return TargetSpeed;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/**	Create fake users dedicated to the debug library
+ *
+ *	@param	_Amount										The number of fake users to create
+ *	@param	_Name											The name of the fake users. Will be suffixed by a number
+ */
+Void AddFakeUsers(Integer _Amount, Integer _Clan, Text _Name) {
+	for (I, 1, _Amount) {
+		declare CUser FakeUser = Users_CreateFake(_Name^" #"^(G_State.FakeUsersCounter + 1), _Clan);
+		if (FakeUser != Null) {
+			G_State.FakeUsersCounter += 1;
+			
+			declare Boolean ModeLibs_Debug_IsDebugFakeUser for FakeUser = False;
+			declare Boolean ModeLibs_Debug_NeedControlUpdate for FakeUser = False;
+			ModeLibs_Debug_IsDebugFakeUser = True;
+			ModeLibs_Debug_NeedControlUpdate = True;
+		}
+	}
+}
+Void AddFakeUsers(Integer _Amount, Integer _Clan) {
+	AddFakeUsers(_Amount, _Clan, "Debug");
+}
+Void AddFakeUsers(Integer _Amount) {
+	AddFakeUsers(_Amount, 0, "Debug");
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the fake users managed by the debug library
+CUser[] GetFakeUsers() {
+	declare CUser[] DebugFakeUsers;
+	foreach (User in Users) {
+		if (User.IsFakeUser) {
+			declare Boolean ModeLibs_Debug_IsDebugFakeUser for User = False;
+			if (ModeLibs_Debug_IsDebugFakeUser) {
+				DebugFakeUsers.add(User);
+			}
+		}
+	}
+	return DebugFakeUsers;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Make the fake users auto accelerate
+ *	until they read their target speed
+ *
+ *	@param	_Speed									The target speed
+ *																	Empty array reset the value
+ *																	One entry set the target speed to this value
+ *																	Two entries set the target speed at a random value between the two values
+ *																	Three or more entries select one of the value at random
+ */
+Void SetTargetSpeed(Real[] _Speed) {
+	G_State.TargetSpeed = _Speed;
+	declare CUser[] DebugFakeUsers = GetFakeUsers();
+	foreach (User in DebugFakeUsers) {
+		declare Boolean ModeLibs_Debug_NeedControlUpdate for User = False;
+		ModeLibs_Debug_NeedControlUpdate = True;
+	}
+}
+Void SetTargetSpeed(Real _Speed) {
+	SetTargetSpeed([_Speed]);
+}
+Void SetTargetSpeed(Real _MinSpeed, Real _MaxSpeed) {
+	SetTargetSpeed([_MinSpeed, _MaxSpeed]);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if a fake user should be controlled by the mode
+Boolean IsControlledByMode(K_State _State) {
+	return (
+		_State.TargetSpeed.count > 0
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update the library
+Void Yield() {
+	foreach (Player in AllPlayers) {
+		if (Player.User != Null && Player.User.IsFakeUser) {
+			declare Boolean ModeLibs_Debug_NeedControlUpdate for Player.User = False;
+			if (ModeLibs_Debug_NeedControlUpdate && Player.SpawnStatus == CSmPlayer::ESpawnStatus::Spawned) {
+				declare Boolean IsControlledByMode = IsControlledByMode(G_State);
+				if (IsControlledByMode) {
+					Player.TrustClientSimu = False;
+					declare Real TargetSpeed = Private_GetTargetSpeed(G_State.TargetSpeed);
+					SetPlayerVehicle_ControlledByMode(Player, True);
+					SetPlayerVehicle_MaxSpeedValue(Player, TargetSpeed);
+					SetPlayerVehicle_TargetSpeedValue(Player, TargetSpeed);
+				} else {
+					Player.TrustClientSimu = True;
+					SetPlayerVehicle_ControlledByMode(Player, False);
+				}
+			}
+		}
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Unload the library
+Void Unload() {
+	G_State = K_State {
+		FakeUsersCounter = 0,
+		TargetSpeed = []
+	};
+	
+	// Users_DestroyFake() return an error sometimes
+	// when trying to destroy a fake user after a script
+	// restart
+	/*
+	declare CUser[] UsersToDestroy = GetFakeUsers();
+	declare Ident[] UserIdsToDestroy;
+	foreach (User in UsersToDestroy) {
+		UserIdsToDestroy.add(User.Id);
+	}
+	foreach (UserId in UserIdsToDestroy) {
+		Users_DestroyFake(Users[UserId]);
+	}
+	*/
+	// No other choices than to destroy all fake users :/
+	Users_DestroyAllFakes();
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Load the library
+Void Load() {
+	Unload();
+}

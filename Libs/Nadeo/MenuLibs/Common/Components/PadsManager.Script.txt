@@ -1,0 +1,144 @@
+/**
+ * Manage the multiple pads and which user they're linked to 
+ * Currently I just use an UserIndex (0 -> n) to define the user, with 0 being the MainUser
+ */
+#Const Version "2022-09-28"
+#Const ScriptName "Libs/Nadeo/MenuLibs/Common/Components/PadsManager.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constant
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_MainUserIndex 0
+#Const C_UserIndexError -1 
+
+#Struct ComponentPadsManager_K_UserAccountInfo {
+	Integer UserIndex;
+	Text UserName;
+	Text ImageUrl_UserAvatar;
+	Vec3 UserColor;
+	Integer UserPlayerNumber;
+	Boolean IsLeader;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Globales
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+Integer Private_GetAvailableUserIndex() {
+	declare Integer[Ident] RegisteredPads for System; //Pad's Id => UserIndex 
+	RegisteredPads = RegisteredPads.sort();
+	declare Integer PreviousUserIndex = C_MainUserIndex;
+	foreach (PadId => UserIndex in RegisteredPads) {
+		if (UserIndex > PreviousUserIndex + 1) { return PreviousUserIndex + 1; }
+		PreviousUserIndex = UserIndex;
+	}
+	return PreviousUserIndex + 1;
+}
+
+Integer[Ident] GetRegisteredPads () {
+	declare Integer[Ident] RegisteredPads for System; 
+	return RegisteredPads;
+}
+
+ComponentPadsManager_K_UserAccountInfo[Integer] GetUserAccountsInfos () {
+	declare ComponentPadsManager_K_UserAccountInfo[Integer] UserAccountsInfo for System;
+	return UserAccountsInfo;
+}
+
+ComponentPadsManager_K_UserAccountInfo CreateUserAccountInfo (Integer _UserIndex, Text _UserName, Text _ImageUrl_UserAvatar, Vec3 _UserColor, Integer _UserPlayerNumber, Boolean _IsLeader) {
+	declare ComponentPadsManager_K_UserAccountInfo NewUserAccountInfo = ComponentPadsManager_K_UserAccountInfo {
+		UserIndex = _UserIndex,
+		UserName = _UserName,
+		ImageUrl_UserAvatar = _ImageUrl_UserAvatar,
+		UserColor = _UserColor,
+		UserPlayerNumber = _UserPlayerNumber,
+		IsLeader = _IsLeader
+	};
+	return NewUserAccountInfo;
+}
+
+ComponentPadsManager_K_UserAccountInfo CreateUserAccountOnlyWithIndex(Integer _UserIndex) {
+	return CreateUserAccountInfo(_UserIndex, "", "", <0.,0.,0.>, -1, False);
+}
+
+ComponentPadsManager_K_UserAccountInfo GetUserAccountFromIndex (Integer _UserIndex) {
+	declare ComponentPadsManager_K_UserAccountInfo[Integer] UserAccountsInfo for System;
+	if(!UserAccountsInfo.existskey(_UserIndex)) return ComponentPadsManager_K_UserAccountInfo {};
+	return UserAccountsInfo[_UserIndex];
+}
+
+Void SetUserAccountInfoFromIndex (Integer _UserIndex, Text _UserName, Text _ImageUrl_UserAvatar, Vec3 _UserColor, Integer _UserPlayerNumber, Boolean _IsLeader) {
+	declare ComponentPadsManager_K_UserAccountInfo[Integer] UserAccountsInfo for System;
+	if(!UserAccountsInfo.existskey(_UserIndex)) {
+		UserAccountsInfo[_UserIndex].UserIndex = _UserIndex;
+		UserAccountsInfo[_UserIndex].UserName = _UserName;
+		UserAccountsInfo[_UserIndex].ImageUrl_UserAvatar = _ImageUrl_UserAvatar;
+		UserAccountsInfo[_UserIndex].UserColor = _UserColor;
+		UserAccountsInfo[_UserIndex].UserPlayerNumber = _UserPlayerNumber;
+		UserAccountsInfo[_UserIndex].IsLeader = _IsLeader;
+	} else {
+		UserAccountsInfo[_UserIndex] =  CreateUserAccountInfo(_UserIndex, _UserName, _ImageUrl_UserAvatar, _UserColor, _UserPlayerNumber, _IsLeader);
+	}
+}
+
+Void DestroyUserAccountInfoFromIndex (Integer _UserIndex) {
+	declare ComponentPadsManager_K_UserAccountInfo[Integer] UserAccountsInfo for System;
+	if(UserAccountsInfo.existskey(_UserIndex)) UserAccountsInfo.removekey(_UserIndex);
+}
+
+Integer GetSlotFromUserAccountIndex (Integer _UserIndex) {
+	declare ComponentPadsManager_K_UserAccountInfo[Integer] UserAccountsInfo for System;
+	if(!UserAccountsInfo.existskey(_UserIndex)) return -1;
+	return UserAccountsInfo[_UserIndex].UserPlayerNumber;
+}
+
+Void RefreshRegisteredPads() {
+	declare Integer[Ident] RegisteredPads for System; //Pad's Id => UserIndex 
+	declare ComponentPadsManager_K_UserAccountInfo[Integer] UserAccountsInfo for System;
+
+	//remove disconnected pads
+	foreach (PadId => UserIndex in RegisteredPads) {
+		if (!Input.Pads.existskey(PadId)) { 
+			RegisteredPads.removekey(PadId);
+			if (UserAccountsInfo.existskey(UserIndex)) UserAccountsInfo.removekey(UserIndex);
+		}
+	}
+
+	//add new pads
+	foreach (Pad in Input.Pads) {
+		if (Pad.Type != CInputPad::EPadType::Keyboard && Pad.Type != CInputPad::EPadType::Mouse && !RegisteredPads.existskey(Pad.Id)) {
+			RegisteredPads[Pad.Id] = Private_GetAvailableUserIndex();
+			UserAccountsInfo[RegisteredPads[Pad.Id]] = CreateUserAccountOnlyWithIndex(RegisteredPads[Pad.Id]);
+		}
+	}
+}
+
+Integer GetUserIndex(Ident _PadId) {
+	if (Input.Pads.existskey(_PadId) && (Input.Pads[_PadId].Type == CInputPad::EPadType::Keyboard || Input.Pads[_PadId].Type == CInputPad::EPadType::Mouse)) {
+		return C_MainUserIndex;
+	}
+
+	declare Integer[Ident] RegisteredPads for System; //Pad's Id => UserIndex 
+	if(RegisteredPads.existskey(_PadId)) { return RegisteredPads[_PadId];	}
+
+	return C_UserIndexError;
+}
+
+CInputPad GetPad(Integer _UserIndex) {
+	declare Integer[Ident] RegisteredPads for System; //Pad's Id => UserIndex 
+	if (RegisteredPads.exists(_UserIndex)) {
+		declare Ident PadId = RegisteredPads.keyof(_UserIndex);
+		if (Input.Pads.existskey(PadId)) { return Input.Pads[PadId]; }
+	} else if (_UserIndex == 0) {
+		if (Input.Pads.existskey(1) && Input.Pads[1].Type == CInputPad::EPadType::Keyboard) return Input.Pads[1];
+		if (Input.Pads.existskey(0) && Input.Pads[0].Type == CInputPad::EPadType::Keyboard) return Input.Pads[0];
+	}
+	return Null;
+}

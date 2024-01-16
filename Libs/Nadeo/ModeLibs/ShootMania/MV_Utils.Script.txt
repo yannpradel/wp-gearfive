@@ -1,0 +1,33 @@
+/** 
+ *	Utils functions for ManiaView
+ */
+#Const Version		"2020-02-03"
+#Const ScriptName	"Libs/Nadeo/ModeLibs/ShootMania/MV_Utils.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+CSmPlayer GetOwner(CSmMlScriptIngame _Context) {
+	if (GUIPlayer != Null) return _Context.GUIPlayer;
+	return _Context.InputPlayer;
+}
+
+// @DEPRECATED Use the function in `Libs/Nadeo/MenuLibs/Common/Components/Tools.Script.txt` instead
+// Use to get only the suffix without the rank
+Text GetRankSuffix(Integer _Rank) {
+	if (_Rank <= 0) return "";
+	declare Text Rank = TL::ToText(_Rank);
+	declare Text Suffix = TL::FormatRank(_Rank, False);
+
+	if (TL::Find(Rank, Suffix, False, False)) {
+		Suffix = TL::Replace(Suffix, Rank, "");
+		return Suffix;
+	}
+
+	return "";
+}

@@ -1,0 +1,20 @@
+/**
+ *  Laps UI
+ *  This file must be in Scripts because it is the base path when using #Extends
+ */
+#Extends "ManiaApps/Nadeo/TMNext/TrackMania/TMNextBase.Script.txt"
+
+#Const C_LapsCommon_Version    "2020-08-26"
+#Const C_LapsCommon_ScriptName "ManiaApps/Nadeo/TMNext/TrackMania/LapsCommon.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Extends
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+***StartApp***
+***
+declare LapsCommon_Placeholder = 0;
+***

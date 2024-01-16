@@ -1,0 +1,29 @@
+/**
+ *  Time Attack UI
+ */
+#Extends "ManiaApps/Nadeo/TMNext/TrackMania/TMNextBase.Script.txt"
+
+#Const Version    "2020-11-05"
+#Const ScriptName "ManiaApps/Nadeo/TMNext/TrackMania/TimeAttackCommon.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "ManiaApps/Nadeo/TMNext/TrackMania/TimeAttack/UIModules/BestRaceViewer_Client.Script.txt" as UIModules_BestRaceViewer
+#Include "ManiaApps/Nadeo/TMNext/TrackMania/TimeAttack/UIModules/EndMatchTrophy_Client.Script.txt" as UIModules_EndMatchTrophy
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Extends
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+***StartApp***
+***
+UIModules::CreateModule(UIModules_BestRaceViewer::GetId(), UIModules_BestRaceViewer::GetML(), UIModules_BestRaceViewer::GetLayerType(), SplitScreenEnable, UIModules::C_SplitScreen_Everyone);
+UIModules::CreateModule(UIModules_EndMatchTrophy::C_Id, UIModules_EndMatchTrophy::GetML(), UIModules_EndMatchTrophy::C_Type);
+***
+
+/*
+***AppLoop***
+***
+
+***
+*/

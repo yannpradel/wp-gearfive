@@ -1,0 +1,227 @@
+/**
+ *	Check on which platform the game is running
+ */
+#Const Version		"2023-03-29"
+#Const ScriptName	"Libs/Nadeo/CommonLibs/Common/Platform.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Family_Unknown 0
+#Const C_Family_Console 1
+#Const C_Family_Streaming 2
+#Const C_Family_PC 3
+#Const C_FamilyNames [
+	0 => "Unknown",
+	1 => "Console",
+	2 => "Streaming",
+	3 => "PC"
+]
+// Duplicate this constant in the component after each change
+// We cannot dump the constant because it converts 
+// `CSystemPlatform::ESystemPlatform` to `::ESystemPlatform`
+#Const C_PlatformToFamily [
+	CSystemPlatform::ESystemPlatform::PS4 => 1,
+	CSystemPlatform::ESystemPlatform::PS5 => 1,
+	CSystemPlatform::ESystemPlatform::XBoxOne => 1,
+	CSystemPlatform::ESystemPlatform::XBoxSeries => 1,
+	CSystemPlatform::ESystemPlatform::Stadia => 2,
+	CSystemPlatform::ESystemPlatform::Luna => 2,
+	CSystemPlatform::ESystemPlatform::None => 3,
+	CSystemPlatform::ESystemPlatform::Steam => 3,
+	CSystemPlatform::ESystemPlatform::UPlay => 3
+]
+
+#Const C_FirstParty_Unknown 0
+#Const C_FirstParty_Sony 1
+#Const C_FirstParty_Microsoft 2
+#Const C_FirstParty_Google 3
+#Const C_FirstParty_Amazon 4
+// Duplicate this constant in the component after each change
+// We cannot dump the constant because it converts 
+// `CSystemPlatform::ESystemPlatform` to `::ESystemPlatform`
+#Const C_PlatformToFirstParty [
+	CSystemPlatform::ESystemPlatform::PS4 => 1,
+	CSystemPlatform::ESystemPlatform::PS5 => 1,
+	CSystemPlatform::ESystemPlatform::XBoxOne => 2,
+	CSystemPlatform::ESystemPlatform::XBoxSeries => 2,
+	CSystemPlatform::ESystemPlatform::Stadia => 3,
+	CSystemPlatform::ESystemPlatform::Luna => 4,
+	CSystemPlatform::ESystemPlatform::None => 0,
+	CSystemPlatform::ESystemPlatform::Steam => 0,
+	CSystemPlatform::ESystemPlatform::UPlay => 0
+]
+#Const C_FirstPartiesWithForcedButtonIcon [1, 2]
+
+#Const C_Logo_SonyWhite "$<$FFF$>"
+#Const C_Logo_SonyBlack "$<$000$>"
+#Const C_Logo_Amazon ""
+#Const C_Logo_Google ""
+#Const C_Logo_Microsoft ""
+#Const C_Logo_Ubisoft ""
+
+#Const C_NetworkName_Ubisoft "$<$zUbisoft Connect$>"
+#Const C_NetworkName_Sony "$<$zPlayStation™Network$>"
+#Const C_NetworkName_Microsoft "$<$zXbox network$>"
+#Const C_NetworkName_Google "$<$zStadia network$>"
+#Const C_NetworkName_Amazon "$<$zLuna network$>"
+
+#Const C_SmallNetworkName_Ubisoft "$<$zUbisoft Connect$>"
+#Const C_SmallNetworkName_Sony "$<$zPSN$>"
+#Const C_SmallNetworkName_Microsoft "$<$zXbox$>"
+#Const C_SmallNetworkName_Google "$<$zStadia$>"
+#Const C_SmallNetworkName_Amazon "$<$zLuna$>"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the current platform
+CSystemPlatform::ESystemPlatform GetPlatform(CSystemPlatform _System) {
+	if (_System == Null) return CSystemPlatform::ESystemPlatform::None;
+	
+	declare CSystemPlatform::ESystemPlatform LibCommonLibsPlatform_OverridePlatform for _System = CSystemPlatform::ESystemPlatform::None;
+	if (LibCommonLibsPlatform_OverridePlatform != CSystemPlatform::ESystemPlatform::None) {
+		return LibCommonLibsPlatform_OverridePlatform;
+	}
+
+	return _System.Platform;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Override the current plaform
+Void OverridePlatform(CSystemPlatform _System, CSystemPlatform::ESystemPlatform _Platform) {
+	declare CSystemPlatform::ESystemPlatform LibCommonLibsPlatform_OverridePlatform for _System = CSystemPlatform::ESystemPlatform::None;
+	LibCommonLibsPlatform_OverridePlatform = _Platform;
+}
+CSystemPlatform::ESystemPlatform GetPlatformOverride(CSystemPlatform _System) {
+	declare CSystemPlatform::ESystemPlatform LibCommonLibsPlatform_OverridePlatform for _System = CSystemPlatform::ESystemPlatform::None;
+	return LibCommonLibsPlatform_OverridePlatform;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the family of platform the game is running on
+Integer GetFamily(CSystemPlatform::ESystemPlatform _Platform) {
+	return C_PlatformToFamily.get(_Platform, C_Family_Unknown);
+}
+Integer GetFamily(CSystemPlatform _System) {
+	return GetFamily(GetPlatform(_System));
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the name of the platform family
+Text GetFamilyName(Integer _Family) {
+	return C_FamilyNames.get(_Family, C_FamilyNames[C_Family_Unknown]);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if the game is running on a specific platform family
+Boolean IsPC(CSystemPlatform::ESystemPlatform _Platform) {
+	return GetFamily(_Platform) == C_Family_PC;
+}
+Boolean IsPC(CSystemPlatform _System) {
+	return IsPC(GetPlatform(_System));
+}
+Boolean IsConsole(CSystemPlatform::ESystemPlatform _Platform) {
+	return GetFamily(_Platform) == C_Family_Console;
+}
+Boolean IsConsole(CSystemPlatform _System) {
+	return IsConsole(GetPlatform(_System));
+}
+Boolean IsStreaming(CSystemPlatform::ESystemPlatform _Platform) {
+	return GetFamily(_Platform) == C_Family_Streaming;
+}
+Boolean IsStreaming(CSystemPlatform _System) {
+	return IsStreaming(GetPlatform(_System));
+}
+Boolean IsFromFirstParty(CSystemPlatform::ESystemPlatform _Platform) {
+	declare Integer Family = GetFamily(_Platform);
+	return (
+		Family == C_Family_Console ||
+		Family == C_Family_Streaming
+	);
+}
+Boolean IsFromFirstParty(CSystemPlatform _System) {
+	return IsFromFirstParty(GetPlatform(_System));
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the First Party associated to the platform the game is running on
+Integer GetFirstParty(CSystemPlatform::ESystemPlatform _Platform) {
+	return C_PlatformToFirstParty.get(_Platform, C_FirstParty_Unknown);
+}
+Integer GetFirstParty(CSystemPlatform _System) {
+	return GetFirstParty(GetPlatform(_System));
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if the game is running on a specific First Party platform
+Boolean IsSony(CSystemPlatform::ESystemPlatform _Platform) {
+	return GetFirstParty(_Platform) == C_FirstParty_Sony;
+}
+Boolean IsSony(CSystemPlatform _System) {
+	return IsSony(GetPlatform(_System));
+}
+Boolean IsMicrosoft(CSystemPlatform::ESystemPlatform _Platform) {
+	return GetFirstParty(_Platform) == C_FirstParty_Microsoft;
+}
+Boolean IsMicrosoft(CSystemPlatform _System) {
+	return IsMicrosoft(GetPlatform(_System));
+}
+Boolean IsGoogle(CSystemPlatform::ESystemPlatform _Platform) {
+	return GetFirstParty(_Platform) == C_FirstParty_Google;
+}
+Boolean IsGoogle(CSystemPlatform _System) {
+	return IsGoogle(GetPlatform(_System));
+}
+Boolean IsAmazon(CSystemPlatform::ESystemPlatform _Platform) {
+	return GetFirstParty(_Platform) == C_FirstParty_Amazon;
+}
+Boolean IsAmazon(CSystemPlatform _System) {
+	return IsAmazon(GetPlatform(_System));
+}
+Boolean IsUnknownFirstParty(CSystemPlatform::ESystemPlatform _Platform) {
+	return GetFirstParty(_Platform) == C_FirstParty_Unknown;
+}
+Boolean IsUnknownFirstParty(CSystemPlatform _System) {
+	return IsUnknownFirstParty(GetPlatform(_System));
+}
+
+Text GetNetworkName(CSystemPlatform::ESystemPlatform _Platform) {
+	switch (GetFirstParty(_Platform)) {
+		case C_FirstParty_Sony: return "$<$z PlayStation™Network $>";
+		case C_FirstParty_Amazon: return "$<$zLuna network$>";
+		case C_FirstParty_Google: return "$<$zStadia network$>";
+		case C_FirstParty_Microsoft: return "$<$zXbox network$>";
+	}
+	return "$<$zUbisoft Connect$>";
+}
+Text GetNetworkName(CSystemPlatform _System) {
+	return GetNetworkName(GetPlatform(_System));
+}
+
+Text GetSmallNetworkName(CSystemPlatform::ESystemPlatform _Platform) {
+	switch (GetFirstParty(_Platform)) {
+		case C_FirstParty_Sony: return "$<$zPSN$>";
+		case C_FirstParty_Amazon: return "$<$zLuna$>";
+		case C_FirstParty_Google: return "$<$zStadia$>";
+		case C_FirstParty_Microsoft: return "$<$zXbox$>";
+	}
+	return "$<$zUbisoft Connect$>";
+}
+Text GetSmallNetworkName(CSystemPlatform _System) {
+	return GetSmallNetworkName(GetPlatform(_System));
+}
+
+Text GetFirstPartyLogo(CSystemPlatform::ESystemPlatform _Platform) {
+	switch (GetFirstParty(_Platform)) {
+		case C_FirstParty_Sony: return "$z"^C_Logo_SonyWhite;
+		case C_FirstParty_Amazon: return "$z"^C_Logo_Amazon;
+		case C_FirstParty_Google: return "$z"^C_Logo_Google;
+		case C_FirstParty_Microsoft: return "$z"^C_Logo_Microsoft;
+	}
+	return "$z"^C_Logo_Ubisoft;
+}
+Text GetFirstPartyLogo(CSystemPlatform _System) {
+	return GetFirstPartyLogo(GetPlatform(_System));
+}

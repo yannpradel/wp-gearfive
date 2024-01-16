@@ -1,0 +1,11 @@
+/** 
+ *	Matchmaking constants
+ */
+#Const Version		"2021-01-21"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Modes/Teams_Matchmaking/Constants.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+#Const C_InputPriority_EndRaceMenu 0

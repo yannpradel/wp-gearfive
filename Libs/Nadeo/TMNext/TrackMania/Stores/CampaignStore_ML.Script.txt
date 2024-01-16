@@ -1,0 +1,829 @@
+/** 
+ *	Component for the CampaignStore
+ */
+#Const Version		"2023-05-15"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Stores/CampaignStore_ML.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "MathLib" as ML
+#Include "TimeLib" as TiL
+#Include "Libs/Nadeo/CommonLibs/Common/Store_ML.Script.txt" as Store
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/MenuLibs/Common/Components/Tools.Script.txt" as Tools
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/CampaignStruct.Script.txt" as CampaignStruct
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/ClubStruct.Script.txt" as ClubStruct
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as Const
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_CampaignsPager {
+	CampaignStruct::LibCampaignStruct_K_Campaign[Integer] CampaignList;
+	Integer Offset;
+	Integer Total;
+}
+#Struct K_MonthlyCampaignsPager {
+	CampaignStruct::LibCampaignStruct_K_MonthlyCampaign[Integer] CampaignList;
+	Integer Offset;
+	Integer Total;
+}
+#Struct K_LiveQuarterlyCampaign {
+	CampaignStruct::LibCampaignStruct_K_Campaign Campaign;
+	Integer Status;
+	Text ErrorMessage;
+	Integer CampaignsTotal;
+}
+#Struct K_LiveMonthlyCampaign {
+	CampaignStruct::LibCampaignStruct_K_MonthlyCampaign Campaign;
+	Integer Status;
+	Text ErrorMessage;
+}
+#Struct K_MyQuarterlyCampaignsRankingsPager {
+	CampaignStruct::LibCampaignStruct_K_CampaignRanking[Integer] CampaignsRankings;
+	Text[Integer] CampaignsNames;
+	Text AccountId;
+	Integer Total;
+}
+#Struct K_State {
+	K_CampaignsPager[Integer] CampaignsPagers; //< Key is the type of the campaign (quarterly or monthly)
+	K_MonthlyCampaignsPager MonthlyCampaignsPager;
+	K_MonthlyCampaignsPager RoyalCampaignsPager;
+	K_CampaignsPager AllClubCampaignsPager;
+	K_CampaignsPager[Integer] ClubsCampaignsPagers; //< Campaigns for a given club Id
+	CampaignStruct::LibCampaignStruct_K_Campaign[Integer] LoadedCampaigns; //< Key is the Id of the campaign
+	CampaignStruct::LibCampaignStruct_K_MonthlyCampaign[Integer] LoadedMonthlyCampaigns; //< Key is the Id of the monthly campaign
+	CampaignStruct::LibCampaignStruct_K_MonthlyCampaign[Integer] LoadedRoyalCampaigns; //< Key is the Id of the royal campaign
+	Integer[Text] LeaderboardGroupUidToCampaignId;
+	K_LiveQuarterlyCampaign LiveQuarterly;
+	K_LiveMonthlyCampaign LiveMonthly;
+	CampaignStruct::LibCampaignStruct_K_Campaign TrainingCampaign;
+	K_MyQuarterlyCampaignsRankingsPager MyQuarterlyCampaignsRankingsPager;
+}
+#Struct K_CampaignInfo {
+	Integer Index;
+	CampaignStruct::LibCampaignStruct_K_Campaign Campaign;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_State_Null K_State {
+	CampaignsPagers = [],
+	MonthlyCampaignsPager = K_MonthlyCampaignsPager {
+		CampaignList = [],
+		Offset = 0,
+		Total = 0
+	},
+	RoyalCampaignsPager = K_MonthlyCampaignsPager {
+		CampaignList = [],
+		Offset = 0,
+		Total = 0
+	},
+	AllClubCampaignsPager = K_CampaignsPager {
+		CampaignList = [],
+		Offset = 0,
+		Total = 0
+	},
+	ClubsCampaignsPagers = [],
+	LoadedCampaigns = [],
+	LoadedMonthlyCampaigns = [],
+	LoadedRoyalCampaigns = [],
+	LeaderboardGroupUidToCampaignId = [],
+	LiveQuarterly = K_LiveQuarterlyCampaign {},
+	LiveMonthly = K_LiveMonthlyCampaign {},
+	TrainingCampaign = CampaignStruct::LibCampaignStruct_K_Campaign {},
+	MyQuarterlyCampaignsRankingsPager = K_MyQuarterlyCampaignsRankingsPager {
+		CampaignsRankings = [],
+		CampaignsNames = [],
+		AccountId = "",
+		Total = 0
+	}
+}
+
+#Const C_ComponentName "lib-campaign-store"
+#Const P "TMNext_CampaignStore::"
+#Const Q "TMNext_CampaignStore"
+#Const C_StoreId "campaign"
+
+#Const C_LiveCampaignStatus_Null 0
+#Const C_LiveCampaignStatus_Loading 1
+#Const C_LiveCampaignStatus_Loaded 2
+#Const C_LiveCampaignStatus_NoCampaigns 3
+#Const C_LiveCampaignStatus_Error 4
+
+#Const C_Action_LoadCampaigns "TMNext_CampaignStore_Action_LoadCampaigns"
+#Const C_Action_LoadCampaign "TMNext_CampaignStore_Action_LoadCampaign"
+#Const C_Action_LoadMonthlyCampaignsList "TMNext_CampaignStore_Action_LoadMonthlyCampaignsList"
+#Const C_Action_LoadMonthlyCampaignsPage "TMNext_CampaignStore_Action_LoadMonthlyCampaignsPage"
+#Const C_Action_LoadMonthlyCampaign "TMNext_CampaignStore_Action_LoadMonthlyCampaign"
+#Const C_Action_LoadRoyalCampaignsList "TMNext_CampaignStore_Action_LoadRoyalCampaignsList"
+#Const C_Action_LoadRoyalCampaign "TMNext_CampaignStore_Action_LoadRoyalCampaign"
+#Const C_Action_LoadAllClubCampaignsPage "TMNext_CampaignStore_Action_LoadAllClubCampaignsPage"
+#Const C_Action_LoadClubsCampaigns "TMNext_CampaignStore_Action_LoadClubsCampaigns"
+#Const C_Action_LoadMapPlayerGlobalRankings "TMNext_CampaignStore_Action_LoadMapPlayerGlobalRankings"
+#Const C_Action_LoadMapPlayerClubRankings "TMNext_CampaignStore_Action_LoadMapPlayerClubRankings"
+#Const C_Action_LoadMapTopGlobalRankings "TMNext_CampaignStore_Action_LoadMapTopGlobalRankings"
+#Const C_Action_LoadMapTopClubRankings "TMNext_CampaignStore_Action_LoadMapTopClubRankings"
+#Const C_Action_LoadCampaignPlayerGlobalRankings "TMNext_CampaignStore_Action_LoadCampaignPlayerGlobalRankings"
+#Const C_Action_LoadCampaignTopGlobalRankings "TMNext_CampaignStore_Action_LoadCampaignTopGlobalRankings"
+#Const C_Action_LoadCampaignTopClubRankings "TMNext_CampaignStore_Action_LoadCampaignTopClubRankings"
+#Const C_Action_GetMapLevels "TMNext_CampaignStore_Action_GetMapLevels"
+#Const C_Action_LoadOfflineCampaign "TMNext_CampaignStore_Action_LoadOfflineCampaign"
+#Const C_Action_LoadLiveQuarterlyCampaign "TMNext_CampaignStore_Action_LoadLiveQuarterlyCampaign"
+#Const C_Action_LoadLiveMonthlyCampaign "TMNext_CampaignStore_Action_LoadLiveMonthlyCampaign"
+#Const C_Action_LoadMyQuarterlyCampaignsRankings "TMNext_CampaignStore_Action_LoadMyQuarterlyCampaignsRankings"
+#Const C_Action_BustCache_MapPlayerGlobalRankings "TMNext_CampaignStore_Action_BustCache_MapPlayerGlobalRankings"
+#Const C_Action_BustCache_MapPlayerClubRankings "TMNext_CampaignStore_Action_BustCache_MapPlayerClubRankings"
+#Const C_Action_BustCache_MapTopGlobalRankings "TMNext_CampaignStore_Action_BustCache_MapTopGlobalRankings"
+#Const C_Action_BustCache_MapTopClubRankings "TMNext_CampaignStore_Action_BustCache_MapTopClubRankings"
+
+#Const C_Event_CampaignListUpdated "TMNext_CampaignStore_Event_CampaignListUpdated"
+#Const C_Event_CampaignListUpdateError "TMNext_CampaignStore_Event_CampaignListUpdateError"
+#Const C_Event_AllClubCampaignListUpdated "TMNext_CampaignStore_Event_AllClubCampaignListUpdated"
+#Const C_Event_ClubsCampaignListUpdated "TMNext_CampaignStore_Event_ClubsCampaignListUpdated"
+#Const C_Event_ClubsCampaignListError "TMNext_CampaignStore_Event_ClubsCampaignListError"
+#Const C_Event_MapRecordsUpdated "TMNext_CampaignStore_Event_MapRecordsUpdated"
+#Const C_Event_MapPlayerGlobalRankingsUpdated "TMNext_CampaignStore_Event_MapPlayerGlobalRankingsUpdated"
+#Const C_Event_MapPlayerGlobalRankingsUpdateError "TMNext_CampaignStore_Event_MapPlayerGlobalRankingsUpdateError"
+#Const C_Event_MapClubRankingsUpdated "TMNext_CampaignStore_Event_MapClubRankingsUpdated"
+#Const C_Event_MapPlayerClubRankingsUpdated "TMNext_CampaignStore_Event_MapPlayerClubRankingsUpdated"
+#Const C_Event_MapPlayerClubRankingsUpdateError "TMNext_CampaignStore_Event_MapPlayerClubRankingsUpdateError"
+#Const C_Event_MapTopGlobalRankingsUpdate "TMNext_CampaignStore_Event_MapTopGlobalRankingsUpdate"
+#Const C_Event_MapTopClubRankingsUpdate "TMNext_CampaignStore_Event_MapTopClubRankingsUpdate"
+#Const C_Event_CampaignPlayerGlobalRankingsUpdated "TMNext_CampaignStore_Event_CampaignPlayerGlobalRankingsUpdated"
+#Const C_Event_CampaignTopGlobalRankingsUpdated "TMNext_CampaignStore_Event_CampaignTopGlobalRankingsUpdated"
+#Const C_Event_CampaignTopClubRankingsUpdated "TMNext_CampaignStore_Event_CampaignTopClubRankingsUpdated"
+#Const C_Event_MapRankingLevelsUpdated "TMNext_CampaignStore_Event_MapRankingLevelsUpdated"
+#Const C_Event_MapRankingLevelsUpdateFailed "TMNext_CampaignStore_Event_MapRankingLevelsUpdateFailed"
+#Const C_Event_CampaignLoadComplete "TMNext_CampaignStore_Event_CampaignLoadComplete"
+#Const C_Event_MonthlyCampaignLoadComplete "TMNext_CampaignStore_Event_MonthlyCampaignLoadComplete"
+#Const C_Event_MonthlyCampaignUpdated "TMNext_CampaignStore_Event_MonthlyCampaignUpdated"
+#Const C_Event_RoyalCampaignLoadComplete "TMNext_CampaignStore_Event_RoyalCampaignLoadComplete"
+#Const C_Event_RoyalCampaignUpdated "TMNext_CampaignStore_Event_RoyalCampaignUpdated"
+#Const C_Event_AllCampaignsLoadComplete "TMNext_CampaignStore_Event_AllCampaignsLoadComplete"
+#Const C_Event_CampaignUpdated "TMNext_CampaignStore_Event_CampaignUpdated"
+#Const C_Event_CampaignUpdateFailed "TMNext_CampaignStore_Event_CampaignUpdateFailed"
+#Const C_Event_CampaignListEmpty "TMNext_CampaignStore_Event_CampaignListEmpty"
+#Const C_Event_OfflineCampaignLoaded "TMNext_CampaignStore_Event_OfflineCampaignLoaded"
+#Const C_Event_PreloadImages "TMNext_CampaignStore_Event_PreloadImages"
+#Const C_Event_LiveQuarterlyCampaignUpdated "TMNext_CampaignStore_Event_LiveQuarterlyCampaignUpdated"
+#Const C_Event_LiveMonthlyCampaignUpdated "TMNext_CampaignStore_Event_LiveMonthlyCampaignUpdated"
+#Const C_Event_MyQuarterlyCampaignsRankingsUpdated "TMNext_CampaignStore_Event_MyQuarterlyCampaignsRankingsUpdated"
+#Const C_Event_CacheBusted_MapPlayerGlobalRankings "TMNext_CampaignStore_Event_CacheBusted_MapPlayerGlobalRankings"
+#Const C_Event_CacheBusted_MapPlayerClubRankings "TMNext_CampaignStore_Event_CacheBusted_MapPlayerClubRankings"
+#Const C_Event_CacheBusted_MapTopGlobalRankings "TMNext_CampaignStore_Event_CacheBusted_MapTopGlobalRankings"
+#Const C_Event_CacheBusted_MapTopClubRankings "TMNext_CampaignStore_Event_CacheBusted_MapTopClubRankings"
+
+#Const C_ErrorType_ScoresNotLoaded "TMNext_CampaignStore_ErrorType_ScoresNotLoaded"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+CampaignStruct::LibCampaignStruct_K_Campaign GetCampaignFromId(Integer _CampaignId) {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	if (TMNext_CampaignStore_State.LoadedCampaigns.existskey(_CampaignId)) {
+		return TMNext_CampaignStore_State.LoadedCampaigns[_CampaignId];
+	}
+
+	foreach (CampaignPager in TMNext_CampaignStore_State.CampaignsPagers) {
+		foreach (Campaign in CampaignPager.CampaignList) {
+			if (Campaign.Id == _CampaignId) return Campaign;
+		}
+	}
+
+	foreach (Campaign in TMNext_CampaignStore_State.AllClubCampaignsPager.CampaignList) {
+		if (Campaign.Id == _CampaignId) return Campaign;
+	}
+
+	declare CampaignStruct::LibCampaignStruct_K_Campaign CampaignResult;
+	CampaignResult.Id = CampaignStruct::C_Campaign_NullId;
+	return CampaignResult;
+}
+
+CampaignStruct::LibCampaignStruct_K_MonthlyCampaign GetMonthlyCampaignFromId(Integer _MonthlyCampaignId) {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	if (TMNext_CampaignStore_State.LoadedMonthlyCampaigns.existskey(_MonthlyCampaignId)) {
+		return TMNext_CampaignStore_State.LoadedMonthlyCampaigns[_MonthlyCampaignId];
+	}
+
+	foreach (MonthlyCampaign in TMNext_CampaignStore_State.MonthlyCampaignsPager.CampaignList) {
+		if (MonthlyCampaign.Id == _MonthlyCampaignId) {
+			return MonthlyCampaign;
+		}
+	}
+	return CampaignStruct::LibCampaignStruct_K_MonthlyCampaign {};
+}
+
+CampaignStruct::LibCampaignStruct_K_MonthlyCampaign GetRoyalCampaignFromId(Integer _RoyalCampaignId) {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	if (TMNext_CampaignStore_State.LoadedRoyalCampaigns.existskey(_RoyalCampaignId)) {
+		return TMNext_CampaignStore_State.LoadedRoyalCampaigns[_RoyalCampaignId];
+	}
+
+	foreach (RoyalCampaign in TMNext_CampaignStore_State.RoyalCampaignsPager.CampaignList) {
+		if (RoyalCampaign.Id == _RoyalCampaignId) {
+			return RoyalCampaign;
+		}
+	}
+	return CampaignStruct::LibCampaignStruct_K_MonthlyCampaign {};
+}
+
+CampaignStruct::LibCampaignStruct_K_Campaign[Integer] GetCampaignList(Integer _CampaignType) {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.CampaignsPagers.get(_CampaignType, K_CampaignsPager {}).CampaignList;
+}
+
+CampaignStruct::LibCampaignStruct_K_MonthlyCampaign[Integer] GetMonthlyCampaignList() {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.MonthlyCampaignsPager.CampaignList;
+}
+
+CampaignStruct::LibCampaignStruct_K_MonthlyCampaign[Integer] GetRoyalCampaignList() {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.RoyalCampaignsPager.CampaignList;
+}
+
+CampaignStruct::LibCampaignStruct_K_Campaign[Integer] GetAllClubCampaignList() {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.AllClubCampaignsPager.CampaignList;
+}
+
+CampaignStruct::LibCampaignStruct_K_Campaign[Integer] GetClubCampaignList(Integer _ClubId) {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.ClubsCampaignsPagers.get(_ClubId, K_CampaignsPager {}).CampaignList;
+}
+
+Integer GetClubCampaignsTotal(Integer _ClubId) {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.ClubsCampaignsPagers.get(_ClubId, K_CampaignsPager {}).Total;
+}
+
+Integer GetCampaignsTotal(Integer _CampaignType) {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.CampaignsPagers.get(_CampaignType, K_CampaignsPager {}).Total;
+}
+
+Integer GetMonthlyCampaignsTotal() {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.MonthlyCampaignsPager.Total;
+}
+
+Integer GetRoyalCampaignsTotal() {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.RoyalCampaignsPager.Total;
+}
+
+Integer GetAllClubCampaignsTotal() {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.AllClubCampaignsPager.Total;
+}
+
+/// Get information about the live quarterly campaign
+CampaignStruct::LibCampaignStruct_K_Campaign GetLiveQuarterlyCampaign() {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.LiveQuarterly.Campaign;
+}
+Integer GetLiveQuarterlyCampaignStatus() {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.LiveQuarterly.Status;
+}
+Text GetLiveQuarterlyCampaignError() {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.LiveQuarterly.ErrorMessage;
+}
+Integer GetLiveQuarterlyCampaignsTotal() {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.LiveQuarterly.CampaignsTotal;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get information about the live monthly campaign
+CampaignStruct::LibCampaignStruct_K_MonthlyCampaign GetLiveMonthlyCampaign() {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.LiveMonthly.Campaign;
+}
+Integer GetLiveMonthlyCampaignStatus() {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.LiveMonthly.Status;
+}
+Text GetLiveMonthlyCampaignError() {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.LiveMonthly.ErrorMessage;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get information about the training campaign
+CampaignStruct::LibCampaignStruct_K_Campaign GetTrainingCampaign() {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.TrainingCampaign;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the player's rankings on the given map
+ *
+ *	@param _CampaignId							The campaign Id
+ *	@param _MapUid									The Map uid to look for
+ *
+ *	@return													The player's rankings on the map
+ */
+CampaignStruct::LibCampaignStruct_K_Ranking[] GetMapRankings(Integer _CampaignId, Text _MapUid) {
+	foreach (Category in GetCampaignFromId(_CampaignId).Categories) {
+		foreach (Map in Category.Playlist) {
+			if (Map.Uid == _MapUid) {
+				return Map.Rankings;
+			}
+		}
+	}
+
+	return [];
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the map with the given map uid in the given campaign
+ *
+ *	@param _CampaignId							The campaign Id
+ *	@param _MapUid									The map uid to look for
+ *
+ *	@return													The map
+ */
+CampaignStruct::LibCampaignStruct_K_Map GetMap(Integer _CampaignId, Text _MapUid) {
+	foreach (Category in GetCampaignFromId(_CampaignId).Categories) {
+		foreach (Map in Category.Playlist) {
+			if (Map.Uid == _MapUid) {
+				return Map;
+			}
+		}
+	}
+
+	return CampaignStruct::LibCampaignStruct_K_Map {};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the player's score on the given map
+ *
+ *	@param _CampaignId							The campaign Id
+ *	@param _MapUid									The Map uid to look for
+ *
+ *	@return													The player's score in the given map
+ */
+Integer GetMapScore(Integer _CampaignId, Text _MapUid) {
+	foreach (Category in GetCampaignFromId(_CampaignId).Categories) {
+		foreach (Map in Category.Playlist) {
+			if (Map.Uid == _MapUid) return Map.Score;
+		}
+	}
+
+	return -1;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the player's rankings on the given map and club
+ *
+ *	@param _CampaignId							The campaign Id
+ *	@param _MapUid									The Map uid to look for
+ *	@param _ClubId									The club id to look for
+ *
+ *	@return													The player's pusition in the club leaderboard for the map (or 0 if not found)
+ */
+Integer GetMapRankingInClub(Integer _CampaignId, Text _MapUid, Integer _ClubId) {
+	foreach (Category in GetCampaignFromId(_CampaignId).Categories) {
+		foreach (Map in Category.Playlist) {
+			if (Map.Uid == _MapUid && Map.ClubRankings.existskey(_ClubId)) {
+				return Map.ClubRankings[_ClubId];
+			}
+		}
+	}
+
+	return -1;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the top rankings on the given map
+ *
+ *	@param _CampaignId							The campaign Id
+ *	@param _MapUid									The Map uid to look for
+ *
+ *	@return													The top rankings on the map
+ */
+CampaignStruct::LibCampaignStruct_K_MapTopRanking[] GetMapTopRankings(Integer _CampaignId, Text _MapUid) {
+	foreach (Category in GetCampaignFromId(_CampaignId).Categories) {
+		foreach (Map in Category.Playlist) {
+			if (Map.Uid == _MapUid) {
+				return Map.TopRankings;
+			}
+		}
+	}
+	return [];
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the player's map ranking levels on the given map
+ *	@return													The player's ranking levels
+ *
+ *	@param _CampaignId							The campaign Id
+ *	@param _MapUid									The Map uid to look for
+ *
+ */
+CampaignStruct::LibCampaignStruct_K_TopScore[][Text] GetMapRankingLevels(Integer _CampaignId, Text _MapUid) {
+	foreach (Category in GetCampaignFromId(_CampaignId).Categories) {
+		foreach (Map in Category.Playlist) {
+			if (Map.Uid == _MapUid) {
+				return Map.RankingLevels;
+			}
+		}
+	}
+	return [];
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the top rankings on the given map and club
+ *
+ *	@param _CampaignId							The campaign Id
+ *	@param _MapUid									The Map uid to look for
+ *	@param _ClubId									The club id to look for
+ *
+ *	@return													The club's top rankings on the map
+ */
+CampaignStruct::LibCampaignStruct_K_TopScore[] GetMapTopRankingsInClub(Integer _CampaignId, Text _MapUid, Integer _ClubId) {
+	foreach (Category in GetCampaignFromId(_CampaignId).Categories) {
+		foreach (Map in Category.Playlist) {
+			if (Map.Uid == _MapUid && Map.ClubTopRankings.existskey(_ClubId)) {
+				return Map.ClubTopRankings[_ClubId];
+			}
+		}
+	}
+	return [];
+}
+
+CampaignStruct::LibCampaignStruct_K_Map SetMapMedalAndScore(Integer _CampaignId, Text _MapUid, Integer _Medal, Integer _Score) {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	declare K_State State = TMNext_CampaignStore_State;
+	assert(State.LoadedCampaigns.existskey(_CampaignId), "You need to load the campaign with id "^_CampaignId^" by using Action_LoadCampaign(), before setting new data");
+
+	foreach (CatIndex => Category in State.LoadedCampaigns[_CampaignId].Categories) {
+		foreach (MapIndex => Map in Category.Playlist) {
+			if (Map.Uid == _MapUid) {
+				declare CampaignStruct::LibCampaignStruct_K_Map TmpMap = Map;
+				TmpMap.Medal = _Medal;
+				TmpMap.Score = _Score;
+				State.LoadedCampaigns[_CampaignId].Categories[CatIndex].Playlist[MapIndex] = TmpMap;
+				TMNext_CampaignStore_State = State;
+				return TmpMap;
+			}
+		}
+	}
+	return CampaignStruct::LibCampaignStruct_K_Map {};
+}
+CampaignStruct::LibCampaignStruct_K_Map SetMapMedalAndScore(Integer _CampaignId, CampaignStruct::LibCampaignStruct_K_Map _Map) {
+	return SetMapMedalAndScore(_CampaignId, _Map.Uid, _Map.Medal, _Map.Score);
+}
+
+CampaignStruct::LibCampaignStruct_K_Map[] SetMapListMedalAndScore(Integer _CampaignId, CampaignStruct::LibCampaignStruct_K_Map[] _Playlist) {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	declare K_State State = TMNext_CampaignStore_State;
+	assert(State.LoadedCampaigns.existskey(_CampaignId), "You need to load the campaign with id "^_CampaignId^" by using Action_LoadCampaign(), before setting new data");
+
+	declare Boolean HasSetPlayList = False;
+	foreach (CatIndex => Category in State.LoadedCampaigns[_CampaignId].Categories) {
+		declare CampaignStruct::LibCampaignStruct_K_Map[] TmpPlaylist = Category.Playlist;
+		foreach (MapIndex => Map in Category.Playlist) {
+			if (Map.Uid != "") {
+				foreach (NewMap in _Playlist) {
+					if (Map.Uid == NewMap.Uid) {
+						State.LoadedCampaigns[_CampaignId].Categories[CatIndex].Playlist[MapIndex] = NewMap;
+						TmpPlaylist[MapIndex] = NewMap;
+						HasSetPlayList = True;
+					}
+				}
+			}
+		}
+		if (HasSetPlayList) {
+			TMNext_CampaignStore_State = State;
+			return TmpPlaylist;
+		}
+	}
+
+	return [];
+}
+
+Void UnloadCampaign(Integer _CampaignId, Boolean _IsFetched) {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	if (TMNext_CampaignStore_State.LoadedCampaigns.existskey(_CampaignId)) {
+		TMNext_CampaignStore_State.LoadedCampaigns.removekey(_CampaignId);
+	}
+
+	foreach (PagerIndex => CampaignPager in TMNext_CampaignStore_State.CampaignsPagers) {
+		foreach (CampaignIndex => Campaign in CampaignPager.CampaignList) {
+			if (Campaign.Id == _CampaignId) {
+				TMNext_CampaignStore_State.CampaignsPagers[PagerIndex].CampaignList[CampaignIndex].IsFetched = _IsFetched;
+				TMNext_CampaignStore_State.CampaignsPagers[PagerIndex].CampaignList[CampaignIndex].IsLoaded = False;
+			}
+		}
+	}
+
+	foreach (CampaignIndex => Campaign in TMNext_CampaignStore_State.AllClubCampaignsPager.CampaignList) {
+		if (Campaign.Id == _CampaignId) {
+			TMNext_CampaignStore_State.AllClubCampaignsPager.CampaignList[CampaignIndex].IsFetched = _IsFetched;
+			TMNext_CampaignStore_State.AllClubCampaignsPager.CampaignList[CampaignIndex].IsLoaded = False;
+		}
+	}
+}
+Void UnloadCampaign(Integer _CampaignId) {
+	UnloadCampaign(_CampaignId, False);
+}
+
+Text GetMyQuarterlyCampaignsAccountId() {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.MyQuarterlyCampaignsRankingsPager.AccountId;
+}
+
+Integer GetMyQuarterlyCampaignsTotal() {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.MyQuarterlyCampaignsRankingsPager.Total;
+}
+
+CampaignStruct::LibCampaignStruct_K_CampaignRanking[Integer] GetMyQuarterlyCampaignsRankings() {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.MyQuarterlyCampaignsRankingsPager.CampaignsRankings;
+}
+
+Text[Integer] GetMyQuarterlyCampaignsNames() {
+	declare K_State TMNext_CampaignStore_State for System = C_State_Null;
+	return TMNext_CampaignStore_State.MyQuarterlyCampaignsRankingsPager.CampaignsNames;
+}
+
+Void Action_LoadCampaigns(CMlScript _This, Integer _CampaignType, Integer _Offset, Integer _Length) {
+	_This.SendCustomEvent(C_Action_LoadCampaigns, [""^_CampaignType, ""^_Offset, ""^_Length]);
+}
+
+Void Action_LoadMonthlyCampaignsList(CMlScript _This, Integer _Offset, Integer _Length) {
+	_This.SendCustomEvent(C_Action_LoadMonthlyCampaignsList, [""^_Offset, ""^_Length]);
+}
+Void Action_LoadMonthlyCampaignsPage(CMlScript _This, Integer _PageNb, Integer _CampaignsPerPage) {
+	_This.SendCustomEvent(C_Action_LoadMonthlyCampaignsPage, [""^_PageNb, ""^_CampaignsPerPage]);
+}
+
+Void Action_LoadMonthlyCampaign(CMlScript _This, Integer _MonthlyCampaignId) {
+	_This.SendCustomEvent(C_Action_LoadMonthlyCampaign, [""^_MonthlyCampaignId]);
+}
+
+Void Action_LoadRoyalCampaignsList(CMlScript _This, Integer _Offset, Integer _Length) {
+	_This.SendCustomEvent(C_Action_LoadRoyalCampaignsList, [""^_Offset, ""^_Length]);
+}
+
+Void Action_LoadRoyalCampaign(CMlScript _This, Integer _RoyalCampaignId) {
+	_This.SendCustomEvent(C_Action_LoadRoyalCampaign, [""^_RoyalCampaignId]);
+}
+
+Void Action_LoadCampaign(CMlScript _This, Integer _CampaignId, Integer _ClubId) {
+	_This.SendCustomEvent(C_Action_LoadCampaign, [""^_CampaignId, ""^_ClubId]);
+}
+Void Action_LoadCampaign(CMlScript _This, Integer _CampaignId) {
+	Action_LoadCampaign(_This, _CampaignId, ClubStruct::C_ClubNullId);
+}
+
+Void Action_LoadAllClubCampaignsPage(CMlScript _This, Text _Sort, Text _Order, Text _FilterName, Integer _Offset, Integer _Length) {
+	_This.SendCustomEvent(C_Action_LoadAllClubCampaignsPage, [_Sort, _Order, _FilterName, ""^_Offset, ""^_Length]);
+}
+
+Void Action_LoadClubsCampaigns(CMlScript _This, Integer _ClubId, Integer _PageNb, Integer _CampaignsPerPage) {
+	_This.SendCustomEvent(C_Action_LoadClubsCampaigns, [""^_ClubId, ""^_PageNb, ""^_CampaignsPerPage]);
+}
+
+Void Action_LoadMapPlayerGlobalRankings(CMlScript _This, Text _LeaderboardGroupUid) {
+	_This.SendCustomEvent(C_Action_LoadMapPlayerGlobalRankings, [_LeaderboardGroupUid]);
+}
+Void Action_LoadMapPlayerGlobalRankings(CMlScript _This, Text _LeaderboardGroupUid, Integer[Text] _CurrentScores) {
+	_This.SendCustomEvent(C_Action_LoadMapPlayerGlobalRankings, [_LeaderboardGroupUid, _CurrentScores.tojson()]);
+}
+Void Action_LoadMapPlayerGlobalRankings(CMlScript _This, Text _LeaderboardGroupUid, Text _MapUid, Integer _Score) {
+	declare Integer[Text] Scores = [_MapUid => _Score];
+	Action_LoadMapPlayerGlobalRankings(_This, _LeaderboardGroupUid, Scores);
+}
+Void Action_LoadMapPlayerGlobalRankings(CMlScript _This, Text[Text] _MapGroupList, Integer[Text] _CurrentScores) {
+	_This.SendCustomEvent(C_Action_LoadMapPlayerGlobalRankings, ["", _CurrentScores.tojson(), _MapGroupList.tojson()]);
+}
+
+Void Action_LoadMapPlayerClubRankings(CMlScript _This, Text _LeaderboardGroupUid, Integer _ClubId, Integer[Text] _Scores) {
+	_This.SendCustomEvent(C_Action_LoadMapPlayerClubRankings, [_LeaderboardGroupUid, ""^_ClubId, _Scores.tojson()]);
+}
+Void Action_LoadMapPlayerClubRankings(CMlScript _This, Text _LeaderboardGroupUid, Integer _ClubId, Text _MapUid, Integer _Score) {
+	declare Integer[Text] Scores = [_MapUid => _Score];
+	Action_LoadMapPlayerClubRankings(_This, _LeaderboardGroupUid, _ClubId, Scores);
+}
+Void Action_LoadMapPlayerClubRankings(CMlScript _This, Text _LeaderboardGroupUid, Integer _ClubId) {
+	Action_LoadMapPlayerClubRankings(_This, _LeaderboardGroupUid, _ClubId, []);
+}
+Void Action_LoadMapPlayerClubRankings(CMlScript _This, Text[Text] _MapGroupList, Integer _ClubId, Integer[Text] _Scores) {
+	_This.SendCustomEvent(C_Action_LoadMapPlayerClubRankings, ["", ""^_ClubId, _Scores.tojson(), _MapGroupList.tojson()]);
+}
+
+Void Action_LoadCampaignPlayerGlobalRankings(CMlScript _This, Integer _CampaignId, Text _LeaderboardGroupUid) {
+	_This.SendCustomEvent(C_Action_LoadCampaignPlayerGlobalRankings, [""^_CampaignId, _LeaderboardGroupUid]);
+}
+
+Void Action_LoadCampaignTopGlobalRankings(CMlScript _This, Integer _CampaignId, Text _LeaderboardGroupUid) {
+	_This.SendCustomEvent(C_Action_LoadCampaignTopGlobalRankings, [""^_CampaignId, _LeaderboardGroupUid]);
+}
+
+Void Action_LoadCampaignTopClubRankings(CMlScript _This, Integer _CampaignId, Integer _ClubId, Text _LeaderboardGroupUid, Integer _Offset, Integer _Length) {
+	_This.SendCustomEvent(C_Action_LoadCampaignTopClubRankings, [""^_CampaignId, ""^_ClubId, _LeaderboardGroupUid, ""^_Offset, ""^_Length]);
+}
+
+Void Action_LoadMapTopGlobalRankings(CMlScript _This, Text _LeaderboardGroupUid, Text _MapUid, Integer _Score) {
+	_This.SendCustomEvent(C_Action_LoadMapTopGlobalRankings, [_LeaderboardGroupUid, _MapUid, ""^_Score]);
+}
+
+Void Action_LoadMapTopClubRankings(CMlScript _This, Text _LeaderboardGroupUid, Text _MapUid, Integer _ClubId, Integer _Score) {
+	_This.SendCustomEvent(C_Action_LoadMapTopClubRankings, [_LeaderboardGroupUid, _MapUid, ""^_ClubId, ""^_Score]);
+}
+
+Void Action_GetMapLevels(CMlScript _This, Text _GroupUid, Text _MapUid, Integer _Score) {
+	_This.SendCustomEvent(C_Action_GetMapLevels, [_GroupUid, _MapUid, ""^_Score]);
+}
+
+Void Action_LoadOfflineCampaign(CMlScript _This) {
+	_This.SendCustomEvent(C_Action_LoadOfflineCampaign, []);
+}
+
+Void Action_LoadLiveQuarterlyCampaign(CMlScript _This, Integer _CampaignAPICachePreload) {
+	_This.SendCustomEvent(C_Action_LoadLiveQuarterlyCampaign, [""^_CampaignAPICachePreload]);
+}
+Void Action_LoadLiveQuarterlyCampaign(CMlScript _This) {
+	_This.SendCustomEvent(C_Action_LoadLiveQuarterlyCampaign, []);
+}
+
+Void Action_LoadLiveMonthlyCampaign(CMlScript _This, Integer _CampaignAPICachePreload) {
+	_This.SendCustomEvent(C_Action_LoadLiveMonthlyCampaign, [""^_CampaignAPICachePreload]);
+}
+Void Action_LoadLiveMonthlyCampaign(CMlScript _This) {
+	_This.SendCustomEvent(C_Action_LoadLiveMonthlyCampaign, []);
+}
+
+Void Action_LoadMyQuarterlyCampaignsRankings(CMlScript _This, Text _AccountId, Integer _Offset, Integer _Length) {
+	_This.SendCustomEvent(C_Action_LoadMyQuarterlyCampaignsRankings, [""^_AccountId, ""^_Offset, ""^_Length]);
+}
+Void Action_LoadMyQuarterlyCampaignsRankings(CMlScript _This, Integer _Offset, Integer _Length) {
+	Action_LoadMyQuarterlyCampaignsRankings(_This, "", _Offset, _Length);
+}
+
+Void Action_BustCache_MapPlayerGlobalRankings(CMlScript _This, Integer _CampaignId, Text _MapUid) {
+	_This.SendCustomEvent(C_Action_BustCache_MapPlayerGlobalRankings, [""^_CampaignId, _MapUid]);
+}
+
+Void Action_BustCache_MapPlayerClubRankings(CMlScript _This, Integer _CampaignId, Text _MapUid, Integer _ClubId) {
+	_This.SendCustomEvent(C_Action_BustCache_MapPlayerClubRankings, [""^_CampaignId, _MapUid, ""^_ClubId]);
+}
+
+Void Action_BustCache_MapTopGlobalRankings(CMlScript _This, Integer _CampaignId, Text _MapUid) {
+	_This.SendCustomEvent(C_Action_BustCache_MapTopGlobalRankings, [""^_CampaignId, _MapUid]);
+}
+
+Void Action_BustCache_MapTopClubRankings(CMlScript _This, Integer _CampaignId, Text _MapUid, Integer _ClubId) {
+	_This.SendCustomEvent(C_Action_BustCache_MapTopClubRankings, [""^_CampaignId, _MapUid, ""^_ClubId]);
+}
+
+Boolean HasCacheExpired_MapPlayerGlobalRankings(CampaignStruct::LibCampaignStruct_K_Map _Map, Integer _CacheLifetime) {
+	return (
+		_Map.UpdateTime_Rankings <= 0 ||
+		Now - _Map.UpdateTime_Rankings > _CacheLifetime
+	);
+}
+Boolean HasCacheExpired_MapPlayerClubRankings(CampaignStruct::LibCampaignStruct_K_Map _Map, Integer _ClubId, Integer _CacheLifetime) {
+	return (
+		_ClubId != ClubStruct::C_ClubNullId && (
+			!_Map.UpdateTime_ClubRankings.existskey(_ClubId) ||
+			_Map.UpdateTime_ClubRankings[_ClubId] <= 0 ||
+			Now - _Map.UpdateTime_ClubRankings[_ClubId] > _CacheLifetime
+		)
+	);
+}
+Boolean HasCacheExpired_MapTopGlobalRankings(CampaignStruct::LibCampaignStruct_K_Map _Map, Integer _CacheLifetime) {
+	return (
+		_Map.UpdateTime_TopRankings <= 0 ||
+		Now - _Map.UpdateTime_TopRankings > _CacheLifetime
+	);
+}
+Boolean HasCacheExpired_MapTopClubRankings(CampaignStruct::LibCampaignStruct_K_Map _Map, Integer _ClubId, Integer _CacheLifetime) {
+	return (
+		_ClubId != ClubStruct::C_ClubNullId && (
+			!_Map.UpdateTime_ClubTopRankings.existskey(_ClubId) ||
+			_Map.UpdateTime_ClubTopRankings[_ClubId] <= 0 ||
+			Now - _Map.UpdateTime_ClubTopRankings[_ClubId] > _CacheLifetime
+		)
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/**
+ * Get the biggest zone with the lowest rank under 100
+ * If there is none, gives the smallest zone of the player
+ */
+CampaignStruct::LibCampaignStruct_K_Ranking GetTopRank(CampaignStruct::LibCampaignStruct_K_Ranking[] _Rankings) {
+	if (_Rankings.count == 0) return CampaignStruct::LibCampaignStruct_K_Ranking {};
+	declare Integer TrueIndex;
+	for (Index, 0, _Rankings.count-1) {
+		TrueIndex = _Rankings.count-1 - Index;
+		declare CampaignStruct::LibCampaignStruct_K_Ranking Record = _Rankings[TrueIndex];
+		// We find a rank higher than top 100
+		if (Record.Position > 100) {
+			// We take a smallest zone if it exists
+			if (TrueIndex < _Rankings.count - 1) {
+				TrueIndex += 1;
+			}
+			break;
+		}
+	}
+
+	return _Rankings[TrueIndex];
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the day of the current TOTD
+Integer GetDayTOTD() {
+	if (GetLiveMonthlyCampaignStatus() == C_LiveCampaignStatus_Loaded) {
+		foreach (DailyMap in GetLiveMonthlyCampaign().DailyMaps) {
+			if (DailyMap.RelativeStart < 0 && DailyMap.RelativeEnd >= 0) {
+				return DailyMap.MonthDay;
+			}
+		}
+	}
+
+	// Return the day from epoch if live campaign is not loaded
+	return Tools::GetMonthDay();
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the month and the year of the current TOTD
+Text GetMonthYearTOTD() {
+	if (GetLiveMonthlyCampaignStatus() == C_LiveCampaignStatus_Loaded) {
+		declare CampaignStruct::LibCampaignStruct_K_MonthlyCampaign MonthlyCampaign = GetLiveMonthlyCampaign();
+		declare Text[Integer] Month_Names = Const::C_Month_Names;
+		return TL::Compose(Month_Names.get(MonthlyCampaign.Month - 1), ""^MonthlyCampaign.Year);
+	}
+
+	// Return the date from epoch if live campaign is not loaded
+	return TiL::FormatDate(TiL::GetCurrent(), TiL::EDateFormats::MonthYear);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the remaining time in milliseconds of the current TOTD
+Integer GetRelativeEndTOTD() {
+	if (GetLiveMonthlyCampaignStatus() == C_LiveCampaignStatus_Loaded) {
+		foreach (DailyMap in GetLiveMonthlyCampaign().DailyMaps) {
+			if (DailyMap.RelativeStart < 0 && DailyMap.RelativeEnd >= 0) {
+				return DailyMap.RelativeEnd * 1000; //< Converted in milliseconds
+			}
+		}
+	}
+
+	// Return the time left before the next TOTD from epoch if live campaign is not loaded
+	return ML::CeilingInteger((1. - TiL::Clamp01TZDay(TiL::GetCurrent())) * 24 * 3600) * 1000;
+}
+
+Void MainInit(CMlScript _This) {
+	Store::Subscribe(_This, C_StoreId);
+}
+
+Void MainLoop(CMlScript _This) {
+	foreach (Event in _This.PendingEvents) {
+		switch (Event.Type) {
+			case CMlScriptEvent::Type::PluginCustomEvent: {
+				switch (Event.CustomEventType) {
+					case C_Event_PreloadImages: {
+						foreach (ImageUrl in Event.CustomEventData) {
+							_This.PreloadImage(ImageUrl);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+Text ComponentV2() {
+	return MV::ComponentV2(
+		C_ComponentName,
+		"""
+		""",
+		"""
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/CampaignStore_ML.Script.txt" as {{{Q}}}
+		""",
+		"""
+***MainInit***
+***
+{{{P}}}MainInit(This);
+***
+
+***MainLoop***
+***
+{{{P}}}MainLoop(This);
+***
+""",
+[CampaignStruct::Component(), ClubStruct::Component()],
+[]
+	);
+}

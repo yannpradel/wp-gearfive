@@ -1,0 +1,523 @@
+/**
+ *  UI module: EndMatch client side
+ */
+#Const Version		"1.0.0"
+#Const ScriptName "Libs/Nadeo/Trackmania/Modes/HotSeat/UIModules/EndMatch_Client.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/CMGame/Utils/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/CMGame/Utils/Stylesheet.Script.txt" as Stylesheet
+#Include "Libs/Nadeo/CMGame/Components/Navigation.Script.txt" as Navigation
+#Include "Libs/Nadeo/Trackmania/Modes/HotSeat/Consts.Script.txt" as Const
+#Include "Libs/Nadeo/Trackmania/Modes/Campaign/Constants.Script.txt" as CampaignConsts
+#Include "Libs/Nadeo/Trackmania/MainMenu/Constants.Script.txt" as MenuConsts
+#Include "Libs/Nadeo/Trackmania/Modes/HotSeat/Components/NetShare_Client.Script.txt" as NetShare
+#Include "Libs/Nadeo/CMGame/Utils/Icons.Script.txt" as Icons
+#Include "Libs/Nadeo/TMGame/Utils/Images.Script.txt" as Images
+#Include "Libs/Nadeo/CMGame/Components/Button.Script.txt" as Button
+#Include "Libs/Nadeo/Trackmania/Stores/UserStore_ML.Script.txt" as UserStore
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Id "UIModules_HotSeat_EndMatch"
+#Const C_NavGroupName "navgroup-hotseat-endmatchmenu"
+#Const C_Type CUILayer::EUILayerType::Normal
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the module manialink
+ *
+ *  @return                           The module manialink
+ */
+Text GetML() {
+	declare Vec2 RaceMenuSize = CampaignConsts::C_RaceMenu_Size;
+
+	//L16N [EndMatch HotSeat] Title of the pause menu pop up
+	declare Text Text_HotSeat = _("HotSeat");
+	//L16N [EndMatch HotSeat] Restart the track from the beginning
+	declare Text Text_Restart =_("Restart track");
+	//L16N [EndMatch HotSeat] Play the next track
+	declare Text Text_NextMap = _("Next track");
+	//L16N [EndMatch HotSeat] Exit the race
+	declare Text Text_Exit = _("Exit");
+	//L16N [EndMatch HotSeat] %1 will be replaced by the name of the author of the track, e.g. "by Darrek"
+	declare Text By_Text = _("by %1");
+
+	//L16N [HotSeat] %1 is the name of the player that won the match. eg: "Someone won the match!"
+	declare Text Text_WinnerName = _("$<%1$> won the match!");
+	//L16N [HotSeat] Message displayed at the end of the match if players have the same race time
+	declare Text Text_PlayersTied = _("Players are tied!");
+
+	declare Text ML_Rankings = "";
+	declare Real PosY = 0.;
+	for (I, 0, Const::C_MaxPlayersNb-1) {
+		declare Real PosX = -40. - (I * 1.5);
+		if (I >= Const::C_MaxPlayersNb / 2) PosX = 40. - (I * 1.5);
+		if (I == Const::C_MaxPlayersNb / 2) PosY = 0.;
+		PosY -= 8.;
+		ML_Rankings ^= """<frameinstance modelid="framemodel-player" pos="{{{PosX}}} {{{PosY}}}" />""";
+	}
+
+	return MV::Create(
+C_Id, 3,
+"""
+<stylesheet>
+	<style class="text-default" halign="center" valign="center2" textsize="4" textprefix="$t$i" textcolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_TextLight)}}}" textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}" />
+	<style class="quad-default" halign="center" valign="center" />
+</stylesheet>
+<framemodel id="framemodel-player">
+	<label id="label-rank" pos="-28.5 0" size="{{{RaceMenuSize.X/2.}}} 5" textsize="3" textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}" class="text-default" />
+	<quad id="quad-player-rank" pos="-33.5 0" size="10 7" image="{{{MenuConsts::C_ImageUrl_HotSeat_Player_Rank}}}" z-index="-1" halign="left" class="quad-default" colorize="000"/>
+	<label id="label-player-name" pos="-11.5 0" size="25 5" textsize="3" textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}" halign="center" class="text-default" />
+	<quad id="quad-player-name" pos="-26.5 0" size="30 7" image="{{{MenuConsts::C_ImageUrl_HotSeat_Player_Name}}}" z-index="-1" halign="left" class="quad-default"/>
+	<label id="label-time" pos="31 0" size="{{{RaceMenuSize.X/2.}}} 5" textsize="3" textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_SemiBold)}}}" halign="right" class="text-default" />
+</framemodel>
+
+<frame id="frame-global" z-index="{{{Const::C_ZIndex_EndMatch}}}" hidden="1">
+<quad bgcolor="000" size="320 180" fullscreen="1" halign="center" valign="center" z-index="-3" opacity=".3"/>
+	<frame id="frame-menu" hidden="1">
+		<frame id="frame-header" pos="0 49" z-index="-2">
+			<frame id="frame-map-infos" pos="8 0">
+				<quad z-index="-1" size="{{{RaceMenuSize.X *1.2}}} 23.5" colorize="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentFive)}}}" image="{{{Images::C_ImageUrl_ModeMenu_Header}}}" class="quad-default" pos="0.25 -2."/>
+				<label pos="{{{RaceMenuSize.X/2.+6.}}} -9" z-index="1" size="{{{RaceMenuSize.X/2.}}} 10" text="{{{Text_HotSeat}}}" class="text-default" textcolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentOne)}}}" halign="right" textsize="8" italicslope="0.2" />
+				<label id="label-map-name" pos="{{{-RaceMenuSize.X/2.-4.}}} 4" z-index="1" size="{{{RaceMenuSize.X/2.}}} 10"  halign="left" class="text-default" textsize="6" italicslope="0.2" filter-profanities="Always"/>
+				<label id="label-map-author" pos="{{{-RaceMenuSize.X/2.-4.}}} -2" z-index="1" size="{{{RaceMenuSize.X/2.}}} 10"  halign="left" class="text-default"  textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_Regular)}}}" italicslope="0.2"/>
+			</frame>
+			<quad pos="2 -39" image="{{{Images::C_ImageUrl_ModeMenu_Background}}}" size="{{{RaceMenuSize.X*1.2 + 3.}}} 50" class="quad-default" z-index="-1" opacity=".9"/>
+			<frame id="frame-race-infos" pos="5 -22">
+				<label z-index="2" id="label-winner" pos="0 1.5" size="{{{RaceMenuSize.X * 0.75}}} {{{RaceMenuSize.Y}}}" textsize="4" class="text-default" italicslope=".2"/>
+				<quad z-index="1" id="quad-winner" halign="center" valign="center" pos="0.1 1.5" size="{{{RaceMenuSize.X * 1.2 -2.5}}} 14" image="{{{MenuConsts::C_ImageUrl_HotSeat_Victory}}}"/>
+			</frame>
+
+			<frame id="frame-rankings" pos="8 -25">
+				{{{ML_Rankings}}}
+			</frame>
+		</frame>
+
+		<frameinstance
+			modelid="{{{Button::C_Name}}}" id="button-restart-map"
+			pos="-3.5 -20"
+			class="{{{Navigation::C_Class}}}"
+			data-text="{{{Text_Restart}}}"
+			data-size="{{{RaceMenuSize.X*1.2-3.5}}} {{{RaceMenuSize.Y}}}"
+			data-textcolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentOne)}}}"
+			data-textfocuscolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentFour)}}}"
+			data-image="{{{Images::C_ImageUrl_ModeMenu_Button_Round_Corner}}}"
+			data-imagefocus="{{{Images::C_ImageUrl_ModeMenu_Button_Round_Corner_Focus}}}"
+			data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+			data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}"
+			data-opacityunfocus=".95"
+			data-textsize="4"
+			data-textopacityunfocus=".4"
+			data-textitalicslope=".2"
+			data-halign="center"
+			data-valign="center"
+			data-nav-inputs="select;cancel;appmenu;up;down"
+			data-nav-targets="_;_;_;button-exit;button-exit"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+			z-index="2"
+		/>
+		<frameinstance
+			modelid="{{{Button::C_Name}}}" id="button-next-map"
+			pos="{{{RaceMenuSize.X/4.-1.}}} -32.5"
+			class="{{{Navigation::C_Class}}}"
+			data-text="{{{Text_NextMap}}}"
+			data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}"
+			data-textitalicslope=".2"
+			data-size="{{{RaceMenuSize.X*0.6}}} {{{RaceMenuSize.Y+3.75}}}"
+			data-labelsize="{{{RaceMenuSize.X/2.-27}}} {{{RaceMenuSize.Y+4.}}}"
+			data-textxpos=".4"
+			data-opacityunfocus=".75"
+			data-textcolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentOne)}}}"
+			data-textfocuscolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentOne)}}}"
+			data-image="{{{Images::C_ImageUrl_ModeMenu_Button_Exit_Round}}}"
+			data-imagefocus="{{{Images::C_ImageUrl_ModeMenu_Button_Exit_Round}}}"
+			data-bgcolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentFive)}}}"
+			data-focuscolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentFive)}}}"
+			data-iconcolortype="{{{Button::C_ColorType_Colorize}}}"
+			data-iconcolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentOne)}}}"
+			data-iconfocuscolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentOne)}}}"
+			data-icon="{{{Icons::C_Icon_128x128_Arrow_Right_Oblique}}}"
+			data-iconfocus="{{{Icons::C_Icon_128x128_Arrow_Right_Oblique}}}"
+			data-iconxpos=".8"
+			data-iconypos="-.49"
+			data-textsize="4"
+			data-textopacityunfocus=".25"
+			data-iconopacityunfocus=".25"
+			data-halign="center"
+			data-valign="center"
+			data-nav-inputs="select;cancel;appmenu;up;left;down"
+			data-nav-targets="_;_;_;button-restart-map;button-exit;button-restart-map"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+			data-nav-locked="1"
+			hidden="1"
+		/>
+		<frameinstance
+			modelid="{{{Button::C_Name}}}" id="button-exit"
+			pos="{{{-RaceMenuSize.X/4.-11.25}}} -32.5"
+			class="{{{Navigation::C_Class}}}"
+			data-text="{{{Text_Exit}}}"
+			data-size="{{{RaceMenuSize.X*0.6}}} {{{RaceMenuSize.Y+4.}}}"
+			data-labelsize="{{{RaceMenuSize.X/2.-30}}} {{{RaceMenuSize.Y+4.}}}"
+			data-textxpos="0.55"
+			data-opacityunfocus=".75"
+			data-image="{{{Images::C_ImageUrl_ModeMenu_Button_Exit_Round}}}"
+			data-imagefocus="{{{Images::C_ImageUrl_ModeMenu_Button_Exit_Round}}}"
+			data-bgcolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentFive)}}}"
+			data-focuscolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentFive)}}}"
+			data-textcolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentOne)}}}"
+			data-textfocuscolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentOne)}}}"
+			data-iconcolortype="{{{Button::C_ColorType_Colorize}}}"
+			data-iconcolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentOne)}}}"
+			data-iconfocuscolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_AccentOne)}}}"
+			data-icon="{{{Icons::C_Icon_128x128_Arrow_Left_Oblique}}}"
+			data-iconfocus="{{{Icons::C_Icon_128x128_Arrow_Left_Oblique}}}"
+			data-iconxpos=".2"
+			data-iconypos="-.49"
+			data-textsize="4"
+			data-textopacityunfocus=".25"
+			data-iconopacityunfocus=".25"
+			data-textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}"
+			data-textitalicslope=".2"
+			data-halign="center"
+			data-valign="center"
+			data-nav-inputs="select;cancel;appmenu;up;down;right"
+			data-nav-targets="_;_;_;button-restart-map;button-restart-map;button-next-map"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+	</frame>
+</frame>
+""",
+"""
+#Include "TextLib" as TL
+#Include "MathLib" as ML
+#Include "ColorLib" as CL
+#Include "Libs/Nadeo/CMGame/Utils/MainUser.Script.txt" as MainUser
+#Include "Libs/Nadeo/CMGame/Utils/Tools.Script.txt" as Tools
+#Include "Libs/Nadeo/CMGame/Utils/Stylesheet.Script.txt" as Stylesheet
+#Include "Libs/Nadeo/TMGame/Modes/MV_Utils.Script.txt" as MV_Utils
+#Include "Libs/Nadeo/Trackmania/Modes/HotSeat/Consts.Script.txt" as Const
+#Include "Libs/Nadeo/Trackmania/Modes/HotSeat/Structs.Script.txt" as Struct
+""",
+"""
+Void Focus(CMlControl _From, CMlControl _To) {
+	if (_From != Null) {
+		{{{Navigation::P}}}Unfocus(This, _From);
+		if ({{{Button::P}}}IsButton(_From)) {
+			{{{Button::P}}}Unfocus(This, (_From as CMlFrame));
+		}
+	}
+
+	if (_To != Null) {
+		{{{Navigation::P}}}Focus(This, _To);
+		if ({{{Button::P}}}IsButton(_To)) {
+			{{{Button::P}}}Focus(This, (_To as CMlFrame));
+		}
+	}
+}
+
+Void CloseMenu(Text _EventName, CMlFrame _Frame_Menu) {
+	Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), Null);
+	_Frame_Menu.Hide();
+	if (_EventName != "") SendCustomEvent(_EventName, []);
+	EnableMenuNavigation(False, False, Null, Const::C_InputsPriority_EndMatch);
+}
+
+Void Select(CMlControl _Control, CMlFrame _Frame_Menu) {
+	if (_Control == Null) return;
+
+	switch (_Control.ControlId) {
+		case "button-restart-map": CloseMenu(Const::C_EndMatchMenu_RestartMap, _Frame_Menu);
+		case "button-next-map": CloseMenu(Const::C_EndMatchMenu_NextMap, _Frame_Menu);
+		case "button-exit": CloseMenu(Const::C_EndMatchMenu_Quit, _Frame_Menu);
+	}
+}
+
+Void RefreshHotSeatPlayers(CMlFrame _Frame_Rankings, CMlLabel _Label_Winner, CMlQuad _Quad_Winner, Struct::K_HotSeatPlayer[Integer] _HotSeatPlayers) {
+	declare Integer[Integer] SortedByRank;
+	declare Integer BestTime = -1;
+	foreach (PlayerId => Player in _HotSeatPlayers) {
+		SortedByRank[PlayerId] = Player.Rank;
+		if (Player.Rank == 0) {
+			BestTime = Player.BestTime;
+		}
+	}
+	SortedByRank = SortedByRank.sort();
+	declare Struct::K_HotSeatPlayer[Integer] HotSeatPlayers;
+	declare Integer Key = 0;
+	foreach (PlayerId => Rank in SortedByRank) {
+		HotSeatPlayers[Key] = _HotSeatPlayers[PlayerId];
+		Key += 1;
+	}
+
+	if (Key <= 4) _Frame_Rankings.RelativePosition_V3.X = 48.;
+	else _Frame_Rankings.RelativePosition_V3.X = 8.;
+
+	if (BestTime <= 0) {
+		// No one finished
+		_Label_Winner.SetText("{{{Text_PlayersTied}}}");
+		_Quad_Winner.Colorize = {{{dump(Stylesheet::GetColorRGB(Stylesheet::C_Color_AccentFive))}}};
+	}
+
+	foreach (Rank => Control in _Frame_Rankings.Controls) {
+		if (HotSeatPlayers.existskey(Rank)) {
+			declare Player = HotSeatPlayers[Rank];
+			declare Frame_Player = (Control as CMlFrame);
+			declare Label_Rank <=> (Frame_Player.GetFirstChild("label-rank") as CMlLabel);
+			declare Label_PlayerName <=> (Frame_Player.GetFirstChild("label-player-name") as CMlLabel);
+			declare Quad_PlayerName <=> (Frame_Player.GetFirstChild("quad-player-name") as CMlQuad);
+			declare Label_Time <=> (Frame_Player.GetFirstChild("label-time") as CMlLabel);
+			Label_Rank.Value = ""^(Player.Rank + 1);
+			Label_PlayerName.Value = Player.PlayerName;
+			Quad_PlayerName.Colorize = Player.Color;
+			//Turn Yellow and White labels to greenfive instead of white
+			if ((Player.PlayerName == _("Yellow") || Player.PlayerName == _("White")) && Label_PlayerName.TextColor != {{{dump(Stylesheet::GetColorRGB(Stylesheet::C_Color_AccentFive))}}}) {
+				Label_PlayerName.TextColor = {{{dump(Stylesheet::GetColorRGB(Stylesheet::C_Color_AccentFive))}}};
+			} else if ((Player.PlayerName != _("Yellow") && Player.PlayerName != _("White")) && Label_PlayerName.TextColor != Stylesheet::GetColorRGB(Stylesheet::C_Color_TextLight)) {
+				Label_PlayerName.TextColor = Stylesheet::GetColorRGB(Stylesheet::C_Color_TextLight);
+			}
+			if (Player.BestTime <= 0) {
+				//L16N acronym of the term Did Not Finish (https://en.wikipedia.org/wiki/Did_Not_Finish)
+				Label_Time.Value = _("|DidNotFinish|DNF");
+			} else if (Player.Rank == 0) {
+				Label_Time.Value = TL::TimeToText(Player.BestTime, True, True);
+				_Label_Winner.SetText(TL::Compose("{{{Text_WinnerName}}}", Player.PlayerName));
+				_Quad_Winner.Colorize = Player.Color;
+				if ((Player.PlayerName == _("Yellow") || Player.PlayerName == _("White")) && _Label_Winner.TextColor != {{{dump(Stylesheet::GetColorRGB(Stylesheet::C_Color_AccentFive))}}}) {
+					_Label_Winner.TextColor = {{{dump(Stylesheet::GetColorRGB(Stylesheet::C_Color_AccentFive))}}};
+				} else if ((Player.PlayerName != _("Yellow") && Player.PlayerName != _("White")) && _Label_Winner.TextColor != Stylesheet::GetColorRGB(Stylesheet::C_Color_TextLight)) {
+					_Label_Winner.TextColor = Stylesheet::GetColorRGB(Stylesheet::C_Color_TextLight);
+				}
+			} else {
+				if ((Player.BestTime - BestTime) == 0) _Label_Winner.SetText("{{{Text_PlayersTied}}}");
+				Label_Time.Value = "+"^TL::TimeToText(Player.BestTime - BestTime, True, True);
+			}
+			Frame_Player.Visible = True;
+		} else {
+			Control.Visible = False;
+		}
+	}
+}
+
+Void SetMapAuthorName(CMlLabel _Label_MapAuthor, Text _AuthorName) {
+	//L16N [EndMatch HotSeat] %1 will be replaced by the name of the author of the track, e.g. "by Darrek"
+	_Label_MapAuthor.Value = TL::Compose("{{{By_Text}}}", _AuthorName);
+	Tools::FitLabelValue(_Label_MapAuthor, 4., 1., 0.5);
+	Tools::FirstPartyLogoMatchLuminance(_Label_MapAuthor);
+}
+
+Void UpdateNextMapButton(CMlFrame _Button_NextMap, CMlFrame _Button_RestartMap, CMlFrame _Button_Exit) {
+	_Button_NextMap.Visible = {{{NetShare::P}}}GetMapsCount() > 1;
+	{{{Navigation::P}}}Lock(_Button_NextMap, !_Button_NextMap.Visible);
+	if (_Button_NextMap.Visible) {
+		if (_Button_NextMap.Visible) {
+			{{{Navigation::P}}}ChangeControlTarget(This, _Button_RestartMap, "up", _Button_NextMap.ControlId);
+			{{{Navigation::P}}}ChangeControlTarget(This, _Button_RestartMap, "down", _Button_NextMap.ControlId);
+			{{{Button::P}}}SetImage(This, _Button_Exit, "{{{Images::C_ImageUrl_ModeMenu_Button_Exit_Obtuse}}}");
+			{{{Button::P}}}SetImageFocus(This, _Button_Exit, "{{{Images::C_ImageUrl_ModeMenu_Button_Exit_Obtuse}}}");
+			{{{Button::P}}}SetImage(This, _Button_RestartMap, "{{{Images::C_ImageUrl_ModeMenu_Button_Obtuse_Corner}}}");
+			{{{Button::P}}}SetImageFocus(This, _Button_RestartMap, "{{{Images::C_ImageUrl_ModeMenu_Button_Obtuse_Corner_Focus}}}");
+		} else {
+			{{{Navigation::P}}}ChangeControlTarget(This, _Button_RestartMap, "up", _Button_Exit.ControlId);
+			{{{Navigation::P}}}ChangeControlTarget(This, _Button_RestartMap, "down", _Button_Exit.ControlId);
+			{{{Button::P}}}SetImage(This, _Button_Exit, "{{{Images::C_ImageUrl_ModeMenu_Button_Exit_Round}}}");
+			{{{Button::P}}}SetImageFocus(This, _Button_Exit, "{{{Images::C_ImageUrl_ModeMenu_Button_Exit_Round}}}");
+			{{{Button::P}}}SetImage(This, _Button_RestartMap, "{{{Images::C_ImageUrl_ModeMenu_Button_Round_Corner}}}");
+			{{{Button::P}}}SetImageFocus(This, _Button_RestartMap, "{{{Images::C_ImageUrl_ModeMenu_Button_Round_Corner_Focus}}}");
+		}
+	}
+	{{{Button::P}}}Unfocus(This, _Button_Exit);
+	{{{Button::P}}}Unfocus(This, _Button_RestartMap);
+	declare FocusedControl = {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}");
+	if ((FocusedControl is CMlFrame) && {{{Button::P}}}IsButton(FocusedControl as CMlFrame)) {
+		{{{Button::P}}}Focus(This, FocusedControl as CMlFrame);
+	}
+}
+
+***MainInit***
+***
+declare CMlFrame Frame_Global;
+declare CMlFrame Frame_Menu;
+declare CMlFrame Button_NextMap;
+declare CMlFrame Button_RestartMap;
+declare CMlFrame Button_Exit;
+declare CMlLabel Label_MapName;
+declare CMlLabel Label_MapAuthor;
+declare CMlLabel Label_Winner;
+declare CMlQuad Quad_Winner;
+declare CMlFrame Frame_Rankings;
+
+declare Boolean DisplayModule;
+declare Text AuthorName;
+declare Text MapUid;
+declare Boolean NeedAuthorDisplayNameUpdate;
+declare Text AuthorId;
+declare Ident Task_GetDisplayNameId;
+***
+
+***MainStart***
+***
+Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+Frame_Menu <=> (Frame_Global.GetFirstChild("frame-menu") as CMlFrame);
+Button_NextMap <=> (Frame_Menu.GetFirstChild("button-next-map") as CMlFrame);
+Button_RestartMap <=> (Frame_Menu.GetFirstChild("button-restart-map") as CMlFrame);
+Button_Exit <=> (Frame_Menu.GetFirstChild("button-exit") as CMlFrame);
+Label_MapName <=> (Frame_Menu.GetFirstChild("label-map-name") as CMlLabel);
+Label_MapAuthor <=> (Frame_Menu.GetFirstChild("label-map-author") as CMlLabel);
+Label_Winner <=> (Frame_Menu.GetFirstChild("label-winner") as CMlLabel);
+Quad_Winner <=> (Frame_Menu.GetFirstChild("quad-winner") as CMlQuad);
+Frame_Rankings <=> (Frame_Menu.GetFirstChild("frame-rankings") as CMlFrame);
+
+declare netread Boolean Net_HotSeat_EndMatch_MenuOpen for Teams[0];
+
+DisplayModule = Frame_Global.Visible;
+AuthorName = "";
+MapUid = "";
+NeedAuthorDisplayNameUpdate = False;
+AuthorId = "";
+
+UpdateNextMapButton(Button_NextMap, Button_RestartMap, Button_Exit);
+{{{Navigation::P}}}UseLocalEvents(This, True);
+Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), Button_RestartMap);
+***
+
+***MainLoop***
+***
+if (PageIsVisible) {
+	declare Owner <=> MV_Utils::GetOwner(This);
+	if (Owner != Null) {
+		declare netread Boolean Net_HotSeat_EndMatch_IsVisible for Owner;
+		if (DisplayModule != Net_HotSeat_EndMatch_IsVisible) {
+			DisplayModule = Net_HotSeat_EndMatch_IsVisible;
+			Frame_Global.Visible = DisplayModule;
+		}
+		if (Button_NextMap.Visible != ({{{NetShare::P}}}GetMapsCount() > 1)) {
+			UpdateNextMapButton(Button_NextMap, Button_RestartMap, Button_Exit);
+		}
+	}
+
+	if (Frame_Global.Visible) {
+		if (Map != Null) {
+			if (MapUid != Map.MapInfo.MapUid)  {
+				MapUid = Map.MapInfo.MapUid;
+				Label_MapName.Value = Tools::TranslateOfficialMapName(Map.MapName, Map.AuthorLogin);
+				AuthorId = Map.AuthorLogin;
+				if (Map.AuthorNickName != "") SetMapAuthorName(Label_MapAuthor, Map.AuthorNickName);
+				else Label_MapAuthor.Value = "";
+				NeedAuthorDisplayNameUpdate = True;
+			}
+		}
+
+		if (NeedAuthorDisplayNameUpdate) {
+			if (Task_GetDisplayNameId != NullId) {
+				DataFileMgr.TaskResult_Release(Task_GetDisplayNameId);
+			}
+			NeedAuthorDisplayNameUpdate = False;
+			declare Text DisplayName = {{{UserStore::P}}}GetUserMgrPlayerName(AuthorId);
+			if (DisplayName == "") {
+				declare CTaskResult_GetDisplayNameResult Task <=> UserMgr.RetrieveDisplayName(MainUser::GetMainUserId(), [AuthorId]);
+				if (Task != Null) Task_GetDisplayNameId = Task.Id;
+			} else {
+				SetMapAuthorName(Label_MapAuthor, DisplayName);
+			}
+		}
+
+		//Open menu with winner => Here to only open the menu when frame-global is visible
+		if (Net_HotSeat_EndMatch_MenuOpen && !Frame_Menu.Visible) {
+			Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), Button_RestartMap);
+			RefreshHotSeatPlayers(Frame_Rankings, Label_Winner, Quad_Winner, {{{NetShare::P}}}GetHotSeatPlayers());
+			EnableMenuNavigation(True, False, Null, Const::C_InputsPriority_EndMatch);
+			Frame_Menu.Show();
+		}
+
+		//Manage inputs
+		if (Frame_Menu.Visible) {
+			foreach (Event in {{{Navigation::P}}}GetPendingEvents(This)) {
+				if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName}}}")) {
+					switch (Event.Type) {
+						case {{{Navigation::P}}}C_EventType_NavigateInput: {
+							if (Event.Input == CMlScriptEvent::EMenuNavAction::Select) {
+								Select(Event.To, Frame_Menu);
+							} else if (Event.Input == CMlScriptEvent::EMenuNavAction::Cancel) {
+								CloseMenu(Const::C_EndMatchMenu_Quit, Frame_Menu);
+							} else {
+								Focus(Event.From, Event.To);
+							}
+						}
+						case {{{Navigation::P}}}C_EventType_NavigateMouse: {
+							if (Event.Mouse == CMlScriptEvent::Type::MouseClick) {
+								Select(Event.To, Frame_Menu);
+							} else if (Event.Mouse == CMlScriptEvent::Type::MouseOver) {
+								Focus(Event.From, Event.To);
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if (Owner == Null && DisplayModule) {
+			DisplayModule = False;
+			Frame_Global.Visible = DisplayModule;
+		}
+	}
+
+	//Close menu => Here to be sure to always detect the close request
+	if (!Net_HotSeat_EndMatch_MenuOpen && Frame_Menu.Visible) {
+		CloseMenu("", Frame_Menu);
+	}
+
+	if (Task_GetDisplayNameId != NullId) {
+		if (UserMgr.TaskResults.existskey(Task_GetDisplayNameId) && (UserMgr.TaskResults[Task_GetDisplayNameId] is CTaskResult_GetDisplayNameResult)) {
+			declare CTaskResult_GetDisplayNameResult Task_GetDisplayName = (UserMgr.TaskResults[Task_GetDisplayNameId] as CTaskResult_GetDisplayNameResult);
+			if (
+				Task_GetDisplayName != Null &&
+				!Task_GetDisplayName.IsProcessing
+			) {
+				if (Task_GetDisplayName.HasSucceeded) {
+					declare Text DisplayName = {{{UserStore::P}}}GetUserMgrPlayerName(AuthorId);
+					if (DisplayName != "") SetMapAuthorName(Label_MapAuthor, DisplayName);
+				}
+				UserMgr.TaskResult_Release(Task_GetDisplayNameId);
+				Task_GetDisplayNameId = NullId;
+			}
+		}
+	}
+}
+***
+""",
+[
+	Navigation::ComponentV2(),
+	NetShare::Component(),
+	UserStore::ComponentV2(),
+	Button::ComponentV2()
+],
+[]
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update library
+Void Yield() {
+	foreach (Event in PendingEvents) {
+		if (Event.Type == CManiaAppEvent::EType::LayerCustomEvent) {
+			declare Text[] ModeEvents = Const::C_EndMatchMenuEvents;
+			if (ModeEvents.exists(Event.CustomEventType)) {
+				declare Text[] EventData;
+				foreach (Value in Event.CustomEventData) EventData.add(Value);
+				SendCustomEvent(Event.CustomEventType, EventData);
+			}
+		}
+	}
+}

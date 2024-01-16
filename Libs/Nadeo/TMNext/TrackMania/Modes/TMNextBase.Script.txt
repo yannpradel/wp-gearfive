@@ -1,0 +1,45 @@
+/**
+ *	TMNext base for basic modes (not rounds based)
+ */
+#Extends "Libs/Nadeo/TMxSM/Race/ModeTrackmania.Script.txt"
+
+/*
+ * /!\ Do not forget to also update the TMNext base for rounds based modes /!\
+ */
+#Const C_PB_Version			"2020-04-28"
+#Const C_PB_ScriptName	"Libs/Nadeo/TMNext/TrackMania/Modes/TMNextBase.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/TMNext/TrackMania/Modes/TMNextCommon.Script.txt" as TMNextCommon
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Extends
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+***MB_Private_LogVersions***
+***
+TMNextCommon::LogVersions();
+***
+
+***MB_Private_LoadLibraries***
+***
+TMNextCommon::LoadLibraries();
+TMNextCommon::ConfigLoad(Http);
+while (TMNextCommon::ConfigIsLoading(Http)) MB_Yield();
+***
+
+***MB_Private_UnloadLibraries***
+***
+TMNextCommon::UnloadLibraries();
+***
+
+***Match_AfterLoadHud***
+***
+TMNextCommon::AfterLoadHud();
+***
+
+***MB_Private_Yield***
+***
+TMNextCommon::Yield();
+***

@@ -1,0 +1,109 @@
+/**
+ *	Structures for News
+ */
+#Const Version		"2022-10-18"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Structures/NewsStruct.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct LibNewsStruct_K_NewsLink {
+	Text Type;
+	Text Param;
+	Text ActionName;
+}
+#Struct LibNewsStruct_K_News {
+	Text Id;
+	Text Title;
+	Text Placement;
+	Text MediaUrl;
+	Text MediaType;
+	Boolean MediaPreloaded;
+	Integer Priority;
+	LibNewsStruct_K_NewsLink[] Links;
+	Integer DisplayTime;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_ComponentName "lib-news-struct"
+#Const P "LibNewsStruct_"
+
+#Const C_Placement_Null ""
+#Const C_Placement_Homepage "Homepage"
+
+#Const C_MediaType_Null ""
+#Const C_MediaType_Image "Image"
+
+#Const C_NewsNullId ""
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get an empty news
+LibNewsStruct_K_News GetEmptyNews() {
+	return LibNewsStruct_K_News {
+		Id = C_NewsNullId
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Create a `K_News` struct from a `CNews` object
+LibNewsStruct_K_News CreateNewsFromCNews(CNews _News) {
+	declare LibNewsStruct_K_NewsLink[] Links;
+	foreach (Link in _News.LinkList) {
+		Links.add(LibNewsStruct_K_NewsLink {
+			Type = Link.Type,
+			Param = Link.Param,
+			ActionName = Link.ActionName
+		});
+	}
+	return LibNewsStruct_K_News {
+		Id = _News.Id,
+		Title = _News.Title,
+		Placement = _News.Placement,
+		MediaUrl = _News.MediaUrl,
+		MediaType = _News.MediaType,
+		Priority = _News.Priority,
+		Links = Links,
+		DisplayTime = _News.DisplayTime
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the manialink component
+Text Component() {
+	return MV::Component(
+		C_ComponentName,
+		"""
+		""",
+		"""
+{{{dumptype(LibNewsStruct_K_NewsLink)}}}
+{{{dumptype(LibNewsStruct_K_News)}}}
+
+#Const {{{P}}}C_NewsNullId {{{dump(C_NewsNullId)}}}
+
+#Const {{{P}}}C_Placement_Null {{{dump(C_Placement_Null)}}}
+#Const {{{P}}}C_Placement_Homepage {{{dump(C_Placement_Homepage)}}}
+
+#Const {{{P}}}C_MediaType_Null {{{dump(C_MediaType_Null)}}}
+#Const {{{P}}}C_MediaType_Image {{{dump(C_MediaType_Image)}}}
+		""",
+		"""
+{{{P}}}K_News {{{P}}}GetEmptyNews() {
+	return {{{P}}}K_News {
+		Id = {{{P}}}C_NewsNullId
+	};
+}
+		""",
+		[],
+		[]
+	);
+}

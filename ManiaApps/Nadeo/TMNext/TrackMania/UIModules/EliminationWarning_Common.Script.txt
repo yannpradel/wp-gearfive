@@ -1,0 +1,28 @@
+/**
+ *	UI module: EliminationWarning common
+ */
+#Const Version		"2021-06-08"
+#Const ScriptName	"ManiaApps/Nadeo/TMNext/TrackMania/UIModules/EliminationWarning_Common.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Common.Script.txt" as UIModules_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Id "UIModule_Knockout_EliminationWarning"
+#Const C_LayerType CUILayer::EUILayerType::Normal
+#Const C_UIModuleConfig UIModules_Common::ComponentModeLibsUIModules_K_ModuleConfig {
+	Id = "Knockout_EliminationWarning", //< Do not modify this Id once in production. It is used by the xmlrpc protocole and would break compatibility.
+	IsCustomizable = False,
+	Properties = UIModules_Common::ComponentModeLibsUIModules_K_ModuleProperties {
+		Position = <0., 0.>,
+		Scale = 1.,
+		Visible = True
+	}
+}
+
+#Const C_GameMode_Knockout 1
+#Const C_GameMode_Royal 2

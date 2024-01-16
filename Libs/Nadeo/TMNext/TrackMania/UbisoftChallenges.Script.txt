@@ -1,0 +1,85 @@
+/** 
+ *	Ubisoft challenges
+ */
+#Const Version		"2020-06-22"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/UbisoftChallenges.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Challenge_Welcome "welcome" //< Play TM for the first time
+#Const C_Challenge_Completionist "completionist" //< Complete all Classic Challenges offering Club Units in Trackmania
+#Const C_Challenge_CreateMap "create_map" //< Create a track
+#Const C_Challenge_CreateSkin "create_skin" //< Go to skin editor
+#Const C_Challenge_CreateReplay "create_replay" //< go to replay editor
+#Const C_Challenge_FirstMedal "first_medal" //< Get 1 bronze medal in the official solo campaign
+#Const C_Challenge_AllBronzeTraining "all_bronze_training" //< Get all bronze medals in training
+#Const C_Challenge_AllBronzeQuarterly "all_bronze_quarterly" //< Get 25 bronze medal in the official solo campaign
+#Const C_Challenge_AllSilverQuarterly "all_silver_quarterly" //< Get 25 silver medal in the official solo campaign
+#Const C_Challenge_AllGoldQuarterly "all_gold_quarterly" //< Get 25 gold medal in the official solo campaign
+#Const C_Challenge_AllAuthorQuarterly "all_author_quarterly" //< Get 25 author medal in the official solo campaign
+#Const C_Challenge_FirstTrophy "first_trophy" //< Win a trophy
+#Const C_Challenge_OnlineMultiplayer "online_multiplayer" //< Play in Multiplayer
+#Const C_Challenge_FirstWin "first_win" //< Win a Time Attack match in Multiplayer
+#Const C_Challenge_FirstMedalMonthly "first_medal_monthly" //< DLC Standard Edition : Get 1 bronze medal in the monthly solo campaign
+#Const C_Challenge_CreateClub "create_club" //< DLC Club Edition : Create a club
+
+#Const C_ChallengeList [
+	"welcome",
+	"completionist",	
+	"create_map",
+	"create_skin",
+	"create_replay",
+	"first_medal",
+	"all_bronze_training",
+	"all_bronze_quarterly",
+	"all_silver_quarterly",
+	"all_gold_quarterly",
+	"all_author_quarterly",
+	"first_trophy",
+	"online_multiplayer",
+	"first_win",
+	"first_medal_monthly",
+	"create_club"
+]
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Process event
+Void ProcessEvent(CManiaAppEvent _Event) {
+	switch (_Event.Type) {
+		case CManiaAppEvent::EType::LayerCustomEvent: {
+			if (C_ChallengeList.exists(_Event.CustomEventType)) {
+				// @TODO Unlock action with uplay Id
+			}
+		}
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Process events
+Void ProcessEvents(CNod _Context) {
+	if (_Context is CManiaAppTitle) {
+		declare ManiaAppTitle = (_Context as CManiaAppTitle);
+		foreach (Event in ManiaAppTitle.PendingEvents) {
+			ProcessEvent(Event);
+		}
+	} else if (_Context is CManiaAppPlayground) {
+		declare ManiaAppPlayground = (_Context as CManiaAppPlayground);
+		foreach (Event in ManiaAppPlayground.PendingEvents) {
+			ProcessEvent(Event);
+		}
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update the library
+Void Yield() {
+	ProcessEvents(This);
+}

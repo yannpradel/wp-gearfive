@@ -1,0 +1,28 @@
+/**
+ *  Manage fonts
+ */
+#Const Version    "2021-11-26"
+#Const ScriptName "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt"
+
+#Const C_IngameText "IngameText"
+#Const C_IngameTime "IngameTime"
+#Const C_IngameNumber "IngameNumber"
+
+#Const C_Oswald_Regular "Oswald"
+#Const C_Oswald_Mono "OswaldMono"
+
+#Const C_GameFontBlack "GameFontBlack"
+#Const C_GameFontExtraBold "GameFontExtraBold"
+#Const C_GameFontSemiBold "GameFontSemiBold"
+#Const C_GameFontRegular "GameFontRegular"
+
+#Const C_ErrorMessage "GameFontSemiBold"
+
+Text GetFontName(Text _Font) {
+	switch(_Font) {
+		case C_IngameText: return C_Oswald_Regular;
+		case C_IngameTime: return C_Oswald_Mono;
+		case C_IngameNumber: return C_Oswald_Mono;
+	}
+	return "";
+}

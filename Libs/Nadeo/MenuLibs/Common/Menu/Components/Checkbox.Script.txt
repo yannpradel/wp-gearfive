@@ -1,0 +1,167 @@
+/** 
+ *	Checkbox component for ManiaView
+ */
+#Const Version		"2018-09-27"
+#Const ScriptName	"Libs/Nadeo/MenuLibs/Common/Menu/Components/Checkbox.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constant
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "checkbox" //< Component name
+#Const P "Checkbox_" //< Prefix use to differentiate functions/variables in the script
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the component
+ *
+ *	@return														The component id
+ */
+Text Component() {
+	return MV::Component(
+		C_Name,
+		"""
+<frame class="{{{P}}}container-checkbox">
+	<frame id="{{{P}}}frame-checkbox">
+		<quad size="6 6" halign="center" valign="center" style="Icons64x64_1" substyle="Check" scriptevents="1" id="{{{P}}}quad-checkbox" />
+	</frame>
+</frame>
+		""",
+		"""
+#Include "TextLib" as {{{P}}}TL
+
+#Const {{{P}}}C_EventType_Check 0
+
+#Struct {{{P}}}K_Event {
+	Integer Type;
+	CMlFrame Checkbox;
+	Boolean Checked;
+}
+		""",
+		"""
+declare CMlFrame[Ident] {{{P}}}G_Checkboxes;
+declare {{{P}}}K_Event[] {{{P}}}PendingEvents;
+
+Boolean {{{P}}}TextToBoolean(Text _Text)	{
+	declare FormattedText = {{{P}}}TL::ToLowerCase(_Text);
+	return !(FormattedText == "" || FormattedText ==  "false" || FormattedText == "0");
+}
+
+Text {{{P}}}BooleanToText(Boolean _Boolean)	{
+	if (_Boolean) return "true";
+	return "false";
+}
+
+Void {{{P}}}Private_InitCheckbox(CMlFrame _Frame_Checkbox)	{
+	if (_Frame_Checkbox == Null) return;
+	
+	declare CheckboxId = _Frame_Checkbox.Parent.Parent.Id;
+	{{{P}}}G_Checkboxes[CheckboxId] <=> _Frame_Checkbox;
+	
+	// Track events on the checkbox quad
+	declare Quad_Checkbox <=> (_Frame_Checkbox.GetFirstChild("{{{P}}}quad-checkbox") as CMlQuad);
+	declare {{{P}}}EventsTracked for Quad_Checkbox = NullId;
+	{{{P}}}EventsTracked = CheckboxId;
+	
+	// Initialize the checkbox state
+	if (_Frame_Checkbox.Parent.Parent.DataAttributeExists("checked")) {
+		Quad_Checkbox.StyleSelected = {{{P}}}TextToBoolean(_Frame_Checkbox.Parent.Parent.DataAttributeGet("checked"));
+	} else {
+		_Frame_Checkbox.Parent.Parent.DataAttributeSet("checked", {{{P}}}BooleanToText(Quad_Checkbox.StyleSelected));
+	}
+}
+
+Void {{{P}}}Check(Ident _CheckboxId, Boolean _Checked, Boolean _TriggerEvent) {
+	if (!{{{P}}}G_Checkboxes.existskey(_CheckboxId)) return;
+	
+	declare Frame_Checkbox <=> {{{P}}}G_Checkboxes[_CheckboxId];
+	declare Quad_Checkbox <=> (Frame_Checkbox.GetFirstChild("{{{P}}}quad-checkbox") as CMlQuad);
+	Quad_Checkbox.StyleSelected = _Checked;
+	Frame_Checkbox.Parent.Parent.DataAttributeSet("checked", {{{P}}}BooleanToText(Quad_Checkbox.StyleSelected));
+	
+	if (_TriggerEvent) {
+		declare {{{P}}}K_Event CheckboxEvent;
+		CheckboxEvent.Type = {{{P}}}C_EventType_Check;
+		CheckboxEvent.Checkbox = Frame_Checkbox.Parent.Parent;
+		CheckboxEvent.Checked = _Checked;
+		{{{P}}}PendingEvents.add(CheckboxEvent);
+	}
+}
+Void {{{P}}}Check(Ident _CheckboxId, Boolean _Checked) {
+	{{{P}}}Check(_CheckboxId, _Checked, False);
+}
+
+Void {{{P}}}Toggle(Ident _CheckboxId, Boolean _TriggerEvent) {
+	if (!{{{P}}}G_Checkboxes.existskey(_CheckboxId)) return;
+	
+	declare Frame_Checkbox <=> {{{P}}}G_Checkboxes[_CheckboxId];
+	declare Quad_Checkbox <=> (Frame_Checkbox.GetFirstChild("{{{P}}}quad-checkbox") as CMlQuad);
+	{{{P}}}Check(_CheckboxId, !Quad_Checkbox.StyleSelected, _TriggerEvent);
+}
+Void {{{P}}}Toggle(Ident _CheckboxId) {
+	{{{P}}}Toggle(_CheckboxId, False);
+}
+
+Boolean {{{P}}}IsChecked(Ident _CheckboxId) {
+	if (!{{{P}}}G_Checkboxes.existskey(_CheckboxId)) return False;
+	
+	declare Frame_Checkbox <=> {{{P}}}G_Checkboxes[_CheckboxId];
+	return {{{P}}}TextToBoolean(Frame_Checkbox.Parent.Parent.DataAttributeGet("checked"));
+}
+
+Boolean {{{P}}}IsCheckbox(Ident _CheckboxId, CMlControl _Control) {
+	if (_Control == Null) return False;
+	declare {{{P}}}EventsTracked for _Control = NullId;
+	return ({{{P}}}EventsTracked == _CheckboxId);
+}
+
+Text {{{P}}}GetData(Ident _CheckboxId, Text _Field) {
+	if (!{{{P}}}G_Checkboxes.existskey(_CheckboxId)) return "";
+	return {{{P}}}G_Checkboxes[_CheckboxId].Parent.Parent.DataAttributeGet(_Field);
+}
+
+// Get the checkbox associated to a ::MouseClick Event.Control
+CMlControl {{{P}}}GetCheckboxFromEventControl(CMlControl _Control) {
+	if (_Control == Null) return Null;
+	declare {{{P}}}EventsTracked for _Control = NullId;
+	if ({{{P}}}EventsTracked == NullId || !{{{P}}}G_Checkboxes.existskey({{{P}}}EventsTracked)) return Null;
+	return {{{P}}}G_Checkboxes[{{{P}}}EventsTracked].Parent.Parent;
+}
+
+***MainInit***
+***
+{{{P}}}G_Checkboxes = [];
+Page.GetClassChildren("{{{P}}}container-checkbox", Page.MainFrame, True);
+foreach (Control in Page.GetClassChildren_Result) {
+	declare Frame_Checkbox <=> ((Control as CMlFrame).GetFirstChild("{{{P}}}frame-checkbox") as CMlFrame);
+	{{{P}}}Private_InitCheckbox(Frame_Checkbox);
+}
+***
+
+***MainLoop***
+***
+{{{P}}}PendingEvents = [];
+
+foreach (Event in PendingEvents) {
+	if (Event.Type == CMlScriptEvent::Type::MouseClick) {
+		declare {{{P}}}EventsTracked for Event.Control = NullId;
+		if ({{{P}}}EventsTracked != NullId) {
+			{{{P}}}Toggle({{{P}}}EventsTracked, True);
+		}
+	}
+}
+***
+		""",
+		[],
+		[]
+	);
+}

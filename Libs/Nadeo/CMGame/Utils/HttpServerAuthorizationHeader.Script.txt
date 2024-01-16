@@ -1,0 +1,43 @@
+/**
+ *	Http authorization header
+ */
+#Const Version		"1.0.1"
+#Const ScriptName	"Libs/Nadeo/CMGame/Utils/HttpServerAuthorizationHeader.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constant
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Token_Null ""
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Add the Live authorization header to headers
+Text[Text] GetHeadersWithLiveAuthorization(Text[Text] _Headers) {
+	declare Text[Text] Headers = _Headers;
+	declare Text LibCommonHttpServerAuthorizationHeader_LiveToken for This = C_Token_Null;
+	Headers["Authorization"] = "nadeo_v1 t="^LibCommonHttpServerAuthorizationHeader_LiveToken;
+	return Headers;
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Set the Live services token
+Void SetLiveToken(Text _LiveToken) {
+	declare Text LibCommonHttpServerAuthorizationHeader_LiveToken for This = C_Token_Null;
+	LibCommonHttpServerAuthorizationHeader_LiveToken = _LiveToken;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Add the Club authorization header to headers
+Text[Text] GetHeadersWithClubAuthorization(Text[Text] _Headers) {
+	declare Text[Text] Headers = _Headers;
+	declare Text LibCommonHttpServerAuthorizationHeader_ClubToken for This = C_Token_Null;
+	Headers["Authorization"] = "nadeo_v1 t="^LibCommonHttpServerAuthorizationHeader_ClubToken;
+	return Headers;
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Set the Club services token
+Void SetClubToken(Text _ClubToken) {
+	declare Text LibCommonHttpServerAuthorizationHeader_ClubToken for This = C_Token_Null;
+	LibCommonHttpServerAuthorizationHeader_ClubToken = _ClubToken;
+}

@@ -1,0 +1,17 @@
+/** 
+ *	Structs for the HotSeat mode
+ */
+#Const Version		"2023-03-15"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Modes/HotSeat/Structs.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structs
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_HotSeatPlayer {
+	Text PlayerName;
+	Text PlayerTrigram;
+	Integer BestTime;
+	Integer EnergyAmount;
+	Vec3 Color;
+	Integer Rank;
+}

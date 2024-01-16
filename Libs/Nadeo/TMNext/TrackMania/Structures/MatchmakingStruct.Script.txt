@@ -1,0 +1,305 @@
+/**
+ *	Structures for Matchmaking
+ */
+#Const Version		"2023-06-05"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Structures/MatchmakingStruct.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct LibStructuresMatchmaking_K_Heartbeat {
+	Text Status;
+	Integer CreationDate;
+	Integer MatchmakingWaitingTime;
+	Text MatchLiveId;
+	Integer BanEndDate;
+}
+#Struct LibStructuresMatchmaking_K_Penalty {
+	Integer CreationDate;
+	Integer Points;
+}
+#Struct LibStructuresMatchmaking_K_PlayerStatus {
+	LibStructuresMatchmaking_K_Heartbeat CurrentHeartbeat;
+	LibStructuresMatchmaking_K_Penalty Penalty;
+	Text CurrentDivision;
+	Integer CurrentProgression;
+	Text MatchmakingStatus;
+}
+#Struct LibStructuresMatchmaking_K_PlayerRank {
+	Integer MatchmakingId;
+	Text AccountId;
+	Integer Score;
+}
+#Struct LibStructuresMatchmaking_K_PlayerProgression {
+	Text AccountId;
+	Text CurrentDivision;
+	Integer CurrentProgression;
+}
+#Struct LibStructuresMatchmaking_K_MatchParticipants {
+	Boolean IsCompleted;
+	LibStructuresMatchmaking_K_PlayerProgression[Text] Participants;
+}
+#Struct LibStructuresMatchmaking_K_TeamMember {
+	Text AccountId;
+	Text Name;
+	Text ClubTag;
+	Text FlagUrl;
+	Integer Score;
+	Integer BestTime;
+	Boolean IsFakeUser;
+}
+#Struct LibStructuresMatchmaking_K_Division {
+	Text Id;
+	Integer Position;
+	Text RuleType;
+	Integer MinimumPoints;
+	Integer MaximumPoints;
+	Integer MinimumRank;
+}
+#Struct LibStructuresMatchmaking_K_Mode {
+	Text Id;
+	Text Name;
+	Text Info;
+	Text QueueName;
+	Text Music;
+}
+#Struct LibStructuresMatchmaking_K_QueueSummary {
+	Integer Ranked_3v3_Id;
+	Integer Royal_Id;
+	Integer Super_Royal_Id;
+}
+#Struct LibStructuresMatchmaking_K_Queue {
+	Integer Id;
+	Text Path;
+	Text Name;
+}
+#Struct LibStructuresMatchmaking_K_SuperRoyal {
+	Integer StartsIn;
+	Text Status;
+	Text MatchLiveId;
+}
+#Struct LibStructuresMatchmaking_K_SuperRoyalStatistics {
+	Integer BronzeVictories;
+	Integer SilverVictories;
+	Integer GoldVictories;
+	Integer MasterVictories;
+}
+#Struct LibStructuresMatchmaking_K_PlayerStatistics {
+	Integer MatchmakingId;
+	Text AccountId;
+	Text CurrentDivision;
+	Integer CurrentProgression;
+	Text BestDivision;
+	Integer BestProgressionDate;
+	Integer BestProgression;
+	Text PreviousDivision;
+	Integer PreviousProgression;
+	Integer PreviousProgressionDate;
+	Integer MVPCount;
+	Integer Victories;
+	Integer PlayedMatches;
+}
+#Struct LibStructuresMatchmaking_K_PlayerLeaderboard {
+	Text AccountId;
+	Integer Rank;
+	Integer Score;
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_ComponentName "structures-matchmaking"
+#Const P "LibStructuresMatchmaking_"
+
+#Const C_Status_NotInQueue ""
+#Const C_Status_Pending "pending"
+#Const C_Status_SkillGapCanceled "skill_gap_canceled"
+#Const C_Status_DifferentCodeCanceled "different_code_canceled"
+#Const C_Status_CrossplayCanceled "crossplay_canceled"
+#Const C_Status_MaintenanceCanceled "maintenance_canceled"
+#Const C_Status_Queued "queued"
+#Const C_Status_MatchFound "match_found"
+#Const C_Status_MatchAccepted "match_accepted"
+#Const C_Status_MatchReady "match_ready"
+#Const C_Status_Canceled "canceled"
+#Const C_Status_Banned "banned"
+#Const C_Status_UnderMaintenance "matchmaking_under_maintenance"
+#Const C_Status_OldGameVersion "old_game_version"
+#Const C_Status_Unknown "Unknown" // Not an API response, "" stands for NotInQueue so we need to differentiate it from unknown
+
+#Const C_Matchmaking_Status_Enabled "enabled"
+#Const C_Matchmaking_Status_Under_Maintenance "under_maintenance"
+#Const C_Matchmaking_Status_Too_Many_Matches "too_many_matches"
+
+#Const C_SuperRoyal_Status_NotRegistered "not_registered"
+#Const C_SuperRoyal_Status_Pending "pending"
+#Const C_SuperRoyal_Status_Qualified "qualified"
+#Const C_SuperRoyal_Status_Eliminated "eliminated"
+#Const C_SuperRoyal_Status_Over "over"
+
+#Const C_Status_ScoresDeltaReady 200
+
+#Const C_RuleType_Points "points_range"
+#Const C_RuleType_MinPoints "minimum_points"
+#Const C_RuleType_MinPointsAndRank "minimum_rank_and_points"
+
+#Const C_MatchmakingQueueId_None -123
+#Const C_MatchmakingQueueId_Debug 1
+
+#Const C_MatchmakingQueuePath_None ""
+#Const C_MatchmakingQueuePath_Debug "debug"
+
+#Const C_MatchmakingQueueName_None ""
+#Const C_MatchmakingQueueName_Debug "Official debug"
+
+#Const C_Status_PartyCode_NotFound 404
+#Const C_Status_PartyCode_IncompatiblePlatform 500
+
+#Const C_MatchmakingQueue_None LibStructuresMatchmaking_K_Queue {
+	Id = -123,
+	Path = "",
+	Name = ""
+}
+#Const C_MatchmakingQueue_Debug LibStructuresMatchmaking_K_Queue {
+	Id = 1,
+	Path = "debug",
+	Name = "Official debug"
+}
+
+#Const C_Mode_Null ""
+#Const C_Mode_Teams3v3 "Teams 3v3"
+#Const C_Mode_Royal "Royal"
+#Const C_Mode_SuperRoyal "SuperRoyal"
+
+#Const C_SoundId_Royal "RoyalMusic"
+#Const C_SoundFilePath_Royal "file://Media/Manialinks/Nadeo/TMNext/Modes/Royal/"
+#Const C_SoundFileName_Royal "RoyalMenu-MusicLoop.ogg"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the manialink component
+Text Component() {
+	//L16N [Teams Matchmaking] Mode rules as shown on matchmaking page
+	declare Text ModeInfo_Teams3v3 = _("The players are divided into two competing teams: Blue versus Red.\nAs the match progresses, players drive several times on the same track. Each time they earn points for their team according to their position at the finish. The distribution of points is adjusted according to the number of players starting the race. At the end of each race, the points of the players on each team are added up and the team with the most points wins the race. The first team to win 5 races wins the match.");
+	declare Text ModeInfo_Royal = TL::Compose(
+		//L16N [Royal Matchmaking] Mode rules as shown on matchmaking page. %1 will be replaced by the number of teams. %2 will be replaced by the number of players in one team. %3 will be replaced by the number of teams that play the last round. e.g. : "20 teams of 3 players compete for the win.\nThe game is played in several rounds. Each round, the first teams to finish the race are qualified for the next round while the last ones are eliminated. After a few rounds, only 4 teams will remain. The team that wins this last race wins the match."
+		_("%1 teams of %2 players compete for the win.\nThe game is played in several rounds. Each round, the first teams to finish the race are qualified for the next round while the last ones are eliminated. After a few rounds, only %3 teams will remain. The team that wins this last race wins the match."),
+		"20", "3", "4"
+	);
+
+	return MV::Component(
+		C_ComponentName,
+		"""
+		""",
+		"""
+{{{dumptype(LibStructuresMatchmaking_K_Heartbeat)}}}
+{{{dumptype(LibStructuresMatchmaking_K_Penalty)}}}
+{{{dumptype(LibStructuresMatchmaking_K_PlayerStatus)}}}
+{{{dumptype(LibStructuresMatchmaking_K_PlayerRank)}}}
+{{{dumptype(LibStructuresMatchmaking_K_PlayerProgression)}}}
+{{{dumptype(LibStructuresMatchmaking_K_MatchParticipants)}}}
+{{{dumptype(LibStructuresMatchmaking_K_TeamMember)}}}		
+{{{dumptype(LibStructuresMatchmaking_K_Division)}}}
+{{{dumptype(LibStructuresMatchmaking_K_Mode)}}}
+{{{dumptype(LibStructuresMatchmaking_K_Queue)}}}
+{{{dumptype(LibStructuresMatchmaking_K_QueueSummary)}}}
+{{{dumptype(LibStructuresMatchmaking_K_SuperRoyal)}}}
+{{{dumptype(LibStructuresMatchmaking_K_SuperRoyalStatistics)}}}
+{{{dumptype(LibStructuresMatchmaking_K_PlayerStatistics)}}}
+{{{dumptype(LibStructuresMatchmaking_K_PlayerLeaderboard)}}}
+
+#Const {{{P}}}C_Status_NotInQueue {{{dump(C_Status_NotInQueue)}}}
+#Const {{{P}}}C_Status_Pending {{{dump(C_Status_Pending)}}}
+#Const {{{P}}}C_Status_SkillGapCanceled {{{dump(C_Status_SkillGapCanceled)}}}
+#Const {{{P}}}C_Status_DifferentCodeCanceled {{{dump(C_Status_DifferentCodeCanceled)}}}
+#Const {{{P}}}C_Status_CrossplayCanceled {{{dump(C_Status_CrossplayCanceled)}}}
+#Const {{{P}}}C_Status_MaintenanceCanceled {{{dump(C_Status_MaintenanceCanceled)}}}
+#Const {{{P}}}C_Status_Queued {{{dump(C_Status_Queued)}}}
+#Const {{{P}}}C_Status_MatchFound {{{dump(C_Status_MatchFound)}}}
+#Const {{{P}}}C_Status_MatchAccepted {{{dump(C_Status_MatchAccepted)}}}
+#Const {{{P}}}C_Status_MatchReady {{{dump(C_Status_MatchReady)}}}
+#Const {{{P}}}C_Status_Canceled {{{dump(C_Status_Canceled)}}}
+#Const {{{P}}}C_Status_Banned {{{dump(C_Status_Banned)}}}
+#Const {{{P}}}C_Status_UnderMaintenance {{{dump(C_Status_UnderMaintenance)}}}
+#Const {{{P}}}C_Status_OldGameVersion {{{dump(C_Status_OldGameVersion)}}}
+#Const {{{P}}}C_Status_Unknown {{{dump(C_Status_Unknown)}}}
+
+#Const {{{P}}}C_Matchmaking_Status_Enabled {{{dump(C_Matchmaking_Status_Enabled)}}}
+#Const {{{P}}}C_Matchmaking_Status_Under_Maintenance {{{dump(C_Matchmaking_Status_Under_Maintenance)}}}
+#Const {{{P}}}C_Matchmaking_Status_Too_Many_Matches {{{dump(C_Matchmaking_Status_Too_Many_Matches)}}}
+
+#Const {{{P}}}C_SuperRoyal_Status_NotRegistered {{{dump(C_SuperRoyal_Status_NotRegistered)}}}
+#Const {{{P}}}C_SuperRoyal_Status_Pending {{{dump(C_SuperRoyal_Status_Pending)}}}
+#Const {{{P}}}C_SuperRoyal_Status_Qualified {{{dump(C_SuperRoyal_Status_Qualified)}}}
+#Const {{{P}}}C_SuperRoyal_Status_Eliminated {{{dump(C_SuperRoyal_Status_Eliminated)}}}
+#Const {{{P}}}C_SuperRoyal_Status_Over {{{dump(C_SuperRoyal_Status_Over)}}}
+
+#Const {{{P}}}C_RuleType_Points {{{dump(C_RuleType_Points)}}}
+#Const {{{P}}}C_RuleType_MinPointsAndRank {{{dump(C_RuleType_MinPointsAndRank)}}}
+#Const {{{P}}}C_RuleType_MinPoints {{{dump(C_RuleType_MinPoints)}}}
+
+#Const {{{P}}}C_MatchmakingQueueId_None {{{dump(C_MatchmakingQueueId_None)}}}
+#Const {{{P}}}C_MatchmakingQueueId_Debug {{{dump(C_MatchmakingQueueId_Debug)}}}
+
+#Const {{{P}}}C_MatchmakingQueuePath_None {{{dump(C_MatchmakingQueuePath_None)}}}
+#Const {{{P}}}C_MatchmakingQueuePath_Debug {{{dump(C_MatchmakingQueuePath_Debug)}}}
+
+#Const {{{P}}}C_MatchmakingQueueName_None {{{dump(C_MatchmakingQueueName_None)}}}
+#Const {{{P}}}C_MatchmakingQueueName_Debug {{{dump(C_MatchmakingQueueName_Debug)}}}
+
+#Const {{{P}}}C_Status_PartyCode_NotFound {{{dump(C_Status_PartyCode_NotFound)}}}
+#Const {{{P}}}C_Status_PartyCode_IncompatiblePlatform {{{dump(C_Status_PartyCode_IncompatiblePlatform)}}}
+
+#Const {{{P}}}C_MatchmakingQueue_None LibStructuresMatchmaking_K_Queue {
+	Id = {{{dump(C_MatchmakingQueueId_None)}}},
+	Path = {{{dump(C_MatchmakingQueuePath_None)}}},
+	Name = {{{dump(C_MatchmakingQueueName_None)}}}
+}
+#Const {{{P}}}C_MatchmakingQueue_Debug LibStructuresMatchmaking_K_Queue {
+	Id = {{{dump(C_MatchmakingQueueId_Debug)}}},
+	Path = {{{dump(C_MatchmakingQueuePath_Debug)}}},
+	Name = {{{dump(C_MatchmakingQueueName_Debug)}}}
+}
+
+#Const {{{P}}}C_Mode_Null {{{dump(C_Mode_Null)}}}
+#Const {{{P}}}C_Mode_Teams3v3 {{{dump(C_Mode_Teams3v3)}}}
+#Const {{{P}}}C_Mode_Royal {{{dump(C_Mode_Royal)}}}
+#Const {{{P}}}C_Mode_SuperRoyal {{{dump(C_Mode_SuperRoyal)}}}
+
+#Const {{{P}}}C_Modes [
+	{{{dump(C_Mode_Teams3v3)}}} => {{{P}}}K_Mode {
+		Id = {{{dump(C_Mode_Teams3v3)}}},
+		Name = "Teams 3v3",
+		Info = {{{"\"\"\""^ModeInfo_Teams3v3^"\"\"\""}}},
+		QueueName = "3v3",
+		Music = ""
+	},
+	{{{dump(C_Mode_Royal)}}} => {{{P}}}K_Mode {
+		Id = {{{dump(C_Mode_Royal)}}},
+		Name = "Royal",
+		Info = {{{"\"\"\""^ModeInfo_Royal^"\"\"\""}}},
+		QueueName = "royal",
+		Music = "{{{C_SoundId_Royal}}}"
+	},
+	{{{dump(C_Mode_SuperRoyal)}}} => {{{P}}}K_Mode {
+		Id = {{{dump(C_Mode_SuperRoyal)}}},
+		Name = "SuperRoyal",
+		Info = "",
+		QueueName = "super-royal",
+		Music = ""
+	}
+]
+		""",
+		"""
+{{{P}}}K_Mode {{{P}}}GetMode(Text _ModeName) {
+	return {{{P}}}C_Modes.get(_ModeName, {{{P}}}K_Mode {});
+}
+		""",
+[],
+[]
+	);
+}

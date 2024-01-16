@@ -1,0 +1,15 @@
+/** 
+ *	Common constants between maniascript modules and projects
+ */
+#Const Version		"2021-06-01"
+#Const ScriptName	"Libs/Nadeo/CommonLibs/Common/Constants.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Audio files
+#Const C_JsonFilePath_AudioCommon "file://Media/Json/Nadeo/CommonLibs/Audio/AudioCommon.json"
+#Const C_JsonFilePath_AudioMenu "file://Media/Json/Nadeo/CommonLibs/Audio/AudioMenu.json"
+#Const C_JsonFilePath_AudioGame "file://Media/Json/Nadeo/CommonLibs/Audio/AudioGame.json"
+
+#Const C_PadInputCharacters ["","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""]

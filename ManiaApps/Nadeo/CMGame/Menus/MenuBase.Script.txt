@@ -1,0 +1,111 @@
+/**
+ *  Base for title menu
+ */
+#RequireContext CManiaAppTitle
+#Const C_CMGame_Version "1.1.0"
+#Const C_CMGame_ScriptName "ManiaApps/Nadeo/CMGame/Menus/MenuBase.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/CMGame/Utils/BuildInfo.Script.txt" as CMGame_BuildInfo
+#Include "Libs/Nadeo/CMGame/Utils/Config.Script.txt" as CMGame_Config
+#Include "Libs/Nadeo/CMGame/Utils/Error.Script.txt" as CMGame_Error
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_CMGame_State {
+	Integer CurrentNow;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_CMGame_State_Null K_CMGame_State {
+	CurrentNow = 0
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Globales
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+declare K_CMGame_State CMGame_G_State;
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Extends
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+***CMGame_ConfigInit***
+***
+CMGame_Config::Initialize();
+declare Text CMGame_ConfigFilePath = "";
++++CMGame_ConfigSetPath+++
+if (CMGame_ConfigFilePath != "") {
+	declare CMGame_Config::K_Loading ConfigMergeRequest = CMGame_Config::StartMergeFile(Http, CMGame_ConfigFilePath, CMGame_Config::C_Source_ClientTitle);
+	while (CMGame_Config::IsMergingFile(ConfigMergeRequest)) CMGame_Yield();
+	CMGame_Config::StopMergeFile(Http, ConfigMergeRequest);
+}
+***
+
+***CMGame_BuildInfoInit***
+***
+declare CHttpRequest BuildInfoLoadRequest = CMGame_BuildInfo::StartLoadFile();
+while (CMGame_BuildInfo::IsLoadingFile(BuildInfoLoadRequest)) CMGame_Yield();
+CMGame_BuildInfo::StopLoadFile(BuildInfoLoadRequest);
+***
+
+***CMGame_MenuStart***
+***
+CMGame_Error::CheckErrorsValidity();
+***
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** `yield` the mania app script
+ *	It should be the only place that directly calls the `yield` instruction
+ *	Everywhere else this `CMGame_Yield()` function must be called instead
+ */
+Void CMGame_Yield() {
+	+++CMGame_BeforeYield+++
+	if (CMGame_G_State.CurrentNow > 0 && Now > CMGame_G_State.CurrentNow) {
+		log("WARNING: [MenuBase] A frame was skipped with `yield`, `sleep()` or `wait()` ("^CMGame_G_State.CurrentNow^" > "^Now^"). This is considered bad practice. Always use `CMGame_Yield()` to advance to the next frame.");
+	}
+	yield;
+	CMGame_G_State.CurrentNow = Now;
+	+++CMGame_AfterYield+++
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Main
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+main() {
+	CMGame_G_State = C_CMGame_State_Null;
+	CMGame_G_State.CurrentNow = Now;
+
+	LayersDefaultManialinkVersion = 3;
+
+	// First wait for the main user
+	while (UserMgr == Null || UserMgr.MainUser == Null) CMGame_Yield();
+	// Then wait for the persistent variables to be ready to read and write
+	while (!UserMgr.MainUser.PersistentIsReady) CMGame_Yield();
+
+	---CMGame_ConfigInit---
+	---CMGame_BuildInfoInit---
+
+	+++CMGame_LibrariesLoad+++
+
+	+++CMGame_MenuStart+++
+
+	while(True) {
+		CMGame_Yield();
+		+++CMGame_MenuLoop+++
+	}
+
+	+++CMGame_MenuEnd+++
+
+	+++CMGame_LibrariesUnload+++
+
+	// yield one last time to allow any remaining log to be sent
+	CMGame_Yield();
+}

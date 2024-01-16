@@ -1,0 +1,22 @@
+/**
+ * Common code for the `PlayMapAtSave` plugin
+ */
+#Const Version		"1.0.0"
+#Const ScriptName	"Libs/Nadeo/Trackmania/MapEditor/PlayMapAtSave.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Enable or disable the plugin
+Void Enable(CMap _Map, Boolean _Enabled) {
+	declare Boolean PlayMapAtSave_IsEnabled for _Map = True;
+	PlayMapAtSave_IsEnabled = _Enabled;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if the plugin is enabled
+Boolean IsEnabled(CMap _Map) {
+	declare Boolean PlayMapAtSave_IsEnabled for _Map = True;
+	return PlayMapAtSave_IsEnabled;
+}

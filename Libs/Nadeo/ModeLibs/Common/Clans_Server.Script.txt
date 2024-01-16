@@ -1,0 +1,194 @@
+/**
+ *	Clans management (server side)
+ */		
+#Const Version		"2022-09-30"
+#Const ScriptName	"Libs/Nadeo/ModeLibs/Common/Clans_Server.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "MathLib" as ML
+#Include "Libs/Nadeo/ModeLibs/Common/Clans_Common.Script.txt" as Clans
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constantes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_MultiClansMax 30 //< Maximum number of clans supported by the C++
+
+#Const Clans::C_ClanStyle_Default as C_ClanStyle_Default
+#Const Clans::C_ClanStyle_Animals as C_ClanStyle_Animals
+
+#Const Clans::C_Teams_Animals as C_Teams_Animals
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Globales
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+declare Integer G_ClansNb;
+declare Integer G_ClanStyle;
+declare Ident[Integer] G_LoadedSkins;
+declare Boolean G_ClanSkinsEnabled;
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Turn on/off clans
+Void SetUseClans(Boolean _UseClans) {
+	UseClans = _UseClans;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Turn on/off multiclans
+Void SetUseMultiClans(Boolean _UseMultiClans) {
+	UseMultiClans = _UseMultiClans;
+	declare netwrite Boolean Net_ModeLibsClans_UseMultiClans for Teams[0] = False;
+	Net_ModeLibsClans_UseMultiClans = UseMultiClans;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Turn on/off forced clans
+Void SetUseForcedClans(Boolean _UseForcedClans) {
+	UseForcedClans = _UseForcedClans;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Set the number of clans in the mode
+Void SetClansNb(Integer _ClansNb) {
+	assert(_ClansNb <= C_MultiClansMax, "The maximum number of clans is "^C_MultiClansMax^", you tried to use "^_ClansNb^".");
+	G_ClansNb = ML::Max(_ClansNb, 1);
+	
+	declare netwrite Integer Net_ModeLibsClans_ClansNb for Teams[0] = 0;
+	Net_ModeLibsClans_ClansNb = G_ClansNb;
+	
+	if (G_ClansNb > 2) {
+		SetUseClans(False);
+		SetUseMultiClans(True);
+	} else if (G_ClansNb == 2) {
+		SetUseClans(True);
+		SetUseMultiClans(False);
+	} else {
+		SetUseClans(False);
+		SetUseMultiClans(False);
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the number of clans in the mode
+Integer GetClansNb() {
+	return G_ClansNb;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if clans are enabled
+Boolean ClansAreEnabled() {
+	return UseClans || UseMultiClans || G_ClansNb >= 2;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Select a clan style
+Void SetClanStyle(Integer _ClanStyle) {
+	assert(
+		_ClanStyle == C_ClanStyle_Default || _ClanStyle == C_ClanStyle_Animals,
+		"Unknown clan style"
+	);
+	
+	G_ClanStyle = _ClanStyle;
+	declare netwrite Integer Net_ModeLibsClans_ClanStyle for Teams[0] = Clans::C_ClanStyle_Default;
+	Net_ModeLibsClans_ClanStyle = G_ClanStyle;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the current clan style
+Integer GetClanStyle() {
+	return G_ClanStyle;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Load the skins of the current clan style
+Void LoadClanStyleSkins() {
+	declare Clans::K_Team[Integer] StyledTeams;
+	switch (G_ClanStyle) {
+		case C_ClanStyle_Animals: StyledTeams = C_Teams_Animals;
+	}
+	
+	G_LoadedSkins = [];
+	foreach (TeamId => Team in StyledTeams) {
+		if (Team.Skin != "") {
+			G_LoadedSkins[TeamId] = ItemList_AddWithSkin("CarSport", Team.Skin);
+		}
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Automatically apply the clan skin on the players
+Void EnableClanSkins(Boolean _Enabled) {
+	// Remove previously forced skin
+	if (!_Enabled && G_ClanSkinsEnabled) {
+		foreach (Player in AllPlayers) {
+			if (Player.ForceModelId != NullId && G_LoadedSkins.exists(Player.ForceModelId)) {
+				Player.ForceModelId = NullId;
+			}
+		}
+	}
+	G_ClanSkinsEnabled = _Enabled;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if the clans skins are enabled
+Boolean ClanSkinsAreEnabled() {
+	return ClansAreEnabled() && G_ClanSkinsEnabled;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the model id associated to the loaded clan skin
+Ident GetClanModelId(Integer _Clan) {
+	return G_LoadedSkins.get(_Clan, NullId);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+///	Get the color of the given clan
+Vec3 GetClanColor(Integer _Clan) {
+	return Clans::GetClanColor(G_ClanStyle, _Clan);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the foreground color of the given clan
+Vec3 GetClanForegroundColor(Integer _Clan) {
+	return Clans::GetClanForegroundColor(G_ClanStyle, _Clan);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+///	Get the name of the given clan
+Text GetClanName(Integer _Clan, Boolean _UseColor) {
+	return Clans::GetClanName(G_ClanStyle, _Clan, _UseColor);
+}
+Text GetClanName(Integer _Clan) {
+	return Clans::GetClanName(G_ClanStyle, _Clan);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+///	Get the logo of the given clan
+Text GetClanLogo(Integer _Clan) {
+	return Clans::GetClanLogo(G_ClanStyle, _Clan);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the skin of the given clan
+Text GetClanSkin(Integer _Clan) {
+	return Clans::GetClanSkin(G_ClanStyle, _Clan);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Unload the library
+Void Unload() {
+	SetClansNb(0);
+	SetClanStyle(C_ClanStyle_Default);
+	G_LoadedSkins = [];
+	EnableClanSkins(False);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Load the library
+Void Load() {
+	Unload();
+}

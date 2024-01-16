@@ -1,0 +1,10 @@
+/** 
+ *	Constants for the modes
+ */
+#Const Version		"2021-06-23"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Modes/Constants.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_EnableCPSyncedGhost True

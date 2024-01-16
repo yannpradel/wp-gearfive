@@ -1,0 +1,43 @@
+/**
+ *	Http authorization header
+ */
+#Const Version		"2020-09-25"
+#Const ScriptName	"Libs/Nadeo/CommonLibs/Common/HttpServerAuthorizationHeader.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Add the Live authorization header to headers
+Text[Text] GetHeadersWithLiveAuthorization(Text[Text] _Headers) {
+	declare Headers = _Headers;
+	declare Text LibCommonHttpServerAuthorizationHeader_LiveToken for This;
+	Headers["Authorization"] = "nadeo_v1 t="^LibCommonHttpServerAuthorizationHeader_LiveToken;
+	return Headers;
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Set the Live services token
+Void SetLiveToken(Text _LiveToken) {
+	declare Text LibCommonHttpServerAuthorizationHeader_LiveToken for This;
+	LibCommonHttpServerAuthorizationHeader_LiveToken = _LiveToken;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Add the Club authorization header to headers
+Text[Text] GetHeadersWithClubAuthorization(Text[Text] _Headers) {
+	declare Headers = _Headers;
+	declare Text LibCommonHttpServerAuthorizationHeader_ClubToken for This;
+	Headers["Authorization"] = "nadeo_v1 t="^LibCommonHttpServerAuthorizationHeader_ClubToken;
+	return Headers;
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Set the Club services token
+Void SetClubToken(Text _ClubToken) {
+	declare Text LibCommonHttpServerAuthorizationHeader_ClubToken for This;
+	LibCommonHttpServerAuthorizationHeader_ClubToken = _ClubToken;
+}

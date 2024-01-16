@@ -1,0 +1,125 @@
+/**
+ *	Store for Events
+ */
+#Const Version		"2022-11-04"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Stores/EventStore_ML.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/CommonLibs/Common/Store_ML.Script.txt" as Store
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/TMNext/TrackMania/API/CompetitionAPI.Script.txt" as CompetitionAPI
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/CompetitionStruct.Script.txt" as CompetitionStruct
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_EventsPager {
+	CompetitionStruct::LibStructuresCompetition_K_ClubCompetitionShort[Integer] Events;
+	Integer Offset;
+	Integer Total;
+}
+#Struct K_EventDetails {
+	CompetitionStruct::LibStructuresCompetition_K_ClubCompetition Event;
+}
+#Struct K_State {
+	K_EventsPager[Integer] EventsPager;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_State_Null K_State {
+	EventsPager = []
+}
+
+#Const C_ComponentName "lib-store-event"
+#Const P "TMNext_EventStore::"
+#Const Q "TMNext_EventStore"
+#Const C_StoreId "event"
+
+#Const CompetitionAPI::C_Section_AllEvents as C_Section_AllEvents
+#Const CompetitionAPI::C_Section_MyCurrentEvents as C_Section_MyCurrentEvents
+#Const CompetitionAPI::C_Section_AllMyEvents as C_Section_AllMyEvents
+
+#Const C_Action_LoadEventsPage "TMNext_EventStore_Action_LoadEventsPage"
+
+#Const C_Event_MyCurrentEventsUpdated "TMNext_EventStore_Event_MyEventsUpdated"
+#Const C_Event_AllEventsUpdated "TMNext_EventStore_Event_AllEventsUpdated"
+#Const C_Event_AllMyEventsUpdated "TMNext_EventStore_Event_AllMyEventsUpdated"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+K_State GetState() {
+	declare K_State TMNext_EventStore_State for System = C_State_Null;
+	return TMNext_EventStore_State;
+}
+
+CompetitionStruct::LibStructuresCompetition_K_ClubCompetitionShort[Integer] GetMyCurrentEvents() {
+	declare K_State TMNext_EventStore_State for System = C_State_Null;
+	return TMNext_EventStore_State.EventsPager[C_Section_MyCurrentEvents].Events;
+}
+
+Integer GetMyCurrentEventsTotal() {
+	declare K_State TMNext_EventStore_State for System = C_State_Null;
+	return TMNext_EventStore_State.EventsPager[C_Section_MyCurrentEvents].Total;
+}
+
+CompetitionStruct::LibStructuresCompetition_K_ClubCompetitionShort[Integer] GetAllEvents() {
+	declare K_State TMNext_EventStore_State for System = C_State_Null;
+	return TMNext_EventStore_State.EventsPager[C_Section_AllEvents].Events;
+}
+
+Integer GetAllEventsTotal() {
+	declare K_State TMNext_EventStore_State for System = C_State_Null;
+	return TMNext_EventStore_State.EventsPager[C_Section_AllEvents].Total;
+}
+
+CompetitionStruct::LibStructuresCompetition_K_ClubCompetitionShort[Integer] GetAllMyEvents() {
+	declare K_State TMNext_EventStore_State for System = C_State_Null;
+	return TMNext_EventStore_State.EventsPager[C_Section_AllMyEvents].Events;
+}
+
+Integer GetAllMyEventsTotal() {
+	declare K_State TMNext_EventStore_State for System = C_State_Null;
+	return TMNext_EventStore_State.EventsPager[C_Section_AllMyEvents].Total;
+}
+
+Void Action_LoadMyCurrentEventsPage(CMlScript _This, Integer _PageNb, Integer _EventsPerPage) {
+	_This.SendCustomEvent(C_Action_LoadEventsPage, ["", ""^C_Section_MyCurrentEvents, ""^_PageNb, ""^_EventsPerPage]);
+}
+
+Void Action_LoadAllEventsPage(CMlScript _This, Text _FilterName, Integer _PageNb, Integer _EventsPerPage) {
+	_This.SendCustomEvent(C_Action_LoadEventsPage, [_FilterName, ""^C_Section_AllEvents, ""^_PageNb, ""^_EventsPerPage]);
+}
+
+Void Action_LoadAllMyEventsPage(CMlScript _This, Text _FilterName, Integer _PageNb, Integer _EventsPerPage) {
+	_This.SendCustomEvent(C_Action_LoadEventsPage, [_FilterName, ""^C_Section_AllMyEvents, ""^_PageNb, ""^_EventsPerPage]);
+}
+
+Void MainInit(CMlScript _This) {
+	Store::Subscribe(_This, C_StoreId);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the store manialink component
+Text ComponentV2() {
+	return MV::ComponentV2(
+		C_ComponentName,
+		"""
+		""",
+		"""
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/EventStore_ML.Script.txt" as {{{Q}}}
+		""",
+		"""
+***MainInit***
+***
+{{{P}}}MainInit(This);
+***
+		""",
+[CompetitionStruct::Component()],
+[]
+	);
+}

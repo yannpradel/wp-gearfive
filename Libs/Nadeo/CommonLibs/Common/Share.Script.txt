@@ -1,0 +1,22 @@
+/** 
+ *	Share data between the menu and the mode
+ */
+#Const Version		"2020-10-15"
+#Const ScriptName	"Libs/Nadeo/CommonLibs/Common/Share.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if the server is a local server
+Boolean IsLocalServer() {
+	declare Boolean CommonLibs_Share_IsLocalServer for System = False;
+	return CommonLibs_Share_IsLocalServer;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Set the the server is local or not
+Void SetIsLocalServer(Boolean _IsLocalServer) {
+	declare Boolean CommonLibs_Share_IsLocalServer for System = False;
+	CommonLibs_Share_IsLocalServer = _IsLocalServer;
+}

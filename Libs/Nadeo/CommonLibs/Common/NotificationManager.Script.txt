@@ -1,0 +1,100 @@
+/**
+ *	Script environment library
+ */
+#Const Version		"2023-02-08"
+#Const ScriptName	"Libs/Nadeo/CommonLibs/Common/NotificationManager.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/CommonLibs/Common/Log.Script.txt" as Log
+#Include "Libs/Nadeo/CommonLibs/Common/Task.Script.txt" as Task
+#Include "Libs/Nadeo/CommonLibs/Common/MainUser.Script.txt" as MainUser
+#Include "Libs/Nadeo/CommonLibs/Common/SquadNotificationObserver_Social_Menu.Script.txt" as SquadNotifObserver_Social_Menu
+#Include "Libs/Nadeo/CommonLibs/Common/SquadNotificationObserver_SquadMembers_InGame.Script.txt" as SquadNotifObserver_SquadMembers_InGame
+#Include "Libs/Nadeo/CommonLibs/Common/PrestigeNotificationObserver.Script.txt" as PrestigeNotifObserver
+#Include "TextLib" as TL
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_ComponentName "lib-common-notification-manager"
+#Const P "LibCommonNotificationManager_"
+
+#Const C_NotificationCheckInterval 2000
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct LibCommonNotificationManager_K_State {
+	Task::K_Task Task_PopNextNotif;
+	Integer CheckTime;
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Check if a notification is available in the C++ API
+Boolean IsNotificationAvailable() {
+	return WSNotificationMgr.Notification_IsAvailable(MainUser::GetMainUserId());
+}
+
+// Send a task to retrieve the next available notification
+Void PopNextNotification() {
+	declare LibCommonNotificationManager_K_State LibCommonNotificationManager_State for System;
+	if (Task::IsInitialized(LibCommonNotificationManager_State.Task_PopNextNotif)) {
+		LibCommonNotificationManager_State.Task_PopNextNotif = Task::Destroy(LibCommonNotificationManager_State.Task_PopNextNotif);
+	}
+	LibCommonNotificationManager_State.Task_PopNextNotif = Task::Create(WSNotificationMgr, WSNotificationMgr.Notification_PopNext(MainUser::GetMainUserId()));
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Unload library
+Void Unload() {
+	declare LibCommonNotificationManager_K_State LibCommonNotificationManager_State for System;
+	Task::Destroy(LibCommonNotificationManager_State.Task_PopNextNotif);
+	LibCommonNotificationManager_State = LibCommonNotificationManager_K_State {
+		Task_PopNextNotif = Task::GetEmptyTask(),
+		CheckTime = 0
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Load library
+Void Load() {
+	Unload();
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update library for ManiaApp
+Void Yield() {
+	declare LibCommonNotificationManager_K_State LibCommonNotificationManager_State for System;
+
+	// Check at regular interval if notifications are available
+	if (LibCommonNotificationManager_State.CheckTime >= 0 && LibCommonNotificationManager_State.CheckTime <= Now) {
+		if (IsNotificationAvailable()) PopNextNotification();	
+		LibCommonNotificationManager_State.CheckTime = Now + C_NotificationCheckInterval;
+	}
+
+	// Pop next notif task
+	if (Task::IsInitialized(LibCommonNotificationManager_State.Task_PopNextNotif)) {
+		LibCommonNotificationManager_State.Task_PopNextNotif = Task::Update(LibCommonNotificationManager_State.Task_PopNextNotif);
+		if (!Task::IsRunning(LibCommonNotificationManager_State.Task_PopNextNotif)) {
+			declare CTaskResult_WSNotification SourceTask = Task::GetSourceTask_WSNotification(LibCommonNotificationManager_State.Task_PopNextNotif);
+			if (Task::IsSuccess(LibCommonNotificationManager_State.Task_PopNextNotif) && SourceTask != Null) {
+				switchtype (SourceTask.Notification as Notification) {
+					case CNotification_Squad: {
+						if (This is CManiaAppPlayground) {
+							SquadNotifObserver_SquadMembers_InGame::OnEvent(SourceTask);
+						}
+						// We want to receive in the menu the notifications emitted while the user was ingame
+						// See: /trackmania-next/tmnext/-/issues/5083
+						SquadNotifObserver_Social_Menu::OnEvent(SourceTask);
+					}
+					case CNotification_Prestige: PrestigeNotifObserver::OnEvent(SourceTask);
+				}
+			} else if (SourceTask != Null) {
+				Log::Log(TL::Compose("Error while retrieving the next notification. (Error code : %1)", SourceTask.ErrorCode));
+			}
+			LibCommonNotificationManager_State.Task_PopNextNotif = Task::Destroy(LibCommonNotificationManager_State.Task_PopNextNotif);
+		}
+	}
+}

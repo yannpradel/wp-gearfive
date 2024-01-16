@@ -1,0 +1,290 @@
+/** 
+ *	Assets for Trackmania
+ *	
+ *	Available styles
+ *	----------
+ *  - `C_Style_EdgesRounded`: set rounded edges to the asset
+ *  - `C_Style_EdgesStraightSmall`: set small straight edges to the asset
+ *  - `C_Style_TopEdgesRoundedVertical`: set top rounded edges to the asset (vertical means the asset has no skew)
+ *  - `C_Style_BothRoundedEdgesVertical`: set top and bottom rounded edges to the asset (vertical means the asset has no skew)
+ *  - `C_Style_LeftEdgeRounded`: set rounded edges only on the left side of the asset
+ *  - `C_Style_RightEdgeRounded`: set rounded edges only on the right side of the asset
+ *  - `C_Style_RightEdgeSoloRounded`: set rounded edges on the right side of the asset and nothing on the other side
+ *  - `C_Style_ContourRounded`: asset with rounded contours
+ *  - `C_Style_ContourStraight`: asset with straight contours
+ */
+#Const Version		"2023-06-09"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Menu/Components/ExpendableAsset.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/ExpendableAsset.Script.txt" as ExpendableAsset
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as Const
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_OverloadName "component-tmnext-expendable-asset"
+#Const ExpendableAsset::C_Name as C_Name
+#Const ExpendableAsset::P as P
+#Const ExpendableAsset::Q as Q
+
+#Const ExpendableAsset::C_ColorMode_None as C_ColorMode_None
+#Const ExpendableAsset::C_ColorMode_Colorize as C_ColorMode_Colorize
+#Const ExpendableAsset::C_ColorMode_Modulate as C_ColorMode_Modulate
+#Const ExpendableAsset::C_ColorMode_Background as C_ColorMode_Background
+
+#Const C_Style_EdgesRounded "component-tmnext-expendable-asset-style-edges-rounded"
+#Const C_Style_EdgesStraightSmall "component-tmnext-expendable-asset-style-edges-straight-small"
+#Const C_Style_TopEdgesRoundedVertical "component-tmnext-expendable-asset-style-edges-rounded-vertical"
+#Const C_Style_BothRoundedEdgesVertical "component-tmnext-expendable-asset-style-both-edges-rounded-vertical"
+#Const C_Style_LeftEdgeRounded "component-tmnext-expendable-asset-style-left-edge-rounded"
+#Const C_Style_RightEdgeRounded "component-tmnext-expendable-asset-style-right-edge-rounded"
+#Const C_Style_RightEdgeSoloRounded "component-tmnext-expendable-asset-style-right-edge-solo-rounded"
+#Const C_Style_ContourStraight "component-tmnext-expendable-asset-style-contour-straight"
+#Const C_Style_ContourRounded "component-tmnext-expendable-asset-style-contour-rounded"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// When two libraries are merged in the same namespance
+// only the constants from the first libraries are accessible
+// We have to proxy the constants through functions to make them accessible
+Text Style_EdgesRounded() { return C_Style_EdgesRounded; }
+Text Style_EdgesStraightSmall() { return C_Style_EdgesStraightSmall; }
+Text Style_TopEdgesRoundedVertical() { return C_Style_TopEdgesRoundedVertical; }
+Text Style_BothRoundedEdgesVertical() { return C_Style_BothRoundedEdgesVertical; }
+Text Style_LeftEdgeRounded() { return C_Style_LeftEdgeRounded; }
+Text Style_RightEdgeRounded() { return C_Style_RightEdgeRounded; }
+Text Style_ContourStraight() { return C_Style_ContourStraight; }
+Text Style_ContourRounded() { return C_Style_ContourRounded; }
+
+Void TMNext_MainInit(CMlScript _This) {
+	ExpendableAsset::SetAssetsDefaultProperties(_This, ExpendableAsset::K_Properties {
+		Enabled = [
+			ExpendableAsset::C_Property_Height,
+			ExpendableAsset::C_Property_Width,
+			ExpendableAsset::C_Property_HAlign,
+			ExpendableAsset::C_Property_VAlign,
+			ExpendableAsset::C_Property_Images,
+			ExpendableAsset::C_Property_Color,
+			ExpendableAsset::C_Property_Opacity,
+			ExpendableAsset::C_Property_SuperSample
+		],
+		Height = 10.,
+		Width = 60.,
+		HAlign = CMlControl::AlignHorizontal::HCenter,
+		VAlign = CMlControl::AlignVertical::VCenter,
+		Images = [
+			ExpendableAsset::C_Position_Left => ExpendableAsset::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonStraight_Start,
+				Size = <128., 256.>,
+				ColorMode = ExpendableAsset::C_ColorMode_Colorize
+			},
+			ExpendableAsset::C_Position_Middle => ExpendableAsset::K_Image {
+				ColorMode = ExpendableAsset::C_ColorMode_Background
+			},
+			ExpendableAsset::C_Position_Right => ExpendableAsset::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonStraight_End,
+				Size = <128., 256.>,
+				ColorMode = ExpendableAsset::C_ColorMode_Colorize
+			}
+		],
+		Color = <1., 1., 1.>,
+		Opacity = 1.,
+		SuperSample = False
+	});
+	
+	ExpendableAsset::CreateStyle(_This, C_Style_EdgesRounded, ExpendableAsset::K_Properties {
+		Enabled = [ExpendableAsset::C_Property_Images],
+		Images = [
+			ExpendableAsset::C_Position_Left => ExpendableAsset::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_Start,
+				Size = <128., 256.>,
+				ColorMode = ExpendableAsset::C_ColorMode_Colorize
+			},
+			ExpendableAsset::C_Position_Middle => ExpendableAsset::K_Image {
+				ColorMode = ExpendableAsset::C_ColorMode_Background
+			},
+			ExpendableAsset::C_Position_Right => ExpendableAsset::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_End,
+				Size = <128., 256.>,
+				ColorMode = ExpendableAsset::C_ColorMode_Colorize
+			}
+		]
+	});
+
+	ExpendableAsset::CreateStyle(_This, C_Style_EdgesStraightSmall, ExpendableAsset::K_Properties {
+		Enabled = [ExpendableAsset::C_Property_Images],
+		Images = [
+			ExpendableAsset::C_Position_Left => ExpendableAsset::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonStraight_Small_Start,
+				Size = <12., 56.>,
+				ColorMode = ExpendableAsset::C_ColorMode_Colorize
+			},
+			ExpendableAsset::C_Position_Middle => ExpendableAsset::K_Image {
+				ColorMode = ExpendableAsset::C_ColorMode_Background
+			},
+			ExpendableAsset::C_Position_Right => ExpendableAsset::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonStraight_Small_End,
+				Size = <12., 56.>,
+				ColorMode = ExpendableAsset::C_ColorMode_Colorize
+			}
+		]
+	});
+
+	ExpendableAsset::CreateStyle(_This, C_Style_TopEdgesRoundedVertical, ExpendableAsset::K_Properties {
+		Enabled = [ExpendableAsset::C_Property_Images],
+		Images = [
+			ExpendableAsset::C_Position_Left => ExpendableAsset::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_Start_Vertical_Top,
+				Size = <128., 256.>,
+				ColorMode = ExpendableAsset::C_ColorMode_Colorize
+			},
+			ExpendableAsset::C_Position_Middle => ExpendableAsset::K_Image {
+				ColorMode = ExpendableAsset::C_ColorMode_Background
+			},
+			ExpendableAsset::C_Position_Right => ExpendableAsset::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_End_Vertical_Top,
+				Size = <128., 256.>,
+				ColorMode = ExpendableAsset::C_ColorMode_Colorize
+			}
+		]
+	});
+
+	ExpendableAsset::CreateStyle(_This, C_Style_BothRoundedEdgesVertical, ExpendableAsset::K_Properties {
+		Enabled = [ExpendableAsset::C_Property_Images],
+		Images = [
+			ExpendableAsset::C_Position_Left => ExpendableAsset::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_Start_Vertical_Both,
+				Size = <128., 256.>,
+				ColorMode = ExpendableAsset::C_ColorMode_Colorize
+			},
+			ExpendableAsset::C_Position_Middle => ExpendableAsset::K_Image {
+				ColorMode = ExpendableAsset::C_ColorMode_Background
+			},
+			ExpendableAsset::C_Position_Right => ExpendableAsset::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_End_Vertical_Both,
+				Size = <128., 256.>,
+				ColorMode = ExpendableAsset::C_ColorMode_Colorize
+			}
+		]
+	});
+
+	ExpendableAsset::CreateStyle(_This, C_Style_LeftEdgeRounded, ExpendableAsset::K_Properties {
+		Enabled = [ExpendableAsset::C_Property_Images],
+		Images = [
+			ExpendableAsset::C_Position_Left => ExpendableAsset::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_Start,
+				Size = <128., 256.>,
+				ColorMode = ExpendableAsset::C_ColorMode_Colorize
+			},
+			ExpendableAsset::C_Position_Middle => ExpendableAsset::K_Image {
+				ColorMode = ExpendableAsset::C_ColorMode_Background
+			}
+		]
+	});
+	
+	ExpendableAsset::CreateStyle(_This, C_Style_RightEdgeRounded, ExpendableAsset::K_Properties {
+		Enabled = [ExpendableAsset::C_Property_Images],
+		Images = [
+			ExpendableAsset::C_Position_Middle => ExpendableAsset::K_Image {
+				ColorMode = ExpendableAsset::C_ColorMode_Background
+			},
+			ExpendableAsset::C_Position_Right => ExpendableAsset::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_End,
+				Size = <128., 256.>,
+				ColorMode = ExpendableAsset::C_ColorMode_Colorize
+			}
+		]
+	});
+	
+	ExpendableAsset::CreateStyle(_This, C_Style_RightEdgeSoloRounded, ExpendableAsset::K_Properties {
+		Enabled = [ExpendableAsset::C_Property_Images],
+		Images = [
+			ExpendableAsset::C_Position_Left => ExpendableAsset::K_Image {
+				ColorMode = ExpendableAsset::C_ColorMode_Background
+			},
+			ExpendableAsset::C_Position_Middle => ExpendableAsset::K_Image {
+				ColorMode = ExpendableAsset::C_ColorMode_Background
+			},
+			ExpendableAsset::C_Position_Right => ExpendableAsset::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_End,
+				Size = <128., 256.>,
+				ColorMode = ExpendableAsset::C_ColorMode_Colorize
+			}
+		]
+	});
+	
+	ExpendableAsset::CreateStyle(_This, C_Style_ContourStraight, ExpendableAsset::K_Properties {
+		Enabled = [ExpendableAsset::C_Property_Images],
+		Images = [
+			ExpendableAsset::C_Position_Left => ExpendableAsset::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonStraight_StartContour,
+				Size = <128., 256.>,
+				ColorMode = ExpendableAsset::C_ColorMode_Colorize
+			},
+			ExpendableAsset::C_Position_Middle => ExpendableAsset::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonStraight_MiddleContour,
+				Size = <128., 256.>,
+				ColorMode = ExpendableAsset::C_ColorMode_Colorize
+			},
+			ExpendableAsset::C_Position_Right => ExpendableAsset::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonStraight_EndContour,
+				Size = <128., 256.>,
+				ColorMode = ExpendableAsset::C_ColorMode_Colorize
+			}
+		]
+	});
+	
+	ExpendableAsset::CreateStyle(_This, C_Style_ContourRounded, ExpendableAsset::K_Properties {
+		Enabled = [ExpendableAsset::C_Property_Images],
+		Images = [
+			ExpendableAsset::C_Position_Left => ExpendableAsset::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_StartContour,
+				Size = <128., 256.>,
+				ColorMode = ExpendableAsset::C_ColorMode_Colorize
+			},
+			ExpendableAsset::C_Position_Middle => ExpendableAsset::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_MiddleContour,
+				Size = <128., 256.>,
+				ColorMode = ExpendableAsset::C_ColorMode_Colorize
+			},
+			ExpendableAsset::C_Position_Right => ExpendableAsset::K_Image {
+				Url = Const::C_ImageUrl_Common_ButtonRounded_EndContour,
+				Size = <128., 256.>,
+				ColorMode = ExpendableAsset::C_ColorMode_Colorize
+			}
+		]
+	});
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the component
+ *
+ *	@return														The component id
+ */
+Text ComponentV2() {
+	return MV::ComponentV2(
+		C_OverloadName,
+		"""
+		""",
+		"""
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/ExpendableAsset.Script.txt" as {{{Q}}}
+		""",
+		"""
+***MainInit***
+***
+{{{P}}}TMNext_MainInit(This);
+***
+		""",
+		[ExpendableAsset::ComponentV2()],
+		[]
+	);
+}

@@ -1,0 +1,123 @@
+/**
+ *	UI module: LoadingScreen client side
+ *	Loading screen displayed in game modes during track loading
+ *
+ * /!\ `UI` is `Null` in the loading screen layer. Can't use it for a `netread`.
+ */
+#Const Version		"2023-01-06"
+#Const ScriptName	"ManiaApps/Nadeo/TMxSM/Race/UIModules/LoadingScreen_Client.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Client.Script.txt" as UIModules
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/LoadingScreen_Common.Script.txt" as UIModules_LoadingScreen_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const UIModules_LoadingScreen_Common::C_Id as C_Id
+#Const UIModules_LoadingScreen_Common::C_LayerType as C_LayerType
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the id of the UI module
+Text GetId() {
+	return C_Id;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the type of layer of the UI module
+CUILayer::EUILayerType GetLayerType() {
+	return C_LayerType;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the module manialink
+ *
+ *  @return                           The module manialink
+ */
+Text GetML() {
+	return MV::Create(
+		C_Id, 3,
+"""
+<frame id="frame-global" z-index="1" hidden="1">
+	<frame {{{UIModules::CustomizableUIModule(UIModules_LoadingScreen_Common::C_UIModuleConfig)}}}>
+		<quad id="quad-background" z-index="0" size="320 180" halign="center" valign="center" bgcolor="000000" fullscreen="1" />
+		<quad id="quad-image" z-index="1" size="320 180" halign="center" valign="center" keepratio="fit"  />
+	</frame>
+</frame>
+""",
+"""
+#Struct K_Controls {
+	CMlFrame Frame_Global;
+	CMlQuad Quad_Background;
+	CMlQuad Quad_Image;
+}
+#Struct K_State {
+	K_Controls Controls;
+	Text ImageUrl;
+	Boolean DownloadInProgress;
+}
+""",
+"""
+K_State SetVisibility(K_State _State, Boolean _DownloadInProgress) {
+	declare K_State State = _State;
+	
+	State.DownloadInProgress = _DownloadInProgress;
+	State.Controls.Frame_Global.Visible = (State.ImageUrl != "" && !State.DownloadInProgress);
+
+	return State;
+}
+
+K_State SetImageUrl(K_State _State, Text _ImageUrl) {
+	declare K_State State = _State;
+
+	State.ImageUrl = _ImageUrl;
+	if (State.ImageUrl != "") PreloadImage(State.ImageUrl);
+	State.Controls.Quad_Image.ImageUrl = State.ImageUrl;
+	State = SetVisibility(State, State.Controls.Quad_Image.DownloadInProgress);
+
+	return State;
+}
+
+***MainInit***
+***
+declare netread Text Net_Race_LoadingScreen_ImageUrl for Teams[0] = "";
+
+declare K_State State;
+***
+
+***MainStart***
+***
+State.Controls.Frame_Global = (Page.GetFirstChild("frame-global") as CMlFrame);
+State.Controls.Quad_Background = (State.Controls.Frame_Global.GetFirstChild("quad-background") as CMlQuad);
+State.Controls.Quad_Image = (State.Controls.Frame_Global.GetFirstChild("quad-image") as CMlQuad);
+
+State = SetImageUrl(State, Net_Race_LoadingScreen_ImageUrl);
+***
+
+***MainLoop***
+***
+if (PageIsVisible) {
+	if (State.ImageUrl != Net_Race_LoadingScreen_ImageUrl) {
+		State = SetImageUrl(State, Net_Race_LoadingScreen_ImageUrl);
+	}
+	if (State.DownloadInProgress != State.Controls.Quad_Image.DownloadInProgress) {
+		State = SetVisibility(State, State.Controls.Quad_Image.DownloadInProgress);
+	}
+}
+***
+""",
+[
+	UIModules::Component()
+],
+[]
+	);
+}

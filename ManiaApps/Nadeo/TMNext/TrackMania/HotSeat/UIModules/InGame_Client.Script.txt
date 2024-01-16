@@ -1,0 +1,306 @@
+/**
+ *  UI module: InGame UI client side
+ */
+#Const Version    "2021-05-03"
+#Const ScriptName "ManiaApps/Nadeo/TMNext/TrackMania/HotSeat/UIModules/InGame_Client.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "MathLib" as ML
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/TMNext/TrackMania/Modes/HotSeat/Consts.Script.txt" as Const
+#Include "ManiaApps/Nadeo/TMNext/TrackMania/HotSeat/Components/NetShare_Client.Script.txt" as NetShare
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+#Include "Libs/Nadeo/TMNext/TrackMania/ColorPalette.Script.txt" as ColorPalette
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as MenuConsts
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Id "UIModules_HotSeat_InGame"
+#Const C_Type CUILayer::EUILayerType::Normal
+
+#Const C_PlayerFrameSize <80., 6.5>
+#Const C_Margin 1.45
+#Const C_LeftShift -2.
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the module manialink
+ *
+ *  @return                           The module manialink
+ */
+Text GetML() {
+	declare Real SizeX_PlayerNameSizeX = C_PlayerFrameSize.X * 0.46;
+	declare Real SizeX_PlayerBestTime = C_PlayerFrameSize.X * 0.46;
+
+	declare Text HotSeatPlayer = "";
+	for (I, 0, Const::C_MaxPlayersNb-1) {
+		declare Real PosY = -(C_PlayerFrameSize.Y + C_Margin) * I;
+		HotSeatPlayer ^= """<frameinstance pos="0 {{{PosY}}}" modelid="framemodel-hotseat-player" id="frame-hotseatplayer-{{{I}}}"/>""";
+	}
+
+	return MV::Create(
+		C_Id, 3,
+		"""
+<stylesheet>
+	<style class="text-base" textfont="{{{FontManager::C_GameFontExtraBold}}}" textcolor="{{{ColorPalette::C_Color_Text}}}" textsize="5" textprefix="$t$i"/>
+	<style class="text-time" textfont="{{{FontManager::C_GameFontSemiBold}}}" textcolor="{{{ColorPalette::C_Color_Text}}}" textsize="4" textprefix="$t$i"/>
+</stylesheet>
+<framemodel id="framemodel-hotseat-player" size="{{{C_PlayerFrameSize.X + ML::Abs(C_LeftShift) + C_PlayerFrameSize.Y}}} {{{C_PlayerFrameSize.Y}}}">
+	<quad id="quad-energy-gauge-background" pos="{{{C_LeftShift}}} 0" opacity=".4" size="{{{C_PlayerFrameSize.X + ML::Abs(C_LeftShift)}}} {{{C_PlayerFrameSize.Y}}}" bgcolor="{{{ColorPalette::C_Color_GreenFive}}}"/>
+	<quad id="quad-energy-gauge" pos="{{{C_LeftShift}}} 0" z-index="1" size="{{{C_PlayerFrameSize.X + ML::Abs(C_LeftShift)}}} {{{C_PlayerFrameSize.Y}}}"/>
+	<label id="label-name" pos="2 -0.3" z-index="2" size="{{{SizeX_PlayerNameSizeX}}} {{{C_PlayerFrameSize.Y}}}" class="text-base"/>
+	<label id="label-besttime" pos="{{{C_PlayerFrameSize.X-2}}} -0.3" z-index="2" halign="right" size="{{{SizeX_PlayerBestTime}}} {{{C_PlayerFrameSize.Y}}}" class="text-time"/>
+	<frame id="frame-currentplayer" hidden="1" z-index="1">
+		<quad id="quad-currentplayer" bgcolor="000" pos="{{{C_PlayerFrameSize.X + 1}}} 0" size="{{{C_PlayerFrameSize.Y}}} {{{C_PlayerFrameSize.Y}}}" z-index="1"/>
+		<quad id="icon-currentplayer" image="{{{MenuConsts::C_ImageUrl_Icon_Helmet_2_256}}}" colorize="fff" pos="{{{C_PlayerFrameSize.X + 1}}} 0" size="{{{C_PlayerFrameSize.Y}}} {{{C_PlayerFrameSize.Y}}}" z-index="2"/>
+	</frame>
+</framemodel>
+<frame z-index="{{{Const::C_ZIndex_InGame}}}" hidden="1" id="frame-global">
+	<frame id="frame-hotseatplayers" pos="-160 80">
+		{{{HotSeatPlayer}}}
+	</frame>
+</frame>
+		""",
+		"""
+#Include "TextLib" as TL
+#Include "MathLib" as ML
+#Include "ColorLib" as CL
+#Include "Libs/Nadeo/ModeLibs/TrackMania/MV_Utils.Script.txt" as MV_Utils
+#Include "Libs/Nadeo/TMNext/TrackMania/Modes/HotSeat/Consts.Script.txt" as Const
+#Include "Libs/Nadeo/TMNext/TrackMania/Modes/HotSeat/Structs.Script.txt" as Struct
+""",
+"""
+Void SetPlayerBestTime(CMlFrame _Frame_HotSeatPlayer, Integer _PlayerID, Integer _PlayerBestTime, Integer _BestPlayerID, Integer _BestTime) {
+	declare Label_BestTime <=> (_Frame_HotSeatPlayer.GetFirstChild("label-besttime") as CMlLabel);
+	if (_PlayerBestTime == Const::C_BestTime_None) Label_BestTime.SetText("--:--.---");
+	//L16N acronym of the term Did Not Finish (https://en.wikipedia.org/wiki/Did_Not_Finish)
+	else if (_PlayerBestTime == Const::C_BestTime_RaceNotFinished) Label_BestTime.SetText(_("|DidNotFinish|DNF"));
+	else if (_PlayerID == _BestPlayerID) Label_BestTime.SetText(TL::TimeToText(_PlayerBestTime, True, True));
+	else Label_BestTime.SetText("+"^TL::TimeToText(_PlayerBestTime-_BestTime, True, True));
+}
+
+Void SetPlayerEnergy(CMlFrame _Frame_HotSeatPlayer, Integer _EnergyAmount, Integer _MaxEnergyAmount) {
+	if (_Frame_HotSeatPlayer == Null) return;
+	declare Quad_EnergyGauge <=> (_Frame_HotSeatPlayer.GetFirstChild("quad-energy-gauge") as CMlQuad);
+	if (_MaxEnergyAmount == 0) {
+		Quad_EnergyGauge.RelativePosition_V3.X = {{{C_LeftShift}}};
+	} else {
+		Quad_EnergyGauge.RelativePosition_V3.X = {{{C_LeftShift}}} + ({{{C_PlayerFrameSize.X}}} * -(1. - (_EnergyAmount / (_MaxEnergyAmount*1.))));
+	}
+}
+
+Integer GetBestPlayerId(Struct::K_HotSeatPlayer[Integer] _HotSeatPlayers) {
+	declare Integer BestPlayerID = Const::C_PlayerID_Null;
+	foreach (Id => HotSeatPlayer in _HotSeatPlayers) {
+		if (HotSeatPlayer.BestTime > 0 && (BestPlayerID < 0 || HotSeatPlayer.Rank < _HotSeatPlayers[BestPlayerID].Rank)) {
+			BestPlayerID = Id;
+		}
+	}
+
+	return BestPlayerID;
+}
+
+/*	Init players' displays
+ *		@param	_Frames_HotSeatPlayers	list of players' display to init, sorted by rank
+ *		@param	_HotSeatPlayers					list of players' infos that will be used to update _Frames_HotSeatPlayers
+ */
+Void InitHotSeatPlayers(CMlFrame[] _Frames_HotSeatPlayers, Struct::K_HotSeatPlayer[Integer] _HotSeatPlayers, Integer _MaxEnergyAmount) {
+	declare Integer BestPlayerID = GetBestPlayerId(_HotSeatPlayers);
+	
+	// Hide all frames
+	foreach (Frame_HotSeatPlayer in _Frames_HotSeatPlayers) Frame_HotSeatPlayer.Hide();
+
+	// Assign a frame to each each player and init it
+	foreach (PlayerID => HotSeatPlayer in _HotSeatPlayers) {
+		if (_Frames_HotSeatPlayers.existskey(HotSeatPlayer.Rank)) {
+			declare Frame_HotSeatPlayer = _Frames_HotSeatPlayers[HotSeatPlayer.Rank];
+			// Assign PlayerID to frame
+			declare Integer HotSeat_PlayerID for Frame_HotSeatPlayer;
+			HotSeat_PlayerID = PlayerID;
+			// Set name label and color
+			declare Label_Name <=> (Frame_HotSeatPlayer.GetFirstChild("label-name") as CMlLabel);
+			declare Label_BestTime <=> (Frame_HotSeatPlayer.GetFirstChild("label-besttime") as CMlLabel);
+			Label_Name.SetText(HotSeatPlayer.PlayerName);
+			//Turn Yellow and White labels to greenfive instead of white
+			if (HotSeatPlayer.PlayerName == _("Yellow") || HotSeatPlayer.PlayerName == _("White")) {
+				Label_Name.TextColor = CL::Hex6ToRgb("{{{ColorPalette::C_Color_GreenFive}}}");
+				Label_BestTime.TextColor = CL::Hex6ToRgb("{{{ColorPalette::C_Color_GreenFive}}}");
+			} else {
+				Label_Name.TextColor = CL::Hex6ToRgb("{{{ColorPalette::C_Color_Text}}}");
+				Label_BestTime.TextColor = CL::Hex6ToRgb("{{{ColorPalette::C_Color_Text}}}");
+			}
+			// Set best time display
+			SetPlayerBestTime(Frame_HotSeatPlayer, PlayerID, HotSeatPlayer.BestTime, BestPlayerID, _HotSeatPlayers.get(BestPlayerID, Struct::K_HotSeatPlayer {}).BestTime);
+			// Set gauge display (color and energy amount)
+			(Frame_HotSeatPlayer.GetFirstChild("quad-energy-gauge") as CMlQuad).BgColor = HotSeatPlayer.Color;
+			declare Quad_EnergyGaugeBg <=> (Frame_HotSeatPlayer.GetFirstChild("quad-energy-gauge-background") as CMlQuad);
+			if (HotSeatPlayer.PlayerName == _("Green")) {
+				Quad_EnergyGaugeBg.BgColor = CL::Hex6ToRgb("{{{ColorPalette::C_Color_GreenThree}}}");
+			} else {
+				Quad_EnergyGaugeBg.BgColor = HotSeatPlayer.Color;
+			}
+			SetPlayerEnergy(Frame_HotSeatPlayer, HotSeatPlayer.EnergyAmount, _MaxEnergyAmount);
+			// Set the frame correct position and display
+			Frame_HotSeatPlayer.RelativePosition_V3.Y = -{{{C_PlayerFrameSize.Y + C_Margin}}} * HotSeatPlayer.Rank;
+			Frame_HotSeatPlayer.Show();
+		}
+	}
+}
+
+/*	Refresh players' displays with rank change animations
+ *		@param	_Frames_HotSeatPlayers	list of players' display to update
+ *		@param	_HotSeatPlayers					list of players' infos that will be used to update _Frames_HotSeatPlayers
+ */
+Void RefreshHotSeatPlayers(CMlFrame[] _Frames_HotSeatPlayers, Struct::K_HotSeatPlayer[Integer] _HotSeatPlayers, Integer _MaxEnergyAmount) {
+	declare Integer BestPlayerID = GetBestPlayerId(_HotSeatPlayers);
+	
+	foreach (Frame_HotSeatPlayer in _Frames_HotSeatPlayers) {
+		declare Integer HotSeat_PlayerID for Frame_HotSeatPlayer = Const::C_PlayerID_Null;
+		if (_HotSeatPlayers.existskey(HotSeat_PlayerID)) {
+			declare HotSeatPlayer = _HotSeatPlayers[HotSeat_PlayerID];
+			// Set best time display
+			SetPlayerBestTime(Frame_HotSeatPlayer, HotSeat_PlayerID, HotSeatPlayer.BestTime, BestPlayerID, _HotSeatPlayers.get(BestPlayerID, Struct::K_HotSeatPlayer {}).BestTime);
+			// Set energy amount
+			SetPlayerEnergy(Frame_HotSeatPlayer, HotSeatPlayer.EnergyAmount, _MaxEnergyAmount);
+			// Move frame at the correct position and display
+			AnimMgr.Flush(Frame_HotSeatPlayer);
+			AnimMgr.Add(Frame_HotSeatPlayer, "<anim pos=\"0 "^(-{{{C_PlayerFrameSize.Y + C_Margin}}} * HotSeatPlayer.Rank)^"\" />", Now, 250, CAnimManager::EAnimManagerEasing::QuadOut);
+			Frame_HotSeatPlayer.Show();
+		} else {
+			Frame_HotSeatPlayer.Hide();
+		}
+	}
+}
+
+/*	Set current player on display
+ *		@return		The frame representing the current player in the UI
+ */
+CMlFrame SetCurrentPlayer(CMlFrame[] _Frames_HotSeatPlayers, Integer _CurrentPlayerID) {
+	declare CMlFrame Frame_NewHotSeatPlayer;
+	foreach (Frame_HotSeatPlayer in _Frames_HotSeatPlayers) {
+		declare Integer HotSeat_PlayerID for Frame_HotSeatPlayer = Const::C_PlayerID_Null;
+		if (HotSeat_PlayerID == _CurrentPlayerID) {
+			Frame_HotSeatPlayer.GetFirstChild("frame-currentplayer").Show();
+			Frame_NewHotSeatPlayer = Frame_HotSeatPlayer;
+		} else {
+			Frame_HotSeatPlayer.GetFirstChild("frame-currentplayer").Hide();
+		}
+	}
+	return Frame_NewHotSeatPlayer;
+}
+
+Void PlayEnergyGaugeAnim(CMlFrame _Frame_HotSeatPlayer, Boolean _Play) {
+	if (_Frame_HotSeatPlayer == Null) return;
+	declare Quad_EnergyGauge <=> (_Frame_HotSeatPlayer.GetFirstChild("quad-energy-gauge") as CMlQuad);
+	if (_Play) Quad_EnergyGauge.Opacity = ML::Abs(ML::Sin(Now * 0.003))/1.5 + 0.3;
+	else Quad_EnergyGauge.Opacity = 1.;
+}
+
+***MainInit***
+***
+declare CMlFrame Frame_Global;
+declare CMlFrame[] Frames_HotSeatPlayers;
+
+declare CMlFrame Frame_CurrentHotSeatPlayer;
+
+declare Boolean DisplayModule;
+declare Boolean PlayerStarted;
+declare Integer InitVersion;
+declare Integer RefreshVersion;
+declare Integer CurrentPlayerID;
+declare Integer ForcedPlayerEnergyAmount;
+***
+
+***MainStart***
+***
+Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+for (I, 0, Const::C_MaxPlayersNb-1) {
+	Frames_HotSeatPlayers.add((Frame_Global.GetFirstChild("frame-hotseatplayer-"^I) as CMlFrame));
+}
+
+declare netread Integer Net_HotSeat_InGame_ForcedPlayerEnergyAmount for Teams[0];
+declare netread Integer Net_HotSeat_InGame_MaxEnergyAmount for Teams[0];
+declare netread Boolean Net_HotSeat_InGame_PlayerStarted for Teams[0];
+declare netread Integer Net_HotSeat_InGame_InitVersion for Teams[0];
+declare netread Integer Net_HotSeat_InGame_RefreshVersion for Teams[0];
+
+DisplayModule = Frame_Global.Visible;
+CurrentPlayerID = Const::C_PlayerID_Null;
+ForcedPlayerEnergyAmount = -1;
+***
+
+***MainLoop***
+***
+
+if (PageIsVisible) {
+	declare Owner <=> MV_Utils::GetOwner(This);
+	if (Owner != Null) {
+		declare netread Boolean Net_HotSeat_InGame_IsVisible for Owner;
+		if (DisplayModule != Net_HotSeat_InGame_IsVisible) {
+			DisplayModule = Net_HotSeat_InGame_IsVisible;
+			Frame_Global.Visible = DisplayModule;
+		}
+
+		if (Frame_Global.Visible) {
+			// Init gauges display
+			if (InitVersion != Net_HotSeat_InGame_InitVersion) {
+				InitVersion = Net_HotSeat_InGame_InitVersion;
+				InitHotSeatPlayers(Frames_HotSeatPlayers, {{{NetShare::P}}}GetHotSeatPlayers(), Net_HotSeat_InGame_MaxEnergyAmount);
+				CurrentPlayerID = Const::C_PlayerID_Null;
+				Frame_CurrentHotSeatPlayer = SetCurrentPlayer(Frames_HotSeatPlayers, CurrentPlayerID);
+			}
+
+			// Refresh gauges display with rank animation
+			if (RefreshVersion != Net_HotSeat_InGame_RefreshVersion) {
+				RefreshVersion = Net_HotSeat_InGame_RefreshVersion;
+				RefreshHotSeatPlayers(Frames_HotSeatPlayers, {{{NetShare::P}}}GetHotSeatPlayers(), Net_HotSeat_InGame_MaxEnergyAmount);
+			}
+
+			// Update current player
+			declare NewCurrentPlayerID = {{{NetShare::P}}}GetCurrentPlayerID();
+			if (CurrentPlayerID != NewCurrentPlayerID) {
+				PlayEnergyGaugeAnim(Frame_CurrentHotSeatPlayer, False);
+				CurrentPlayerID = NewCurrentPlayerID;
+				Frame_CurrentHotSeatPlayer = SetCurrentPlayer(Frames_HotSeatPlayers, CurrentPlayerID);
+			}
+
+			// Forcefully set the current player energy value
+			if (ForcedPlayerEnergyAmount != Net_HotSeat_InGame_ForcedPlayerEnergyAmount) {
+				ForcedPlayerEnergyAmount = Net_HotSeat_InGame_ForcedPlayerEnergyAmount;
+				if (ForcedPlayerEnergyAmount >= 0) {
+					SetPlayerEnergy(Frame_CurrentHotSeatPlayer, ForcedPlayerEnergyAmount, Net_HotSeat_InGame_MaxEnergyAmount);
+				}
+			}
+
+			// Current player gauge anim
+			if (Net_HotSeat_InGame_PlayerStarted != PlayerStarted) {
+				PlayerStarted = Net_HotSeat_InGame_PlayerStarted;
+				if (!PlayerStarted) {
+					PlayEnergyGaugeAnim(Frame_CurrentHotSeatPlayer, False);
+				}
+			}
+			if (PlayerStarted && !IsInGameMenuDisplayed) {
+				PlayEnergyGaugeAnim(Frame_CurrentHotSeatPlayer, True);
+			}
+		}
+	} else if (DisplayModule) {
+		DisplayModule = False;
+		Frame_Global.Visible = DisplayModule;
+	}
+}
+***
+""",
+[
+	NetShare::Component()
+],
+[]
+	);
+}

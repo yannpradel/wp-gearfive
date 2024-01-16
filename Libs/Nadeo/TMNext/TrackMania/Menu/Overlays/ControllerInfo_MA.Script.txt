@@ -1,0 +1,140 @@
+/** 
+ *	Overlay: ControllerInfo
+ */
+#Const Version		"2022-11-02"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Menu/Overlays/ControllerInfo_MA.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/ButtonsList2.Script.txt" as ButtonsList
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Router_ML.Script.txt" as Router
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as Const
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "Overlay_ControllerInfo"
+#Const C_ResetOnRouteChange True
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the overlay manialink
+ *
+ *	@return														The overlay manialink
+ */
+Text GetManialink() {
+	return MV::Create(
+C_Name, 3,
+"""
+<frame id="frame-global" z-index="{{{Const::C_ZIndex_ControllerInfo}}}">
+	<frame pos="160 -92" id="frame-buttons">
+		<frameinstance modelid="{{{ButtonsList::C_Name}}}"
+			id="buttons-list-controller-info"
+			data-halign="right"
+			data-valign="bottom"
+			data-buttonmaxwidth="50."
+			data-textprefix="$t"
+			data-textfont="{{{FontManager::C_GameFontSemiBold}}}"
+			data-buttons-spacing="5."
+		/>
+	</frame>
+</frame>
+""",
+"""
+#Include "Libs/Nadeo/MenuLibs/Common/Components/Tools.Script.txt" as Tools
+""",
+"""
+***MainInit***
+***
+declare CMlFrame Frame_Buttons;
+declare CMlFrame ButtonsList_ControllerInfo;
+
+declare Text[Text] TMNext_ControllerInfo_Buttons for System = [];
+declare Integer TMNext_ControllerInfo_ButtonsUpdate for System = 0;
+declare Text TMNext_ControllerInfo_CurrentRoutePath for System = "";
+declare Boolean TMNext_ControllerInfo_HideForMouse for System = False;
+
+declare Integer LocalButtonsUpdate;
+declare Boolean LocalHideForMouse;
+declare Boolean UsingMouse;
+
+TMNext_ControllerInfo_Buttons = [];
+TMNext_ControllerInfo_ButtonsUpdate = 0;
+TMNext_ControllerInfo_CurrentRoutePath = "";
+***
+
+***MainStart***
+***
+Frame_Buttons <=> (Page.GetFirstChild("frame-buttons") as CMlFrame);
+ButtonsList_ControllerInfo <=> (Frame_Buttons.GetFirstChild("buttons-list-controller-info") as CMlFrame);
+
+UsingMouse = Tools::IsUsingMouse(Input);
+Frame_Buttons.Visible = !LocalHideForMouse || !UsingMouse;
+***
+
+***MainLoop***
+***
+if (PageIsVisible) {
+	if (LocalButtonsUpdate != TMNext_ControllerInfo_ButtonsUpdate) {
+		LocalButtonsUpdate = TMNext_ControllerInfo_ButtonsUpdate;
+		{{{ButtonsList::P}}}SetButtons(ButtonsList_ControllerInfo, TMNext_ControllerInfo_Buttons);
+	}
+
+	if (LocalHideForMouse != TMNext_ControllerInfo_HideForMouse) {
+		LocalHideForMouse = TMNext_ControllerInfo_HideForMouse;
+		Frame_Buttons.Visible = !LocalHideForMouse || !UsingMouse;
+	}
+
+	if (LocalHideForMouse) {
+		if (UsingMouse != Tools::IsUsingMouse(Input)) {
+			UsingMouse = Tools::IsUsingMouse(Input);
+			Frame_Buttons.Visible = !UsingMouse;
+		}
+	}
+
+	if (TMNext_ControllerInfo_CurrentRoutePath != {{{Router::P}}}GetCurrentRoutePath(This)) {
+		TMNext_ControllerInfo_CurrentRoutePath = {{{Router::P}}}GetCurrentRoutePath(This);
+	}
+}
+***
+""",
+[
+	ButtonsList::Component(),
+	Router::ComponentV2()
+],
+[]
+	);
+}
+
+Void HideForMouse(Boolean _Hide) {
+	declare Boolean  TMNext_ControllerInfo_HideForMouse for System = False;
+	TMNext_ControllerInfo_HideForMouse = _Hide;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update from the ManiaApp
+Void Yield() {
+	if (C_ResetOnRouteChange) {
+		foreach (Event in PendingEvents) {
+			if (
+				Event.Type == CManiaAppEvent::EType::LayerCustomEvent &&
+				Event.CustomEventType == Router::C_Event_RouteUpdated &&
+				Event.CustomEventData.count >= 2
+			) {
+				declare Text TMNext_ControllerInfo_CurrentRoutePath for System = "";
+				if (TMNext_ControllerInfo_CurrentRoutePath != Event.CustomEventData[0]) {
+					declare Text[Text] TMNext_ControllerInfo_Buttons for System = [];
+					declare Integer TMNext_ControllerInfo_ButtonsUpdate for System = 0;
+					TMNext_ControllerInfo_Buttons = [];
+					TMNext_ControllerInfo_ButtonsUpdate += 1;
+					TMNext_ControllerInfo_CurrentRoutePath = Event.CustomEventData[0];
+				}
+			}
+		}
+	}
+}

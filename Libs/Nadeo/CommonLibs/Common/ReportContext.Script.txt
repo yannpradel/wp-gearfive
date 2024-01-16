@@ -1,0 +1,925 @@
+/**
+ *	Context for the report system
+ */
+#Const Version		"2022-10-24"
+#Const ScriptName	"Libs/Nadeo/CommonLibs/Common/ReportContext.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/System/Report/ReportContext.Script.txt" as PluginReportContext
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "component-tmnext-reportcontext" //< Component name
+#Const P "ComponentTMNextReportContext_" //< Prefix used to differentiate functions/variables in the script
+
+#Const C_Context_Menu "Menu"
+#Const C_Context_Mode "Mode"
+#Const C_Context_MapEditor "MapEditor"
+#Const C_Context_OpeningLink "OpeningLink"
+#Const C_Context_Loading "Loading"
+
+#Const C_SubscriptionPlan_Starter "Starter"
+#Const C_SubscriptionPlan_Standard "Standard"
+#Const C_SubscriptionPlan_Club "Club"
+
+#Const C_LoadingTarget_Mode "Mode"
+#Const C_LoadingTarget_MapEditor "MapEditor"
+#Const C_LoadingTarget_ReplayEditor "ReplayEditor"
+#Const C_LoadingTarget_SkinEditor "SkinEditor"
+
+#Const C_MenuSection_Solo "Solo"
+#Const C_MenuSection_Live "Live"
+#Const C_MenuSection_Clubs "Clubs"
+#Const C_MenuSection_Local "Local"
+#Const C_MenuSection_Create "Create"
+
+#Const C_ReportContextUpdateRequestTimeout 250
+#Const C_DefaultReportContext PluginReportContext::ComponentTMNextReportContext_K_ReportContext {}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the current report context
+PluginReportContext::ComponentTMNextReportContext_K_ReportContext GetReportContext(CSystemPlatform _System) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	return ComponentTMNextReportContext_ReportContext;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update report context informations
+Void SetReason(CSystemPlatform _System, Text _Reason) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.reason = _Reason;
+}
+Void SetContext(CSystemPlatform _System, Text _Context) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.context = _Context;
+}
+Void SetLoadingTarget(CSystemPlatform _System, Text _LoadingTarget) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.loadingTarget = _LoadingTarget;
+}
+Void SetSubscriptionPlan(CSystemPlatform _System, Text _SubscriptionPlan) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.common.subscriptionPlan = _SubscriptionPlan;
+}
+Void SetBuildInfo(CSystemPlatform _System, Text _BuildInfo) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.common.buildInfo = _BuildInfo;
+}
+Void SetMenuRoute(CSystemPlatform _System, Text _Url, Text _ParentUrl, Text _FromUrl) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.url = _Url;
+	ComponentTMNextReportContext_ReportContext.menu.parentUrl = _ParentUrl;
+	ComponentTMNextReportContext_ReportContext.menu.fromUrl = _FromUrl;
+}
+Void SetModeName(CSystemPlatform _System, Text _Name) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.mode.name = _Name;
+}
+Void SetModeCurrentMap(
+	CSystemPlatform _System,
+	Text _Uid,
+	Text _Name,
+	Text _AuthorLogin,
+	Text _AuthorNickName,
+	Text _FileName,
+	Boolean _IsPlayable,
+	Text _CollectionName,
+	Boolean _CreatedWithSimpleEditor,
+	Boolean _CreatedWithGamepadEditor
+) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.mode.currentMap = PluginReportContext::ComponentTMNextReportContext_K_Map {
+		uid = _Uid,
+		name = _Name,
+		authorLogin = _AuthorLogin,
+		authorDisplayName = _AuthorNickName,
+		submitterAccountId = "",
+		localFileName = _FileName,
+		downloadUrl = "",
+		thumbnailUrl = "",
+		uploadTimestamp = 0,
+		isPlayable = _IsPlayable,
+		collectionName = _CollectionName,
+		createdWithSimpleEditor = _CreatedWithSimpleEditor,
+		createdWithGamepadEditor = _CreatedWithGamepadEditor
+	};
+}
+Void SetModeServerInfo(
+	CSystemPlatform _System,
+	Text _ServerName,
+	Text _ServerLogin,
+	Text _JoinLink,
+	Text _Comment,
+	Text _ServerVersionBuild,
+	Integer _PlayerCount,
+	Integer _MaxPlayerCount,
+	Integer _SpectatorCount,
+	Integer _MaxSpectatorCount,
+	Text _ModeName,
+	Boolean _IsPrivate,
+	Boolean _IsPrivateForSpectator,
+	Boolean _IsMapDownloadAllowed
+) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.mode.serverInfo = PluginReportContext::ComponentTMNextReportContext_K_IngameServerInfo {
+		serverName = _ServerName,
+		serverLogin = _ServerLogin,
+		joinLink = _JoinLink,
+		comment = _Comment,
+		serverVersionBuild = _ServerVersionBuild,
+		playerCount = _PlayerCount,
+		maxPlayerCount = _MaxPlayerCount,
+		spectatorCount = _SpectatorCount,
+		maxSpectatorCount = _MaxSpectatorCount,
+		modeName = _ModeName,
+		isPrivate = _IsPrivate,
+		isPrivateForSpectator = _IsPrivateForSpectator,
+		isMapDownloadAllowed = _IsMapDownloadAllowed
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if a report context update can be requested
+Boolean Private_CanRequestReportContextUpdate(CSystemPlatform _System) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	return (ComponentTMNextReportContext_ReportContext.context == C_Context_Mode);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Request an update of the report context
+Void RequestReportContextUpdate(CSystemPlatform _System) {
+	if (!Private_CanRequestReportContextUpdate(_System)) return;
+	declare Integer ComponentTMNextReportContext_ReportContextUpdateRequestTimeout_ManiaApp for _System = -1;
+	declare Integer ComponentTMNextReportContext_ReportContextUpdateRequestTimeout_Manialink for _System = -1;
+	ComponentTMNextReportContext_ReportContextUpdateRequestTimeout_ManiaApp = Now + C_ReportContextUpdateRequestTimeout;
+	ComponentTMNextReportContext_ReportContextUpdateRequestTimeout_Manialink = Now + C_ReportContextUpdateRequestTimeout;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if the request to update the report context has been processed
+Boolean ReportContextHasBeenUpdated(CSystemPlatform _System) {
+	if (!Private_CanRequestReportContextUpdate(_System)) return True;
+	declare Integer ComponentTMNextReportContext_ReportContextUpdateRequestTimeout_ManiaApp for _System = -1;
+	declare Integer ComponentTMNextReportContext_ReportContextUpdateRequestTimeout_Manialink for _System = -1;
+	return (
+		(
+			ComponentTMNextReportContext_ReportContextUpdateRequestTimeout_ManiaApp < 0 ||
+			Now >= ComponentTMNextReportContext_ReportContextUpdateRequestTimeout_ManiaApp
+		) && (
+			ComponentTMNextReportContext_ReportContextUpdateRequestTimeout_Manialink < 0 ||
+			Now >= ComponentTMNextReportContext_ReportContextUpdateRequestTimeout_Manialink
+		)
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update the report context when requested
+Void ProcessReportContextUpdateRequests(CSystemPlatform _System, CNod _Context) {
+	declare Integer ComponentTMNextReportContext_ReportContextUpdateRequestTimeout_ManiaApp for _System = -1;
+	if (ComponentTMNextReportContext_ReportContextUpdateRequestTimeout_ManiaApp >= 0) {
+		ComponentTMNextReportContext_ReportContextUpdateRequestTimeout_ManiaApp = -1;
+		
+		switchtype (_Context) {
+			case CManiaAppPlayground: {
+				declare CManiaAppPlayground ManiaAppPlayground = (_Context as CManiaAppPlayground);
+				if (ManiaAppPlayground.Map != Null) {
+					SetModeCurrentMap(
+						_System,
+						ManiaAppPlayground.Map.MapInfo.MapUid,
+						ManiaAppPlayground.Map.MapInfo.Name,
+						ManiaAppPlayground.Map.MapInfo.AuthorLogin,
+						ManiaAppPlayground.Map.MapInfo.AuthorNickName,
+						ManiaAppPlayground.Map.MapInfo.FileName,
+						ManiaAppPlayground.Map.MapInfo.IsPlayable,
+						ManiaAppPlayground.Map.MapInfo.CollectionName,
+						ManiaAppPlayground.Map.MapInfo.CreatedWithSimpleEditor,
+						ManiaAppPlayground.Map.MapInfo.CreatedWithGamepadEditor
+					);
+				}
+
+				if (ManiaAppPlayground.Playground != Null && ManiaAppPlayground.Playground.ServerInfo != Null) {
+					SetModeServerInfo(
+						_System,
+						ManiaAppPlayground.Playground.ServerInfo.ServerName,
+						ManiaAppPlayground.Playground.ServerInfo.ServerLogin,
+						ManiaAppPlayground.Playground.ServerInfo.JoinLink,
+						ManiaAppPlayground.Playground.ServerInfo.Comment,
+						ManiaAppPlayground.Playground.ServerInfo.ServerVersionBuild,
+						ManiaAppPlayground.Playground.ServerInfo.PlayerCount,
+						ManiaAppPlayground.Playground.ServerInfo.MaxPlayerCount,
+						ManiaAppPlayground.Playground.ServerInfo.SpectatorCount,
+						ManiaAppPlayground.Playground.ServerInfo.MaxSpectatorCount,
+						ManiaAppPlayground.Playground.ServerInfo.ModeName,
+						ManiaAppPlayground.Playground.ServerInfo.IsPrivate,
+						ManiaAppPlayground.Playground.ServerInfo.IsPrivateForSpectator,
+						ManiaAppPlayground.Playground.ServerInfo.IsMapDownloadAllowed
+					);
+				}
+			}
+		}
+	}
+}
+
+Void SetMenuSection(CSystemPlatform _System, Text _MenuSection) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.section = _MenuSection;
+}
+
+Void SetDisplayedCampaign(CSystemPlatform _System, Text _CampaignType, Integer _CampaignId, Text _Name, Integer _ClubId, Text _ButtonImageUrl) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.displayedCampaign = PluginReportContext::ComponentTMNextReportContext_K_Campaign {
+		type = _CampaignType,
+		id = _CampaignId,
+		name = _Name,
+		clubId = _ClubId,
+		buttonImageUrl = _ButtonImageUrl
+	};
+}
+
+Void SetDisplayedCampaignFocusedMap(
+	CSystemPlatform _System,
+	Text _Uid,
+	Text _Name,
+	Text _AuthorLogin,
+	Text _AuthorDisplayName,
+	Text _SubmitterAccountId,
+	Text _LocalFileName,
+	Text _DownloadUrl,
+	Text _ThumbnailUrl,
+	Integer _UploadTimestamp,
+	Boolean _IsPlayable,
+	Text _CollectionName,
+	Boolean _CreatedWithSimpleEditor,
+	Boolean _CreatedWithGamepadEditor
+) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.displayedCampaign.focusedMap = PluginReportContext::ComponentTMNextReportContext_K_Map {
+		uid = _Uid,
+		name = _Name,
+		authorLogin = _AuthorLogin,
+		authorDisplayName = _AuthorDisplayName,
+		submitterAccountId = _SubmitterAccountId,
+		localFileName = _LocalFileName,
+		downloadUrl = _DownloadUrl,
+		thumbnailUrl = _ThumbnailUrl,
+		uploadTimestamp = _UploadTimestamp,
+		isPlayable = _IsPlayable,
+		collectionName = _CollectionName,
+		createdWithSimpleEditor = _CreatedWithSimpleEditor,
+		createdWithGamepadEditor = _CreatedWithGamepadEditor
+	};
+}
+
+Void SetFocusedClubCampaign(CSystemPlatform _System, Text _CampaignType, Integer _CampaignId, Text _Name, Integer _ClubId, Text _ButtonImageUrl) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.focusedClubCampaign = PluginReportContext::ComponentTMNextReportContext_K_Campaign {
+		type = _CampaignType,
+		id = _CampaignId,
+		name = _Name,
+		clubId = _ClubId,
+		buttonImageUrl = _ButtonImageUrl
+	};
+}
+
+Void SetDisplayedRoom(
+	CSystemPlatform _System,
+	Integer _RoomId,
+	Integer _ClubId,
+	Integer _ActivityId,
+	Integer _CampaignId,
+	Boolean _IsHostedByNadeo,
+	Text _PlayerServerLogin,
+	Text _ServerAccountId,
+	Text _Name,
+	Text _ScriptName,
+	Text[] _MapUids,
+	Text _MediaUrl
+) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.displayedRoom = PluginReportContext::ComponentTMNextReportContext_K_Room {
+		id = _RoomId,
+		clubId = _ClubId,
+		activityId = _ActivityId,
+		campaignId = _CampaignId,
+		mapUids = _MapUids,
+		isHostedByNadeo = _IsHostedByNadeo,
+		playerServerLogin = _PlayerServerLogin,
+		serverAccountId = _ServerAccountId,
+		name = _Name,
+		scriptName = _ScriptName,
+		mediaUrl = _MediaUrl
+	};
+}
+
+Void SetDisplayedRoomFocusedMap(
+	CSystemPlatform _System,
+	Text _Uid,
+	Text _Name,
+	Text _AuthorLogin,
+	Text _AuthorDisplayName,
+	Text _SubmitterAccountId,
+	Text _LocalFileName,
+	Text _DownloadUrl,
+	Text _ThumbnailUrl,
+	Integer _UploadTimestamp,
+	Boolean _IsPlayable,
+	Text _CollectionName,
+	Boolean _CreatedWithSimpleEditor,
+	Boolean _CreatedWithGamepadEditor
+) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.displayedRoom.focusedMap = PluginReportContext::ComponentTMNextReportContext_K_Map {
+		uid = _Uid,
+		name = _Name,
+		authorLogin = _AuthorLogin,
+		authorDisplayName = _AuthorDisplayName,
+		submitterAccountId = _SubmitterAccountId,
+		localFileName = _LocalFileName,
+		downloadUrl = _DownloadUrl,
+		thumbnailUrl = _ThumbnailUrl,
+		uploadTimestamp = _UploadTimestamp,
+		isPlayable = _IsPlayable,
+		collectionName = _CollectionName,
+		createdWithSimpleEditor = _CreatedWithSimpleEditor,
+		createdWithGamepadEditor = _CreatedWithGamepadEditor
+	};
+}
+
+Void SetSoloScrollClubCampaignIds(CSystemPlatform _System, Integer[] _ClubCampaignIds) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.soloScrollClubCampaignIds = _ClubCampaignIds;
+}
+
+Void SetLiveScrollClubRoomIds(CSystemPlatform _System, Integer[] _ClubRoomIds) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.liveScrollClubRoomIds = _ClubRoomIds;
+}
+
+Void SetArcadePrograms(CSystemPlatform _System, Text _CurrentName, Text _CurrentMediaUrl, Text _NextName, Text _NextMediaUrl) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.liveArcadeCurrentProgram = PluginReportContext::ComponentTMNextReportContext_K_ArcadeProgram {
+		name = _CurrentName,
+		mediaUrl = _CurrentMediaUrl
+	};
+	ComponentTMNextReportContext_ReportContext.menu.liveArcadeNextProgram = PluginReportContext::ComponentTMNextReportContext_K_ArcadeProgram {
+		name = _NextName,
+		mediaUrl = _NextMediaUrl
+	};
+}
+
+Void SetClubsScrollMyClubIds(CSystemPlatform _System, Integer[] _ClubIds) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.clubsScrollMyClubIds = _ClubIds;
+}
+
+Void SetClubsScrollAllClubIds(CSystemPlatform _System, Integer[] _ClubIds) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.clubsScrollAllClubIds = _ClubIds;
+}
+
+Void SetClubDetails(
+	CSystemPlatform _System,
+	Integer _Id,
+	Text _Name,
+	Text _Tag,
+	Text _Description,
+	Text _PrivacyState,
+	Text _UserRole,
+	Text _IconUrl,
+	Text _DecalUrl,
+	Text _BgUrl,
+	Text _VerticalUrl,
+	Text _DecoImageUrl_DecalSponsor4x1,
+	Text _DecoImageUrl_Screen16x9,
+	Text _DecoImageUrl_Screen8x1,
+	Text _DecoImageUrl_Screen16x1
+) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.clubDetails = PluginReportContext::ComponentTMNextReportContext_K_ClubDetails {
+		id = _Id,
+		name = _Name,
+		tag = _Tag,
+		description = _Description,
+		privacyState = _PrivacyState,
+		userRole = _UserRole,
+		iconUrl = _IconUrl,
+		decalUrl = _DecalUrl,
+		bgUrl = _BgUrl,
+		verticalUrl = _VerticalUrl,
+		decoImageUrlDecalSponsor4x1 = _DecoImageUrl_DecalSponsor4x1,
+		decoImageUrlScreen16x9 = _DecoImageUrl_Screen16x9,
+		decoImageUrlScreen8x1 = _DecoImageUrl_Screen8x1,
+		decoImageUrlScreen16x1 = _DecoImageUrl_Screen16x1
+	};
+}
+
+Void SetClubDetailsUserRole(CSystemPlatform _System, Text _UserRole) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.clubDetails.userRole = _UserRole;
+}
+
+Void SetClubDetailsActivityIds(CSystemPlatform _System, Integer[] _ActivityIds) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.clubActivityIds = _ActivityIds;
+}
+
+Void SetClubDetailsMemberIds(CSystemPlatform _System, Text[] _MemberIds) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.clubMemberIds = _MemberIds;
+}
+
+Void SetBucketItemUploadsSkinIds(CSystemPlatform _System, Text[] _SkinIds) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.bucketItemUploadsSkinIds = _SkinIds;
+}
+
+Void SetBucketItemUploadsMapUids(CSystemPlatform _System, Text[] _MapUids) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.bucketItemUploadsMapUids = _MapUids;
+}
+
+Void SetBucketItemUploadsFocusedSkin(
+	CSystemPlatform _System,
+	Text _Id,
+	Text _Type,
+	Text _Name,
+	Text _DisplayName,
+	Text _CreatorAccountId,
+	Text _CreatorDisplayName,
+	Text _FileName,
+	Text _FileUrl,
+	Text _ThumbnailUrl,
+	Integer _TimeStamp,
+	Boolean _IsFavorite,
+	Boolean _IsUsed
+) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.bucketItemUploadsFocusedSkin = PluginReportContext::ComponentTMNextReportContext_K_Skin {
+		id = _Id,
+		type = _Type,
+		name = _Name,
+		displayName = _DisplayName,
+		creatorAccountId = _CreatorAccountId,
+		creatorDisplayName = _CreatorDisplayName,
+		fileName = _FileName,
+		fileUrl = _FileUrl,
+		thumbnailUrl = _ThumbnailUrl,
+		timeStamp = _TimeStamp,
+		isFavorite = _IsFavorite,
+		isUsed = _IsUsed
+	};
+}
+
+Void SetBucketItemUploadsFocusedMap(
+	CSystemPlatform _System,
+	Text _Uid,
+	Text _Name,
+	Text _AuthorLogin,
+	Text _AuthorDisplayName,
+	Text _SubmitterAccountId,
+	Text _LocalFileName,
+	Text _DownloadUrl,
+	Text _ThumbnailUrl,
+	Integer _UploadTimestamp,
+	Boolean _IsPlayable,
+	Text _CollectionName,
+	Boolean _CreatedWithSimpleEditor,
+	Boolean _CreatedWithGamepadEditor
+) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.bucketItemUploadsFocusedMap = PluginReportContext::ComponentTMNextReportContext_K_Map {
+		uid = _Uid,
+		name = _Name,
+		authorLogin = _AuthorLogin,
+		authorDisplayName = _AuthorDisplayName,
+		submitterAccountId = _SubmitterAccountId,
+		localFileName = _LocalFileName,
+		downloadUrl = _DownloadUrl,
+		thumbnailUrl = _ThumbnailUrl,
+		uploadTimestamp = _UploadTimestamp,
+		isPlayable = _IsPlayable,
+		collectionName = _CollectionName,
+		createdWithSimpleEditor = _CreatedWithSimpleEditor,
+		createdWithGamepadEditor = _CreatedWithGamepadEditor
+	};
+}
+
+Void SetActivityDisplayedNews(
+	CSystemPlatform _System,
+	Integer _Id,
+	Text _Name,
+	Text _Headline,
+	Text _Body,
+	Text _MediaUrl,
+	Integer _ClubId,
+	Integer _CreationTimestamp
+) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.activityDisplayedNews = PluginReportContext::ComponentTMNextReportContext_K_News {
+		id = _Id,
+		name = _Name,
+		headline = _Headline,
+		body = _Body,
+		mediaUrl = _MediaUrl,
+		clubId = _ClubId,
+		creationTimestamp = _CreationTimestamp
+	};
+}
+
+Void SetActivityDisplayedRanking(CSystemPlatform _System, Text _Title, Text _Subtitle) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.activityDisplayedRanking = PluginReportContext::ComponentTMNextReportContext_K_Ranking {
+		title = _Title,
+		subtitle = _Subtitle,
+		tops = []
+	};
+}
+
+Void SetActivityDisplayedRankingTopsReset(CSystemPlatform _System) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.activityDisplayedRanking.tops = [];
+}
+
+Void SetActivityDisplayedRankingTopsAdd(CSystemPlatform _System, Text _AccountId, Text _DisplayName, Integer _Position, Text _Score) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.activityDisplayedRanking.tops.add(PluginReportContext::ComponentTMNextReportContext_K_Top {
+		accountId = _AccountId,
+		displayName = _DisplayName,
+		position = _Position,
+		score = _Score
+	});
+}
+
+Void SetLocalMultiSettingsType(CSystemPlatform _System, Text _Type) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.localMultiSettings.type = _Type;
+}
+
+Void SetLocalMultiSettingsPlayersNb(CSystemPlatform _System, Integer _PlayersNb) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.localMultiSettings.playersNb = _PlayersNb;
+}
+
+Void SetLocalMultiSettingsMode(CSystemPlatform _System, Text _Mode) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.localMultiSettings.mode = _Mode;
+}
+
+Void SetLocalMultiSettingsModeSettings(CSystemPlatform _System, Text _ModeSettings) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.localMultiSettings.modeSettings = _ModeSettings;
+}
+
+Void SetLocalMultiSettingsResetMaps(CSystemPlatform _System) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.localMultiSettings.maps = [];
+}
+
+Void SetLocalMultiSettingsAddMap(
+	CSystemPlatform _System,
+	Text _Uid,
+	Text _Name,
+	Text _AuthorLogin,
+	Text _AuthorDisplayName,
+	Text _SubmitterAccountId,
+	Text _LocalFileName,
+	Text _DownloadUrl,
+	Text _ThumbnailUrl,
+	Integer _UploadTimestamp,
+	Boolean _IsPlayable,
+	Text _CollectionName,
+	Boolean _CreatedWithSimpleEditor,
+	Boolean _CreatedWithGamepadEditor
+) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.localMultiSettings.maps.add(PluginReportContext::ComponentTMNextReportContext_K_Map {
+		uid = _Uid,
+		name = _Name,
+		authorLogin = _AuthorLogin,
+		authorDisplayName = _AuthorDisplayName,
+		submitterAccountId = _SubmitterAccountId,
+		localFileName = _LocalFileName,
+		downloadUrl = _DownloadUrl,
+		thumbnailUrl = _ThumbnailUrl,
+		uploadTimestamp = _UploadTimestamp,
+		isPlayable = _IsPlayable,
+		collectionName = _CollectionName,
+		createdWithSimpleEditor = _CreatedWithSimpleEditor,
+		createdWithGamepadEditor = _CreatedWithGamepadEditor
+	});
+}
+
+Void SetLocalServerListReset(CSystemPlatform _System) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.localServerList = [];
+}
+
+Void SetLocalServerListAdd(
+	CSystemPlatform _System,
+	Text _ServerName,
+	Text _ServerLogin,
+	Text _JoinLink,
+	Text[] _PlayerNames,
+	Integer _PlayerCount,
+	Integer _MaxPlayerCount,
+	Text _ModeName,
+	Boolean _IsPrivate
+) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.localServerList.add(PluginReportContext::ComponentTMNextReportContext_K_ServerInfo {
+		serverName = _ServerName,
+		serverLogin = _ServerLogin,
+		joinLink = _JoinLink,
+		playerNames = _PlayerNames,
+		playerCount = _PlayerCount,
+		maxPlayerCount = _MaxPlayerCount,
+		modeName = _ModeName,
+		isPrivate = _IsPrivate
+	});
+}
+
+Void SetLocalServerSettings(
+	CSystemPlatform _System,
+	Text _Step,
+	Text _ServerName,
+	Text _ServerComment,
+	Integer _MaxPlayerCount,
+	Text _ModeName,
+	Text _MatchSettings
+) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.localServerSettings = PluginReportContext::ComponentTMNextReportContext_K_LocalServerSettings {
+		step = _Step,
+		serverName = _ServerName,
+		serverComment = _ServerComment,
+		maxPlayerCount = _MaxPlayerCount,
+		modeName = _ModeName,
+		matchSettings = _MatchSettings
+	};
+}
+
+Void SetLocalServerSettingsResetMaps(CSystemPlatform _System) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.localServerSettings.maps = [];
+}
+
+Void SetLocalServerSettingsAddMap(
+	CSystemPlatform _System,
+	Text _Uid,
+	Text _Name,
+	Text _AuthorLogin,
+	Text _AuthorDisplayName,
+	Text _SubmitterAccountId,
+	Text _LocalFileName,
+	Text _DownloadUrl,
+	Text _ThumbnailUrl,
+	Integer _UploadTimestamp,
+	Boolean _IsPlayable,
+	Text _CollectionName,
+	Boolean _CreatedWithSimpleEditor,
+	Boolean _CreatedWithGamepadEditor
+) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.localServerSettings.maps.add(PluginReportContext::ComponentTMNextReportContext_K_Map {
+		uid = _Uid,
+		name = _Name,
+		authorLogin = _AuthorLogin,
+		authorDisplayName = _AuthorDisplayName,
+		submitterAccountId = _SubmitterAccountId,
+		localFileName = _LocalFileName,
+		downloadUrl = _DownloadUrl,
+		thumbnailUrl = _ThumbnailUrl,
+		uploadTimestamp = _UploadTimestamp,
+		isPlayable = _IsPlayable,
+		collectionName = _CollectionName,
+		createdWithSimpleEditor = _CreatedWithSimpleEditor,
+		createdWithGamepadEditor = _CreatedWithGamepadEditor
+	});
+}
+
+Void SetCreateScrollSkinActivityIds(CSystemPlatform _System, Integer[] _SkinActivityIds) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.menu.createScrollSkinActivityIds = _SkinActivityIds;
+}
+
+Void SetLocalPlayerInfo(
+	CSystemPlatform _System,
+	Text _AccountId,
+	Boolean _IsSpectator,
+	Boolean _IsSpectatorClient,
+	Boolean _IsInGameMenuDisplayed,
+	Integer _SplitScreenCount,
+	Boolean _SplitScreenIsHorizontal
+) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.mode.localPlayerInfo = PluginReportContext::ComponentTMNextReportContext_K_LocalPlayerInfo {
+		accountId = _AccountId,
+		isSpectator = _IsSpectator,
+		isSpectatorClient = _IsSpectatorClient,
+		isInGameMenuDisplayed = _IsInGameMenuDisplayed,
+		splitScreenCount = _SplitScreenCount,
+		splitScreenIsHorizontal = _SplitScreenIsHorizontal
+	};
+}
+
+Void ModeResetPlayers(CSystemPlatform _System) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.mode.players = [];
+}
+
+Void ModeAddPlayer(
+	CSystemPlatform _System,
+	Text _AccountId,
+	Text _Name,
+	Text _Dossard,
+	Text _CarSportSkinName,
+	Text _CarSportSkinUrl,
+	Text _HelmetSkinName,
+	Text _HelmetSkinUrl,
+	Boolean _IsConnected,
+	Boolean _IsSpawned,
+	Integer[] _RaceWaypointTimes,
+	Integer[] _LapWaypointTimes,
+	Integer _CurrentLapNumber,
+	Integer _CurrentClan,
+	Integer _IdleDuration,
+	Integer _Points,
+	Integer _RoundPoints,
+	Integer[] _BestRaceTimes,
+	Integer[] _PrevRaceTimes,
+	Integer[] _BestLapTimes,
+	Integer[] _PrevLapTimes
+) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.mode.players.add(PluginReportContext::ComponentTMNextReportContext_K_PlayerInfo {
+		accountId = _AccountId,
+		name = _Name,
+		dossard = _Dossard,
+		carSportSkinName = _CarSportSkinName,
+		carSportSkinUrl = _CarSportSkinUrl,
+		helmetSkinName = _HelmetSkinName,
+		helmetSkinUrl = _HelmetSkinUrl,
+		isConnected = _IsConnected,
+		isSpawned = _IsSpawned,
+		raceWaypointTimes = _RaceWaypointTimes,
+		lapWaypointTimes = _LapWaypointTimes,
+		currentLapNumber = _CurrentLapNumber,
+		currentClan = _CurrentClan,
+		idleDuration = _IdleDuration,
+		points = _Points,
+		roundPoints = _RoundPoints,
+		bestRaceTimes = _BestRaceTimes,
+		prevRaceTimes = _PrevRaceTimes,
+		bestLapTimes = _BestLapTimes,
+		prevLapTimes = _PrevLapTimes
+	});
+}
+
+Void SetProfilePlayerAccountId(CSystemPlatform _System, Text _AccountId) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.common.displayedProfile.accountId = _AccountId;
+}
+
+Void SetProfilePlayerName(CSystemPlatform _System, Text _Name) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.common.displayedProfile.name = _Name;
+}
+
+Void SetProfileEchelon(CSystemPlatform _System, Integer _Echelon) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.common.displayedProfile.echelon = _Echelon;
+}
+
+Void SetProfileTrophies(CSystemPlatform _System, Integer[Integer] _Trophies) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.common.displayedProfile.trophies = _Trophies;
+}
+
+Void SetProfileTrophiesPoints(CSystemPlatform _System, Integer _TrophiesPoints) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.common.displayedProfile.trophiesPoints = _TrophiesPoints;
+}
+
+Void SetProfileTrophiesRankings(CSystemPlatform _System, Integer[][Text] _TrophiesRankings) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.common.displayedProfile.trophiesRankings = _TrophiesRankings;
+}
+
+Void SetProfileCampaignRankings(CSystemPlatform _System, Integer[][Text] _CampaignRankings) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.common.displayedProfile.campaignRankings = _CampaignRankings;
+}
+
+Void SetProfileSkin(CSystemPlatform _System, Text _SkinName, Text _SkinFileUrl) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.common.displayedProfile.skinName = _SkinName;
+	ComponentTMNextReportContext_ReportContext.common.displayedProfile.skinFileUrl = _SkinFileUrl;
+}
+
+Void SetProfileCurrentTab(CSystemPlatform _System, Text _TabName) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.common.displayedProfile.currentTab = _TabName;
+}
+
+Void ResetProfile(CSystemPlatform _System) {
+	declare PluginReportContext::ComponentTMNextReportContext_K_ReportContext ComponentTMNextReportContext_ReportContext for _System = C_DefaultReportContext;
+	ComponentTMNextReportContext_ReportContext.common.displayedProfile = PluginReportContext::ComponentTMNextReportContext_K_PlayerProfile {};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the manialink to create while playing
+ *	in a mode to get the info about the players
+ */
+Text GetIngameML() {
+	return MV::Create(
+		C_Name, 3,
+		"",
+		"""
+#Include "Libs/Nadeo/CommonLibs/Common/ReportContext.Script.txt" as ReportContext
+#Include "Libs/Nadeo/System/Report/ReportContext.Script.txt" as PluginReportContext
+		""",
+		"""
+// Cast a C++ array to Integer[]
+Integer[] ToIntegerArray(Integer[] _Array) {
+	return _Array;
+}
+
+***MainInit***
+***
+declare Integer {{{P}}}ReportContextUpdateRequestTimeout_Manialink for System = -1;
+***
+
+***MainLoop***
+***
+if ({{{P}}}ReportContextUpdateRequestTimeout_Manialink >= 0) {
+	{{{P}}}ReportContextUpdateRequestTimeout_Manialink = -1;
+	
+	if (InputPlayer != Null) {
+		ReportContext::SetLocalPlayerInfo(
+			System,
+			InputPlayer.User.WebServicesUserId,
+			IsSpectator,
+			IsSpectatorClient,
+			IsInGameMenuDisplayed,
+			SplitScreenCount,
+			SplitScreenIsHorizontal
+		);
+	}
+
+	ReportContext::ModeResetPlayers(System);
+	foreach (Player in Players) {
+		if (Player.Score != Null) {
+			declare PluginReportContext::ComponentTMNextReportContext_K_PlayerInfo {{{P}}}TmpPlayerInfo for Player.Score;
+			{{{P}}}TmpPlayerInfo = PluginReportContext::ComponentTMNextReportContext_K_PlayerInfo {
+				dossard = Player.Dossard,
+				isConnected = True,
+				isSpawned = (Player.SpawnStatus != CSmPlayer::ESpawnStatus::NotSpawned),
+				raceWaypointTimes = ToIntegerArray(Player.RaceWaypointTimes),
+				lapWaypointTimes = ToIntegerArray(Player.LapWaypointTimes),
+				currentLapNumber = Player.CurrentLapNumber,
+				currentClan = Player.CurrentClan,
+				idleDuration = Player.IdleDuration
+			};
+		}
+	}
+	foreach (Score in Scores) {
+		declare PluginReportContext::ComponentTMNextReportContext_K_PlayerInfo {{{P}}}TmpPlayerInfo for Score;
+		ReportContext::ModeAddPlayer(
+			System,
+			Score.User.WebServicesUserId,
+			Score.User.Name,
+			{{{P}}}TmpPlayerInfo.dossard,
+			Score.User.Model_CarSport_SkinName,
+			Score.User.Model_CarSport_SkinUrl,
+			Score.User.Model_HelmetPilot_SkinName,
+			Score.User.Model_HelmetPilot_SkinUrl,
+			{{{P}}}TmpPlayerInfo.isConnected,
+			{{{P}}}TmpPlayerInfo.isSpawned,
+			{{{P}}}TmpPlayerInfo.raceWaypointTimes,
+			{{{P}}}TmpPlayerInfo.lapWaypointTimes,
+			{{{P}}}TmpPlayerInfo.currentLapNumber,
+			{{{P}}}TmpPlayerInfo.currentClan,
+			{{{P}}}TmpPlayerInfo.idleDuration,
+			Score.Points,
+			Score.RoundPoints,
+			Score.BestRaceTimes,
+			Score.PrevRaceTimes,
+			Score.BestLapTimes,
+			Score.PrevLapTimes
+		);
+		{{{P}}}TmpPlayerInfo = PluginReportContext::ComponentTMNextReportContext_K_PlayerInfo {};
+	}
+}
+***
+		""",
+		[],
+		[]
+	);
+}

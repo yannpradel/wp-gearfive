@@ -1,0 +1,110 @@
+/**
+ *	Component : SplashscreenAPI
+ */
+#Const Version		"1.4.0"
+#Const ScriptName	"Libs/Nadeo/CMGame/API/SplashscreenAPI.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/CMGame/Structures/SplashscreenStruct.Script.txt" as SplashscreenStruct
+#Include "Libs/Nadeo/CMGame/Utils/Config.Script.txt" as Config
+#Include "Libs/Nadeo/CMGame/Utils/Http.Script.txt" as Http
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_API_Splashscreen "/api/token/splashscreen"
+#Const C_Headers [
+	"Accept" => "application/json",
+	"Content-Type" => "application/json"
+]
+
+#Const C_Route_GetSplashscreen ""
+#Const C_Route_PostCreateImpression "/create-impression"
+
+#Const C_QueryParameter_TargetSubscription "targetSubscription"
+#Const C_QueryParameter_Locale "locale"
+#Const C_QueryParameter_ZoneId "zoneId"
+
+// Trackmania subscriptions from the LIVE's API
+#Const SplashscreenStruct::C_GameSubscriptionPlans as C_GameSubscriptionPlans
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_HttpResponseFromGetSplashscreen {
+	Text uid;
+	Text actionType;
+	Boolean loop;
+	Text actionIdentifier;
+	Text splashscreen16x9Url;
+	Boolean video;
+}
+
+#Struct K_HttpPostCreateImpression {
+	Text splashscreenUid;
+	Integer viewTime; //< In milliseconds
+	Boolean clicked;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/**
+ * Start a request to get the splashscreen to display
+ *
+ * @param _TargetSubscription    The current player subscription
+ * @param _Locale                The language of the client
+ * @param _ZoneId                The current player zone id
+ * @return                       The request
+ */
+Http::K_Request GetSplashscreen(Text _TargetSubscription, Text _Locale, Text _ZoneId) {
+	declare Text[Text] Query;
+
+	if (_Locale != "") Query[C_QueryParameter_Locale] = _Locale;
+	if (_ZoneId != "") Query[C_QueryParameter_ZoneId] = _ZoneId;
+	if (C_GameSubscriptionPlans.exists(_TargetSubscription)) {
+		Query[C_QueryParameter_TargetSubscription] = _TargetSubscription;
+	}
+
+	return Http::CreateGet(Config::Get().APIBaseUrl^C_API_Splashscreen^C_Route_GetSplashscreen^Http::CreateQueryString(Query), C_Headers);
+}
+
+/**
+ * Parse the response of the GetSplashscreen request
+ *
+ * @param _Request    The GetSplashscreen request
+ * @return            The parsed request
+ */
+SplashscreenStruct::K_Splashscreen GetResponseFromGetSplashscreen(Http::K_Request _Request) {
+	declare K_HttpResponseFromGetSplashscreen HttpResponseFromGetSplashscreen;
+	HttpResponseFromGetSplashscreen.fromjson(Http::GetResult(_Request));
+
+	return SplashscreenStruct::K_Splashscreen {
+		Uid = HttpResponseFromGetSplashscreen.uid,
+		ActionType = HttpResponseFromGetSplashscreen.actionType,
+		ActionIdentifier = HttpResponseFromGetSplashscreen.actionIdentifier,
+		Url = HttpResponseFromGetSplashscreen.splashscreen16x9Url,
+		IsVideo = HttpResponseFromGetSplashscreen.video,
+		IsLooping = HttpResponseFromGetSplashscreen.loop
+	};
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/**
+ * Start a request to indicate to the API that the given splashscreen has been displayed to the player.
+ *
+ * @param _SplashscreenUid    The uid of the displayed splashscreen
+ * @param _ViewTime           The time spend by the player on the splashscreen (in milliseconds)
+ * @param _IsClicked          True if the player has clicked on the splashscreen, False otherwise.
+ * @return                    The request
+ */
+Http::K_Request PostCreateImpression(Text _SplashscreenUid, Integer _ViewTime, Boolean _IsClicked) {
+	declare K_HttpPostCreateImpression HttpPostCreateImpression = K_HttpPostCreateImpression {
+		splashscreenUid = _SplashscreenUid,
+		viewTime = _ViewTime,
+		clicked = _IsClicked
+	};
+	return Http::CreatePost(Config::Get().APIBaseUrl^C_API_Splashscreen^C_Route_PostCreateImpression, HttpPostCreateImpression.tojson(), C_Headers);
+}

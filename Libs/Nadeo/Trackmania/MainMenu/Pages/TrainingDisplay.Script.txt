@@ -1,0 +1,395 @@
+/**
+ *	Page: TrainingDisplay
+ */
+#Const Version		"1.1.0"
+#Const ScriptName	"Libs/Nadeo/Trackmania/MainMenu/Pages/TrainingDisplay.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/CMGame/Utils/Grid.Script.txt" as Grid
+#Include "Libs/Nadeo/CMGame/Utils/MLHelpers.Script.txt" as MLHelpers
+#Include "Libs/Nadeo/CMGame/Utils/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/CMGame/Utils/Stylesheet.Script.txt" as Stylesheet
+#Include "Libs/Nadeo/CMGame/Components/MedalStack.Script.txt" as MedalStack
+#Include "Libs/Nadeo/CMGame/Components/Navigation.Script.txt" as Navigation
+#Include "Libs/Nadeo/CMGame/Components/Transition.Script.txt" as Transition
+#Include "Libs/Nadeo/CMGame/Menus/Router_ML.Script.txt" as Router
+#Include "Libs/Nadeo/CMGame/Components/ExpendableButton.Script.txt" as ExpendableButton
+#Include "Libs/Nadeo/Trackmania/Components/MapRankings.Script.txt" as MapRankings
+#Include "Libs/Nadeo/Trackmania/Components/PopUpBackground2.Script.txt" as PopUpBackground
+#Include "Libs/Nadeo/Trackmania/Components/RankingSelection.Script.txt" as RankingSelection
+#Include "Libs/Nadeo/Trackmania/MainMenu/Constants.Script.txt" as Const
+#Include "Libs/Nadeo/Trackmania/Stores/CampaignStore_ML.Script.txt" as CampaignStore
+#Include "Libs/Nadeo/Trackmania/Stores/ClubStore_ML.Script.txt" as ClubStore
+#Include "Libs/Nadeo/Trackmania/Structures/CampaignStruct.Script.txt" as CampaignStruct
+#Include "MathLib" as ML
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "Page_TrainingDisplay"
+#Const C_NavGroupName_Global "navgroup-page-trainingdisplay-global"
+#Const C_NavGroupName_Maps "navgroup-page-trainingdisplay-maps"
+#Const C_Class_MapButton "class-button-map-page-trainingdisplay"
+
+#Const C_ColumnNumber 5
+#Const C_RowNumber 5
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the page manialink
+ *
+ *	@return														The page manialink
+ */
+Text GetManialink() {
+	//L16N [TrainingDisplay] Message displayed if the game failed to retrieve the training campaign and cannot display it.
+	declare Text Text_FailedToRetrieveCampaign = _("Failed to retrieve the training campaign");
+	//L16N [TrainingDisplay] Text pronounced when the player is focusing a track of the campaign. %1 will be replaced with the number of the track in the campaign. e.g. "Training 22"
+	declare Text TTS_Training = _("|TTS|Training %1");
+
+	declare Vec2 Size_Spacing = <0.5, 2.>;
+	declare Vec2 Size_MapButton = <35.5, 9.5>;
+	declare GridConfig_Column = Grid::Create(Size_MapButton.X*C_ColumnNumber + Size_Spacing.X*(C_ColumnNumber-1), 0., Size_Spacing.X, Grid::C_Direction_Right);
+	declare GridConfig_Row = Grid::Create(Size_MapButton.Y*C_RowNumber + Size_Spacing.Y*(C_RowNumber-1), 0., Size_Spacing.Y, Grid::C_Direction_Bottom);
+	for (ColumnIndex, 0, C_ColumnNumber-1) GridConfig_Column = Grid::AddColumn(GridConfig_Column, ColumnIndex, 100., Grid::C_Align_Center);
+	for (RowIndex, 0, C_RowNumber-1) GridConfig_Row = Grid::AddRow(GridConfig_Row, RowIndex, 100., Grid::C_Align_Center);
+	declare Grid_Column = Grid::Compile(GridConfig_Column);
+	declare Grid_Row = Grid::Compile(GridConfig_Row);
+
+	declare Text ML_Maps = "";
+	for (ColumIndex, 0, C_ColumnNumber-1) {
+		for (RowIndex, 0, C_RowNumber-1) {
+			declare Text Styles = ""^ExpendableButton::C_Style_Stack^" "^ExpendableButton::C_Style_Map;
+			if (ColumIndex == 0 && RowIndex == 0) Styles = ""^ExpendableButton::C_Style_Stack^" "^ExpendableButton::C_Style_StackTop^" "^ExpendableButton::C_Style_Map;
+			if (ColumIndex == C_ColumnNumber-1 && RowIndex == C_RowNumber-1) Styles = ""^ExpendableButton::C_Style_Stack^" "^ExpendableButton::C_Style_StackBottom^" "^ExpendableButton::C_Style_Map;
+			declare Text UpTarget = "button-map-"^ML::Clamp(ColumIndex, 0, C_ColumnNumber-1)^"-"^ML::Clamp(RowIndex-1, 0, C_RowNumber-1);
+			declare Text DownTarget = "button-map-"^ML::Clamp(ColumIndex, 0, C_ColumnNumber-1)^"-"^ML::Clamp(RowIndex+1, 0, C_RowNumber-1);
+			declare Text LeftTarget = "button-map-"^ML::Clamp(ColumIndex-1, 0, C_ColumnNumber-1)^"-"^ML::Clamp(RowIndex, 0, C_RowNumber-1);
+			declare Text RightTarget = "button-map-"^ML::Clamp(ColumIndex+1, 0, C_ColumnNumber-1)^"-"^ML::Clamp(RowIndex, 0, C_RowNumber-1);
+			ML_Maps ^= """
+				<frame id="frame-map-{{{ColumIndex}}}-{{{RowIndex}}}" pos="{{{MLHelpers::Skew(Grid_Column.Pos[ColumIndex], Grid_Row.Pos[RowIndex], 10.)}}}">
+					<frameinstance
+						id="button-map-{{{ColumIndex}}}-{{{RowIndex}}}" z-index="1"
+						modelid="{{{ExpendableButton::C_Name}}}"
+						class="{{{Navigation::C_Class}}} {{{C_Class_MapButton}}}"
+						data-grid-row="{{{RowIndex}}}"
+						data-grid-column="{{{ColumIndex}}}"
+						data-styles="{{{Styles}}}"
+						data-width="{{{Grid_Column.Size[ColumIndex]}}}"
+						data-height="{{{Grid_Row.Size[RowIndex]}}}"
+						data-nav-inputs="select;up;down;left;right"
+						data-nav-targets="_;{{{UpTarget}}};{{{DownTarget}}};{{{LeftTarget}}};{{{RightTarget}}}"
+						data-nav-group="{{{C_NavGroupName_Maps}}}"
+						data-nav-zone="{{{ExpendableButton::C_NavZone}}}"
+					/>
+					<frameinstance
+						id="frame-medalstack" scale=".8" z-index="2"
+						pos="{{{Grid_Column.Size[ColumIndex]*0.25}}} {{{-Grid_Row.Size[ColumIndex]*0.42}}}"
+						modelid="{{{MedalStack::C_Name}}}"
+						data-bigmedaldirection="{{{MedalStack::C_BigMedal_None}}}"
+						data-medaloffset="9.5"
+						data-iscolorize="0"
+					/>
+				</frame>
+			""";
+		}
+	}
+
+	return MV::Create(
+C_Name, 3,
+"""
+<frame
+	id="frame-global"
+	class="{{{Navigation::C_Class}}}"
+	z-index="{{{Const::C_ZIndex_PopUpDisplay}}}"
+	data-nav-inputs="cancel"
+	data-nav-targets="_"
+	data-nav-group="{{{C_NavGroupName_Global}}}"
+>
+	<frameinstance id="frame-background" modelid="{{{PopUpBackground::C_Name}}}" data-header-image="{{{Const::C_ImageUrl_PopUp_Training_Header}}}" z-index="0"/>
+	<frameinstance id="frame-map-rankings" pos="105 -25" modelid="{{{MapRankings::C_Name}}}" z-index="1"/>
+	<label id="label-title" pos="-115.5 61.5" textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_ExtraBold)}}}" textsize="13" textprefix="$i$t" halign="left" valign="center2" textcolor="FFFFFF" z-index="1"/>
+	<frame id="frame-maps" pos="{{{MLHelpers::Skew(-144., 7.5, 10.)}}}" z-index="1">
+		{{{ML_Maps}}}
+	</frame>
+	<label id="label-error" pos="{{{MLHelpers::Skew(0., -68., 10.)}}}" z-index="2" size="250 1" halign="center" valign="center2" textfont="{{{Stylesheet::GetFont(Stylesheet::C_Font_Weight_SemiBold)}}}" textprefix="$i$t" textcolor="{{{Stylesheet::GetColorHex6(Stylesheet::C_Color_TextError)}}}" textsize="2.5" text="{{{Text_FailedToRetrieveCampaign}}}" />
+</frame>
+""",
+"""
+#Include "ColorLib" as CL
+#Include "TextLib" as TL
+#Include "MathLib" as ML
+#Include "Libs/Nadeo/CMGame/Utils/MainUser.Script.txt" as MainUser
+#Include "Libs/Nadeo/Trackmania/MainMenu/TitleControl.Script.txt" as TitleControl
+#Include "Libs/Nadeo/Trackmania/MainMenu/Overlays/ControllerInfo_ML.Script.txt" as ControllerInfo
+
+#Struct K_Controls {
+	CMlFrame Frame_Background;
+	CMlFrame Frame_MapRankings;
+	CMlFrame Frame_Maps;
+	CMlLabel Label_Title;
+	CMlLabel Label_Error;
+}
+
+#Struct K_State {
+	K_Controls Controls;
+	{{{CampaignStruct::P}}}K_Campaign Campaign;
+}
+""",
+"""
+// Update the MapRankings component
+Void UpdateMapRankingsComponent(K_State _State, CMlControl _Control) {
+	if (!_Control.HasClass("{{{C_Class_MapButton}}}")) return;
+	declare {{{CampaignStruct::P}}}K_Map MapData for _Control;
+
+	{{{MapRankings::P}}}UpdateMapRanking(
+		This,
+		_State.Controls.Frame_MapRankings,
+		{{{ClubStore::P}}}GetUserPinnedClub().Id,
+		_State.Campaign.Id,
+		_State.Campaign.LeaderboardGroupUid,
+		MapData,
+		-1,
+		{{{RankingSelection::P}}}C_Display_Medals,
+		False,
+		True
+	);
+}
+
+// Handle the focus on the given control
+Void Focus(K_State _State, CMlControl _From, CMlControl _To) {
+	if ({{{Transition::P}}}IsInTransition(This)) return;
+
+	if (_From != Null) {
+		{{{Navigation::P}}}Unfocus(This, _From);
+		if ({{{ExpendableButton::P}}}IsButton(_From)) {
+			{{{ExpendableButton::P}}}Unfocus(This, (_From as CMlFrame));
+		}
+	}
+
+	if (_To != Null) {
+		{{{Navigation::P}}}Focus(This, _To);
+		if ({{{ExpendableButton::P}}}IsButton(_To)) {
+			{{{ExpendableButton::P}}}Focus(This, (_To as CMlFrame));
+			UpdateMapRankingsComponent(_State, _To);
+		}
+	}
+}
+
+Boolean IsValidCampaign({{{CampaignStruct::P}}}K_Campaign _Campaign) {
+	return (
+		_Campaign.Id != {{{CampaignStruct::P}}}C_Campaign_NullId &&
+		_Campaign.Categories.existskey(0) &&
+		_Campaign.Categories[0].Playlist.count > 0
+	);
+}
+
+Void UpdateControllerInfo(K_State _State) {
+	if ({{{Navigation::P}}}GroupIsEnabled(This, "{{{C_NavGroupName_Maps}}}")) {
+		ControllerInfo::SetButtons(["A" => _("Select"), "B" => _("Back")]);
+	} else {
+		ControllerInfo::SetButtons(["B" => _("Back")]);
+	}
+}
+
+// Update campaign map buttons
+Void UpdateTrainingCampaign(K_State _State) {
+	if (IsValidCampaign(_State.Campaign)) {
+		foreach (Index => Map in _State.Campaign.Categories[0].Playlist) {
+			if (_State.Controls.Frame_Maps.Controls.existskey(Index)) {
+				declare CMlFrame Frame_Map = _State.Controls.Frame_Maps.Controls[Index] as CMlFrame;
+				declare CMlFrame Frame_MedalStack = Frame_Map.Controls[1] as CMlFrame;
+				declare CMlFrame Button_Map = Frame_Map.Controls[0] as CMlFrame;
+				declare {{{CampaignStruct::P}}}K_Map MapData for Button_Map;
+				MapData = Map;
+
+				MapData.Medal = ScoreMgr.Map_GetMedal(
+					MainUser::GetMainUserId(),
+					Map.Uid,
+					"{{{Const::C_ScopeType_PersonalBest}}}",
+					"",
+					"{{{Const::C_GameMode_TimeAttack}}}",
+					""
+				);
+				MapData.Score = ScoreMgr.Map_GetRecord_v2(
+					MainUser::GetMainUserId(),
+					Map.Uid,
+					"{{{Const::C_ScopeType_PersonalBest}}}",
+					"",
+					"{{{Const::C_GameMode_TimeAttack}}}",
+					""
+				);
+
+				{{{CampaignStore::P}}}SetMapMedalAndScore(_State.Campaign.Id, MapData);
+				{{{MedalStack::P}}}SetMedalsNumber(Frame_MedalStack, MapData.Medal);
+				{{{ExpendableButton::P}}}SetText(This, Button_Map, TL::FormatInteger(Map.Position+1, 2), False);
+				{{{ExpendableButton::P}}}SetTextToSpeech(Button_Map, TL::Compose("{{{TTS_Training}}}", TL::FormatInteger(Map.Position+1, 2)));
+				if (MapData.Score > 0) {{{ExpendableButton::P}}}AddStyle(This, Button_Map, {{{ExpendableButton::P}}}Style_MapRaced() , False);
+				{{{ExpendableButton::P}}}RedrawButton(This, Button_Map);
+			}
+		}
+
+		_State.Controls.Label_Error.Visible = False;
+		_State.Controls.Frame_Maps.Visible = True;
+		_State.Controls.Frame_MapRankings.Visible = True;
+		{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName_Maps}}}", True);
+	} else {
+		_State.Controls.Label_Error.Visible = True;
+		_State.Controls.Frame_Maps.Visible = False;
+		_State.Controls.Frame_MapRankings.Visible = False;
+		{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName_Maps}}}", False);
+	}
+
+	UpdateControllerInfo(_State);
+}
+
+// Play time attack on the selected map
+Void PlayMap(K_State _State, {{{CampaignStruct::P}}}K_Map _MapData) {
+	if (_MapData.DownloadUrl == "" && _MapData.LocalFileName == "") return;
+	if (!IsValidCampaign(_State.Campaign)) return;
+
+	declare Text[] MapList;
+	foreach (Map in _State.Campaign.Categories[0].Playlist) {
+		if (Map.Uid == _MapData.Uid || MapList.count > 0) {
+			declare Text MapUrl = Map.DownloadUrl;
+			if (MapUrl == "") MapUrl = Map.LocalFileName;
+			if (MapUrl != "" && !MapList.exists(MapUrl)) MapList.add(MapUrl);
+		}
+	}
+
+	TitleControl::PlayMapList(TitleControl, MapList, "TrackMania/TM_Campaign_Local", TL::Join("", [
+		"<root>",
+			"<setting name=\"S_CampaignId\" value=\""^_State.Campaign.Id^"\" type=\"integer\"/>",
+			"<setting name=\"S_CampaignType\" value=\""^_State.Campaign.Type^"\" type=\"integer\"/>",
+			"<setting name=\"S_CampaignIsLive\" value=\"0\" type=\"boolean\"/>",
+		"</root>"
+	]));
+
+	// Update scores and medals when returning back to menu
+	UpdateTrainingCampaign(_State);
+	UpdateMapRankingsComponent(_State, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName_Maps}}}"));
+}
+
+// Handle the selection on the given control
+Void Select(K_State _State, CMlControl _Control) {
+	if (_Control == Null || {{{Transition::P}}}IsInTransition(This)) return;
+
+	if (_Control.HasClass("{{{C_Class_MapButton}}}")) {
+		declare {{{CampaignStruct::P}}}K_Map MapData for _Control;
+		PlayMap(_State, MapData);
+	}
+}
+
+***MainInit***
+***
+declare CMlFrame Frame_Global;
+
+declare K_State State;
+***
+
+***MainStart***
+***
+Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+
+State = K_State {
+	Campaign = {{{CampaignStore::P}}}GetTrainingCampaign(),
+	Controls = K_Controls {
+		Frame_Background = (Frame_Global.GetFirstChild("frame-background") as CMlFrame),
+		Frame_MapRankings = (Frame_Global.GetFirstChild("frame-map-rankings") as CMlFrame),
+		Frame_Maps = (Frame_Global.GetFirstChild("frame-maps") as CMlFrame),
+		Label_Title = (Frame_Global.GetFirstChild("label-title") as CMlLabel),
+		Label_Error = (Frame_Global.GetFirstChild("label-error") as CMlLabel)
+	}
+};
+
+UpdateTrainingCampaign(State);
+State.Controls.Label_Title.SetText(State.Campaign.Name);
+{{{MapRankings::P}}}ShowAuthorDisplayName(State.Controls.Frame_MapRankings, False);
+{{{Navigation::P}}}Focus(This, Frame_Global);
+Focus(State, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName_Maps}}}"), State.Controls.Frame_Maps.GetFirstChild("button-map-0-0"));
+***
+
+***MainLoop***
+***
+if (PageIsVisible) {
+	foreach (Event in {{{Router::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case "{{{Router::C_Event_EnteringRoute}}}": {
+				SendCustomEvent("{{{Const::C_Event_UpdateLoadingScreen}}}", [State.Campaign.Name]);
+				UpdateControllerInfo(State);
+				UpdateTrainingCampaign(State);
+				UpdateMapRankingsComponent(State, {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName_Maps}}}"));
+			}
+		}
+	}
+
+	/* PopUpBackground events */
+	foreach (Event in {{{PopUpBackground::P}}}GetPendingEvents(This)) {
+		if (Event.PopUpBackground != Null && Event.PopUpBackground.ControlId == "frame-background") {
+			switch (Event.Type) {
+				case {{{PopUpBackground::P}}}C_EventType_Close: {{{Router::P}}}PushParent(This);
+			}
+		}
+	}
+
+	/* Navigation events */
+	foreach (Event in {{{Navigation::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case {{{Navigation::P}}}C_EventType_NavigateInput: {
+				if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName_Maps}}}")) {
+					switch (Event.Input) {
+						case CMlScriptEvent::EMenuNavAction::Cancel: {{{Router::P}}}PushParent(This);
+						case CMlScriptEvent::EMenuNavAction::Select: Select(State, Event.To);
+						default: Focus(State, Event.From, Event.To);
+					}
+				} else if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName_Global}}}")) {
+					if (Event.Input == CMlScriptEvent::EMenuNavAction::Cancel) {{{Router::P}}}PushParent(This);
+				}
+			}
+			case {{{Navigation::P}}}C_EventType_NavigateMouse: {
+				if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName_Maps}}}")) {
+					switch (Event.Mouse) {
+						case CMlScriptEvent::Type::MouseClick: Select(State, Event.To);
+						case CMlScriptEvent::Type::MouseOver: Focus(State, Event.From, Event.To);
+					}
+				}
+			}
+		}
+	}
+}
+
+/* Leaving event */
+foreach (Event in {{{Router::P}}}GetPendingEvents(This)) {
+	switch (Event.Type) {
+		case "{{{Router::C_Event_LeavingRoute}}}": {
+			SendCustomEvent("{{{Const::C_Event_UpdateLoadingScreen}}}", [""]);
+		}
+	}
+}
+***
+""",
+[
+	CampaignStore::ComponentV2(),
+	CampaignStruct::Component(),
+	ClubStore::ComponentV2(),
+	ExpendableButton::ComponentV2(),
+	MapRankings::ComponentV2(),
+	MedalStack::Component(),
+	Navigation::ComponentV2(),
+	PopUpBackground::ComponentV2(),
+	RankingSelection::ComponentV2(),
+	Router::ComponentV2(),
+	Transition::ComponentV2()
+],
+[]
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update from the ManiaApp
+Void Yield() {
+
+}

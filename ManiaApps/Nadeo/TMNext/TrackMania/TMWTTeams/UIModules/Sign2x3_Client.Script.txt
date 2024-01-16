@@ -1,0 +1,202 @@
+/**
+ *	UI module: Sign2x3 client side
+ */
+#Const Version		"2022-12-05"
+#Const ScriptName	"ManiaApps/Nadeo/TMNext/TrackMania/TMWTTeams/UIModules/Sign2x3_Client.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Client.Script.txt" as UIModules
+#Include "ManiaApps/Nadeo/TMNext/TrackMania/TMWTTeams/UIModules/Sign2x3_Common.Script.txt" as UIModules_Sign2x3_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const UIModules_Sign2x3_Common::C_InstancesNb as C_InstancesNb
+#Const UIModules_Sign2x3_Common::C_AttachId as C_AttachId
+
+#Const C_Img_Sign2x3Default "file://Media/Manialinks/Nadeo/TMNext/Modes/TMWT/Sign2x3/Default.dds"
+#Const C_FadeAnimDuration 500
+
+#Const C_Id_FrameGlobal "frame-global"
+#Const C_Id_QuadNew "quad-new"
+#Const C_Id_QuadOld "quad-old"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the id of the UI module
+Text GetId(Integer _InstanceNb) {
+	return UIModules_Sign2x3_Common::C_Id^"_"^_InstanceNb;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the type of layer of the UI module
+CUILayer::EUILayerType GetLayerType() {
+	return UIModules_Sign2x3_Common::C_LayerType;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the module manialink
+ *
+ *  @return                           The module manialink
+ */
+Text GetML(Integer _InstanceNb) {
+	return MV::Create(
+		GetId(_InstanceNb), 3,
+"""
+<frame id="{{{C_Id_FrameGlobal}}}" z-index="-2" hidden="1">
+	<frame {{{UIModules::CustomizableUIModule(UIModules_Sign2x3_Common::C_UIModuleConfig)}}}>
+		<quad id="{{{C_Id_QuadNew}}}" image="{{{C_Img_Sign2x3Default}}}" size="120 180" z-index="0" halign="center" valign="center" />
+		<quad id="{{{C_Id_QuadOld}}}" size="120 180" z-index="1" halign="center" valign="center" opacity="0" />
+	</frame>
+</frame>
+""",
+"""
+#Include "Libs/Nadeo/TMNext/TrackMania/Modes/TMWTCommon/Shared.Script.txt" as Shared
+#Include "Libs/Nadeo/TMNext/TrackMania/Modes/TMWTCommon/Teams.Script.txt" as Teams
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/WarmupHelpers_Client.Script.txt" as WarmupHelpers
+
+#Struct K_Controls {
+	CMlFrame Frame_Global;
+	CMlQuad Quad_New;
+	CMlQuad Quad_Old;
+}
+#Struct K_State {
+	K_Controls Controls;
+	Boolean DisplayModule;
+	Integer LiveRankingUpdate;
+	Integer TeamsUpdate;
+	Teams::K_Team[Integer] TeamsInfo;
+	Boolean IsWarmUp;
+}
+
+#Const C_State_Null K_State {
+	Controls = K_Controls {},
+	DisplayModule = False,
+	LiveRankingUpdate = -1,
+	TeamsUpdate = -1,
+	TeamsInfo = [],
+	IsWarmUp = False
+}
+
+#Const C_Img_Sign2x3Default {{{dump(C_Img_Sign2x3Default)}}}
+#Const C_FadeAnimDuration {{{dump(C_FadeAnimDuration)}}}
+
+#Const C_Id_FrameGlobal {{{dump(C_Id_FrameGlobal)}}}
+#Const C_Id_QuadNew {{{dump(C_Id_QuadNew)}}}
+#Const C_Id_QuadOld {{{dump(C_Id_QuadOld)}}}
+""",
+"""
+K_State SetVisibility(K_State _State, Boolean _DisplayModule) {
+	declare K_State State = _State;
+
+	State.DisplayModule = _DisplayModule;
+
+	State.Controls.Frame_Global.Visible = State.DisplayModule;
+
+	return State;
+}
+
+K_State UpdateSign(K_State _State, Integer _LiveRankingUpdate, Boolean _IsWarmUp) {
+	declare K_State State = _State;
+
+	State.LiveRankingUpdate = _LiveRankingUpdate;
+	State.IsWarmUp = _IsWarmUp;
+
+	declare Text NewImageUrl = State.Controls.Quad_New.ImageUrl;
+
+	if (State.IsWarmUp) {
+		NewImageUrl = C_Img_Sign2x3Default;
+	} else {
+		declare Integer LeaderClan;
+		foreach (Score in Scores) {
+			if (Shared::GetLiveRank(Score) == 1) {
+				LeaderClan = Score.TeamNum;
+				break;
+			}
+		}
+
+		if (LeaderClan == 1 || LeaderClan == 2) {
+			NewImageUrl = Teams::GetClanSign2x3Url(State.TeamsInfo, LeaderClan);
+			if (NewImageUrl == "" || !Http.IsValidUrl(NewImageUrl)) {
+				NewImageUrl = C_Img_Sign2x3Default;
+			}
+		} else {
+			NewImageUrl = C_Img_Sign2x3Default;
+		}
+	}
+
+	if (State.Controls.Quad_New.ImageUrl != NewImageUrl) {
+		AnimMgr.Flush(State.Controls.Quad_Old);
+		State.Controls.Quad_Old.ImageUrl = State.Controls.Quad_New.ImageUrl;
+		State.Controls.Quad_Old.Opacity = 1.;
+		State.Controls.Quad_New.ImageUrl = NewImageUrl;
+		
+		// If the game is not focused when the opacity animation should be played,
+		// the opacity might change only once the sign is updated by the
+		// C++ to display the ads again. It is normal, do not worry if the
+		// animation is not played properly while testing with several game instances.
+		AnimMgr.Add(State.Controls.Quad_Old, "<anim opacity=\"0\" />", C_FadeAnimDuration, CAnimManager::EAnimManagerEasing::QuadOut);
+	}
+
+	return State;
+}
+
+K_State SetTeamsInfo(K_State _State, Integer _TeamsUpdate, Teams::K_Team[Integer] _TeamsInfo) {
+	declare K_State State = _State;
+
+	State.TeamsUpdate = _TeamsUpdate;
+	State.TeamsInfo = _TeamsInfo;
+
+	return UpdateSign(State, State.LiveRankingUpdate, State.IsWarmUp);
+}
+
+***MainInit***
+***
+declare netread Boolean Net_TMWTTeams_Sign2x3_IsVisible for UI;
+
+declare K_State State = C_State_Null;
+***
+
+***MainStart***
+***
+State.Controls.Frame_Global <=> (Page.GetFirstChild(C_Id_FrameGlobal) as CMlFrame);
+State.Controls.Quad_New <=> (Page.GetFirstChild(C_Id_QuadNew) as CMlQuad);
+State.Controls.Quad_Old <=> (Page.GetFirstChild(C_Id_QuadOld) as CMlQuad);
+
+State = SetVisibility(State, State.Controls.Frame_Global.Visible);
+State = UpdateSign(State, Shared::GetLiveRankingUpdate(This), WarmupHelpers::IsWarmupActive(Teams[0]));
+State = SetTeamsInfo(State, Teams::GetTeamsUpdate(This), Teams::GetTeamsInfo(This));
+***
+
+***MainLoop***
+***
+if (PageIsVisible) {
+	if (State.DisplayModule != Net_TMWTTeams_Sign2x3_IsVisible) {
+		State = SetVisibility(State, Net_TMWTTeams_Sign2x3_IsVisible);
+	}
+
+	if (State.DisplayModule) {
+		if (
+			State.LiveRankingUpdate != Shared::GetLiveRankingUpdate(This) ||
+			State.IsWarmUp != WarmupHelpers::IsWarmupActive(Teams[0])
+		) {
+			State = UpdateSign(State, Shared::GetLiveRankingUpdate(This), WarmupHelpers::IsWarmupActive(Teams[0]));
+		}
+		if (State.TeamsUpdate != Teams::GetTeamsUpdate(This)) {
+			State = SetTeamsInfo(State, Teams::GetTeamsUpdate(This), Teams::GetTeamsInfo(This));
+		}
+	}
+}
+***
+""",
+[
+	UIModules::Component()
+],
+[]
+	);
+}

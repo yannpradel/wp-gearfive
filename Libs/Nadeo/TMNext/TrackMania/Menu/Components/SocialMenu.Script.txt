@@ -1,0 +1,1689 @@
+/** 
+ *	Component: SocialMenu
+ */
+#Const Version		"2023-06-21"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Menu/Components/SocialMenu.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Navigation.Script.txt" as Navigation
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Transition.Script.txt" as Transition
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/PopUpBackground.Script.txt" as PopUpBackground
+#Include "Libs/Nadeo/TMNext/TrackMania/ColorPalette.Script.txt" as ColorPalette
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as Const
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/Button.Script.txt" as Button
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/ExpendableButton.Script.txt" as ExpendableButton
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/MenuSounds.Script.txt" as MenuSounds
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Scroll.Script.txt" as Scroll
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/SquaddingStruct.Script.txt" as SquaddingStruct
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/UserStore_ML.Script.txt" as UserStore
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/LoadingSpinner.Script.txt" as LoadingSpinner
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/PopUpMultiChoice.Script.txt" as PopUpMultiChoice
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/MatchmakingStruct.Script.txt" as MatchmakingStruct
+#Include "Libs/Nadeo/CommonLibs/Common/Platform.Script.txt" as Platform
+#Include "TextLib" as TL
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "component-socialmenu" //< Component name
+#Const P "ComponentSocialMenu_" //< Prefix used to differentiate functions/variables in the script
+#Const C_NavGroupName "navgroup-social-menu"
+#Const C_NavGroupName_InvitationsActions "navgroup-socialmenu-invit-actions"
+
+#Const C_Class_Invitation	"socialmenu-class-invit"
+#Const C_Invitation_ActionClass "socialmenu-class-action"
+#Const C_Invitation_ActionClass_Accept "socialmenu-class-accept"
+#Const C_Invitation_ActionClass_Decline "socialmenu-class-decline"
+
+// Leave squad pop up
+#Const C_Choice_Cancel 0
+#Const C_Choice_Leave 1
+#Const C_Choices_LeaveSquad [
+	//L16N [Social Menu] Do not leave the squad
+	0 => _("|Squad|Cancel"),
+	//L16N [Social Menu] Leave the current squad
+	1 => _("|Squad|Leave")
+]
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the component
+ *
+ *	@return														The component id
+ */
+Text Component() {
+	//L16N [Social Menu] Title of the pop up to manage the player's friends invitations and list
+	declare Text Text_Title = _("Social");
+	//L16N [Social Menu] Button to leave your current squad
+	declare Text Text_LeaveSquad = _("Leave squad");
+	//L16N [Social Menu] Button to add friends in Ubisoft Connect
+	declare Text Text_AddFriends = _("Add friends");
+	//L16N [Social Menu] Title of the tab to see the friends list
+	declare Text Text_Friends = _("Friends");
+	//L16N [Social Menu] Title of the tab to see the player's friends invitations
+	declare Text Text_Invitations = _("Invitations");
+	//L16N [Social Menu] Title of the column of the online friends in the game
+	declare Text Text_OnlineFriends = _("Online friends in Trackmania");
+	//L16N [Social Menu] Message to explain to the player that they do not have any friend's invitations to play in the game at the moment
+	declare Text Text_NoInvits = _("You have no invitations to play from your friends currently");
+	//L16N [Social Menu] Message to explain to the player that they do not have any friends online in the game at the moment
+	declare Text Text_NoOnlineFriends = _("You have no friends playing Trackmania currently");
+	//L16N [Social Menu] An invitation has been sent to a player's friend, %1 will be replaced by the friend nickname, e.g "Invitation sent to Apozie50"
+	declare Text Text_InvitSent = _("Invitation sent to %1");
+	//L16N [Social Menu] Invitation sent to a player's friend has been canceled, %1 will be replaced by the friend nickname, e.g "Invitation to Apozie50 canceled"
+	declare Text Text_InvitCanceled = _("Invitation to %1 canceled");
+	//L16N [Social Menu] Invitation already accepted by the player's friend. The player can not re send one, %1 will be replaced by the friend nickname, e.g "Apozie50 has already accept your invitation"
+	declare Text Text_AlreadyInvit = _("%1 has already accepted your invitation");
+	//L16N [Social Menu] Message to explain to the player that they have reach the maximum number of squad members and cannot invite more players
+	declare Text Text_SquadFull = _("Your squad is full, you cannot invite more friends");
+	//L16N [Social Menu] A friend invited you to his squad. Will follow the friend's pseudo, e.g "Apozie50 invited you"
+	declare Text Text_Invited = _("invited you");
+	//L16N [Social Menu] Button to accept a friend's invitation
+	declare Text Text_Accept = _("Accept");
+	//L16N [Social Menu] Button to decline a friend's invitation
+	declare Text Text_Decline = _("Decline");
+	//L16N [Social Menu] The player declined a friend invitation, %1 will be replaced by the friend nickname, e.g "Apozie50's invitation declined"
+	declare Text Text_DeclinedInvit = _("%1's invitation declined");
+	// Description of the leave squad pop-up
+	declare PopUpMultiChoice::K_DescriptionPart[] Description_LeaveSquad = [
+		//L16N [Social Menu] Text displayed in a pop-up to ask the player if they really want to leave their current squad.
+		PopUpMultiChoice::CreateDescriptionPart(_("Are you sure you want to leave your squad?"), <120., 30.>, 3., FontManager::C_GameFontSemiBold, "$t$i", <1., 1., 1.>, False)
+	];
+
+	// Friends list Scroll
+	declare Integer FriendColumnsNb = 1;
+	declare Integer FriendRowsNb = 8;
+	declare Integer FriendsPerPage = FriendColumnsNb * FriendRowsNb;
+	declare Vec2 Size_FriendsScrollWindow = <90., 9. * FriendRowsNb>;
+	declare Vec2 Size_FriendsMargin = <0., 1.>;	
+	declare Vec2 Size_Friend = Scroll::GetElementSize(Size_FriendsScrollWindow, Size_FriendsMargin, FriendColumnsNb, FriendRowsNb);
+	declare Integer FriendsElementsNb = Scroll::GetRequiredElementsNb(Size_FriendsScrollWindow, Size_Friend, Size_FriendsMargin, FriendColumnsNb);
+
+	declare Vec2 Size_FriendBg = <Size_Friend.Y * 1024/96, Size_Friend.Y>;
+	declare Vec2 Size_FriendFlag = <Size_Friend.Y * 1.5, Size_Friend.Y>;
+	declare Vec2 Size_FriendName = <Size_Friend.X * 0.75, Size_Friend.Y * 0.9>;
+	declare Vec2 Pos_FriendBg = <Size_FriendFlag.X * 0.5, -Size_Friend.Y * 0.5>;
+	declare Vec2 Pos_FriendFlag = <0., -Size_Friend.Y * 0.5>;
+	declare Vec2 Pos_FriendName = <Pos_FriendBg.X + Size_FriendBg.X * 0.05, -Size_FriendBg.Y * 0.5>;
+	declare Vec2 Pos_InvitIcon = <Pos_FriendBg.X + Size_FriendBg.X * 0.9, -Size_FriendBg.Y * 0.5>;
+	
+	declare Vec2 Size_FriendHeader = <0., 0.>;
+	declare Vec2 Size_FriendFooter = <0., 0.>;
+
+	declare Text ML_FriendList = "";
+	for (I, 1, FriendsElementsNb) {
+		ML_FriendList ^= """
+		<frameinstance
+			modelid="{{{P}}}framemodel-friend"
+			class="{{{Scroll::C_Class_Element}}}"
+			hidden="1"
+		/>
+		""";
+	}
+
+	// Invitations list Scroll
+	declare Integer InvitationColumnsNb = 1;
+	declare Integer InvitationRowsNb = 8;
+	declare Integer InvitationsPerPage = InvitationColumnsNb * InvitationRowsNb;
+	declare Vec2 Size_InvitationsScrollWindow = <200., 9. * InvitationRowsNb>;
+	declare Vec2 Size_InvitationsMargin = <0., 1.>;	
+	declare Vec2 Size_Invitation = Scroll::GetElementSize(Size_InvitationsScrollWindow, Size_InvitationsMargin, InvitationColumnsNb, InvitationRowsNb);
+	declare Integer InvitationsElementsNb = Scroll::GetRequiredElementsNb(Size_InvitationsScrollWindow, Size_Invitation, Size_InvitationsMargin, InvitationColumnsNb);
+
+	declare Vec2 Size_InvitationFlag = <12.8, 8.5>;
+	declare Vec2 Size_InvitationName = <Size_Invitation.X * 0.3, Size_Invitation.Y * 0.9>;
+	declare Vec2 Pos_InvitationFlag = <0., -4.2>;
+	declare Vec2 Pos_InvitationName = <Size_Invitation.X * 0.05, Size_Invitation.Y * -0.55>;
+	declare Vec2 Pos_InvitationAccept = <Size_Invitation.X * 0.75, Size_Invitation.Y * -0.55>;
+	declare Vec2 Pos_InvitationDecline = <Size_Invitation.X * 0.9, Size_Invitation.Y * -0.55>;
+	
+	declare Vec2 Size_InvitationHeader = <0., 0.>;
+	declare Vec2 Size_InvitationFooter = <0., 0.>;
+
+	declare Text ML_InvitationList = "";
+	for (I, 1, InvitationsElementsNb) {
+		ML_InvitationList ^= """
+		<frameinstance
+			modelid="{{{P}}}framemodel-invitation"
+			data-nav-inputs="left;right;select"
+			data-nav-targets="_;_;_"
+			data-nav-group="{{{C_NavGroupName_InvitationsActions}}}"
+			class="{{{Scroll::C_Class_Element}}} {{{Navigation::C_Class}}} {{{C_Class_Invitation}}}"
+			id="frame-invitation-{{{I}}}"
+			hidden="1"
+		/>
+		""";
+	}
+
+	declare Boolean IsFromFirstParty = Platform::IsFromFirstParty(System);
+
+	return MV::Component(
+		C_Name,
+		"""
+<stylesheet>
+	<style class="{{{P}}}quad-base" halign="center" valign="center"/>
+	<style class="{{{P}}}text-base" halign="center" valign="center2" textprefix="$t$i" textfont="{{{FontManager::C_GameFontSemiBold}}}" textsize="3" textcolor="FFF"/>
+</stylesheet>
+
+<framemodel id="{{{P}}}framemodel-friend">
+	<quad id="{{{P}}}quad-friend" pos="{{{Pos_FriendBg.X}}} {{{Pos_FriendBg.Y}}}" size="{{{Size_FriendBg.X}}} {{{Size_FriendBg.Y}}}" halign="left" scriptevents="1" image="{{{Const::C_ImageUrl_Matchmaking_Social_Friend_Bg}}}" colorize="{{{ColorPalette::C_Color_DarkBlue}}}" opacity=".2" class="{{{Scroll::C_Class_ActivationZone}}} {{{P}}}quad-base" />
+	<quad id="{{{P}}}quad-flag" pincorners="<-0.75,1.>:<1.,1.>:<0.75,-1.>:<-1.,-1.>" class="{{{P}}}quad-base" pos="{{{Pos_FriendFlag.X}}} {{{Pos_FriendFlag.Y}}}" size="{{{Size_FriendFlag.X}}} {{{Size_FriendFlag.Y}}}" opacity="0.6" z-index="2" />
+	<quad id="{{{P}}}quad-invit-icon" class="{{{P}}}quad-base" pos="{{{Pos_InvitIcon.X}}} {{{Pos_InvitIcon.Y}}}" size="8 8" opacity="0.6" z-index="2" image="{{{Const::C_ImageUrl_Icon_Add_Member}}}" colorize="FFF"/>
+	<label id="{{{P}}}label-name" halign="left" size="{{{Size_FriendName.X}}} {{{Size_FriendName.Y}}}" class="{{{P}}}text-base" pos="{{{Pos_FriendName.X}}} {{{Pos_FriendName.Y}}}" textprefix="$i$t" textcolor="FFF" textfont="{{{FontManager::C_GameFontExtraBold}}}" opacity="0.6" textsize="3." z-index="2"/>
+</framemodel>
+
+<framemodel id="{{{P}}}framemodel-invitation">
+	<quad id="{{{P}}}quad-invit" pos="71 0" size="129 8.5" scriptevents="1" image="{{{Const::C_ImageUrl_Matchmaking_Social_Invitation_Bg}}}" valign="top" colorize="{{{ColorPalette::C_Color_DarkBlue}}}" opacity=".2" class="{{{Scroll::C_Class_ActivationZone}}} {{{P}}}quad-base" />
+	<quad id="{{{P}}}quad-flag" pincorners="<-0.75,1.>:<1.,1.>:<0.75,-1.>:<-1.,-1.>" class="{{{P}}}quad-base" pos="{{{Pos_InvitationFlag.X}}} {{{Pos_InvitationFlag.Y}}}" size="{{{Size_InvitationFlag.X}}} {{{Size_InvitationFlag.Y}}}" opacity="0.6" z-index="2"/>
+	<label id="{{{P}}}label-name" halign="left" size="{{{Size_InvitationName.X}}} {{{Size_InvitationName.Y}}}" class="{{{P}}}text-base" pos="{{{Pos_InvitationName.X}}} {{{Pos_InvitationName.Y}}}" textprefix="$i$t" textcolor="{{{ColorPalette::C_Color_GreenOne}}}" textfont="{{{FontManager::C_GameFontExtraBold}}}" opacity="0.6" textsize="3.25" z-index="2"/>
+	<label id="{{{P}}}label-invited" text="{{{Text_Invited}}}" halign="left" size="{{{Size_InvitationName.X}}} {{{Size_InvitationName.Y}}}" class="{{{P}}}text-base" pos="{{{Pos_InvitationName.X + Size_InvitationName.X}}} {{{Pos_InvitationName.Y}}}" textprefix="$i$t" textcolor="FFF" textfont="{{{FontManager::C_GameFontExtraBold}}}" opacity="0.6" textsize="3.25" z-index="2"/>
+	
+	<label id="{{{P}}}label-accept" text="{{{Text_Accept}}}" size="27 {{{Size_InvitationName.Y}}}" class="{{{P}}}text-base" pos="{{{Pos_InvitationAccept.X}}} {{{Pos_InvitationAccept.Y}}}" textprefix="$i$t" textcolor="{{{ColorPalette::C_Color_GreenOne}}}" textfont="{{{FontManager::C_GameFontExtraBold}}}" opacity="0.6" textsize="3.25" z-index="2"/>
+	<quad id="{{{P}}}quad-accept" opacity="0." scriptevents="1" class="{{{C_Invitation_ActionClass}}} {{{C_Invitation_ActionClass_Accept}}} {{{P}}}quad-base" pos="{{{Pos_InvitationAccept.X}}} {{{Pos_InvitationAccept.Y}}}" size="30 {{{Size_InvitationName.Y}}}" />
+
+	<label id="{{{P}}}label-decline" text="{{{Text_Decline}}}" size="27 {{{Size_InvitationName.Y}}}" class="{{{P}}}text-base" pos="{{{Pos_InvitationDecline.X}}} {{{Pos_InvitationDecline.Y}}}" textprefix="$i$t" textfont="{{{FontManager::C_GameFontExtraBold}}}" opacity="0.6" textsize="3.25" z-index="2"/>
+	<quad id="{{{P}}}quad-decline" opacity="0." scriptevents="1" class="{{{C_Invitation_ActionClass}}} {{{C_Invitation_ActionClass_Decline}}} {{{P}}}quad-base" pos="{{{Pos_InvitationDecline.X}}} {{{Pos_InvitationDecline.Y}}}" size="30 {{{Size_InvitationName.Y}}}" />
+</framemodel>
+
+<frame id="{{{P}}}frame-global" hidden="1">
+	<frameinstance modelid="{{{PopUpBackground::C_Name}}}" id="{{{P}}}frame-popup-background" data-pop-up-name="{{{C_Name}}}" z-index="-1" data-layout="{{{PopUpBackground::C_Layout_Type_ClubSubMenu}}}"/>
+	<frameinstance id="{{{P}}}popupmultichoice-leave-squad" modelid="{{{PopUpMultiChoice::C_Name}}}" data-title="{{{Text_LeaveSquad}}}" data-choices="{{{TL::MLEncode(C_Choices_LeaveSquad.tojson())}}}" data-description="{{{TL::MLEncode(Description_LeaveSquad.tojson())}}}" data-styles-secondchoice="{{{PopUpMultiChoice::C_ChoiceStyle_Default}}} {{{ExpendableButton::C_Style_ButtonWarning}}}" z-index="3" hidden="1"/>
+	<label pos="-110 55" text="{{{Text_Title}}}" textfont="{{{FontManager::C_GameFontExtraBold}}}" size="150 10" halign="left" class="{{{P}}}text-base" textsize="15" />
+	
+	<frameinstance
+		modelid="{{{Button::C_Name}}}" id="{{{P}}}button-leave-squad" hidden="1"
+		pos="-83.5 44"
+		class="{{{Navigation::C_Class}}} {{{MenuSounds::C_Class}}}"
+		data-text="{{{Text_LeaveSquad}}}"
+		data-size="70 9"
+		data-opacity="0."
+		data-opacityunfocus="0."
+		data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+		data-textcolor="FFF"
+		data-textfocuscolor="{{{ColorPalette::C_Color_ErrorRed}}}"
+		data-textsize="4"
+		data-labelsize="40 9"
+		data-fitlabel="2"
+		data-textopacityunfocus=".6"
+		data-textfont="{{{FontManager::C_GameFontSemiBold}}}"
+		data-textitalicslope=".2"
+		data-halign="center"
+		data-valign="center"
+		data-iconcolortype="{{{Button::C_ColorType_Colorize}}}"
+		data-iconcolor="FFF"
+		data-iconfocuscolor="{{{ColorPalette::C_Color_ErrorRed}}}"
+		data-icon="{{{Const::C_ImageUrl_Icon_LeaveClub}}}"
+		data-iconfocus="{{{Const::C_ImageUrl_Icon_LeaveClub}}}"
+		data-iconsize="9 9"
+		data-iconxpos="0.15"
+		data-iconypos="-0.4"
+		data-iconopacityunfocus=".5"
+		data-nav-inputs="select;cancel;down;right"
+		data-nav-targets="_;_;{{{P}}}button-friends;{{{P}}}button-add-friend"
+		data-nav-group="{{{C_NavGroupName}}}"
+		data-nav-zone="{{{Button::C_NavZone}}}"
+		data-nav-locked="1"
+	/>
+
+	<frameinstance
+		modelid="{{{Button::C_Name}}}" id="{{{P}}}button-friends"
+		pos="-50 30"
+		class="{{{Navigation::C_Class}}} {{{MenuSounds::C_Class}}}"
+		data-text="{{{Text_Friends}}}"
+		data-size="70 9"
+		data-opacity="0."
+		data-opacityunfocus="0."
+		data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+		data-textcolor="FFF"
+		data-textfocuscolor="FFF"
+		data-textsize="7"
+		data-textopacityunfocus=".6"
+		data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+		data-textitalicslope=".2"
+		data-halign="center"
+		data-valign="center"
+		data-nav-inputs="select;cancel;right;down;up;pageup;pagedown"
+		data-nav-targets="_;_;{{{P}}}button-invitations;{{{P}}}frame-friends-scroll;{{{P}}}button-leave-squad;_;_"
+		data-nav-group="{{{C_NavGroupName}}}"
+		data-nav-zone="{{{Button::C_NavZone}}}"
+	/>
+
+	<quad id="{{{P}}}quad-invitations-nb" image="{{{Const::C_ImageUrl_Matchmaking_Social_Invitation_Count}}}" pos="33 30.5" size="10.4 7.2" colorize="{{{ColorPalette::C_Color_GreenOne}}}" class="{{{P}}}quad-base" z-index="1"/>
+	<label id="{{{P}}}label-invitations-nb" pos="33 30" size="9 7" class="{{{P}}}text-base" textcolor="000" textfont="{{{FontManager::C_GameFontExtraBold}}}" textsize="4" z-index="2"/>
+
+	<frameinstance
+		modelid="{{{Button::C_Name}}}" id="{{{P}}}button-invitations"
+		pos="70 30"
+		class="{{{Navigation::C_Class}}} {{{MenuSounds::C_Class}}}"
+		data-text="{{{Text_Invitations}}}"
+		data-size="70 9"
+		data-opacity="0."
+		data-opacityunfocus="0."
+		data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+		data-textcolor="FFF"
+		data-textfocuscolor="FFF"
+		data-textsize="7"
+		data-textopacityunfocus=".6"
+		data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+		data-textitalicslope=".2"
+		data-halign="center"
+		data-valign="center"
+		data-nav-inputs="select;cancel;left;down;up;pageup;pagedown"
+		data-nav-targets="_;_;{{{P}}}button-friends;{{{P}}}frame-invitations-scroll;{{{P}}}button-add-friend;_;_"
+		data-nav-group="{{{C_NavGroupName}}}"
+		data-nav-zone="{{{Button::C_NavZone}}}"
+	/>
+
+	<frameinstance
+		modelid="{{{Button::C_Name}}}" id="{{{P}}}button-add-friend"
+		pos="120 55"
+		class="{{{Navigation::C_Class}}} {{{MenuSounds::C_Class}}}"
+		data-text="{{{Text_AddFriends}}}"
+		data-size="70 9"
+		data-labelsize="40 9"
+		data-opacity="0."
+		data-opacityunfocus="0."
+		data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+		data-textcolor="FFF"
+		data-textsize="4"
+		data-fitlabel="2"
+		data-textopacityunfocus=".6"
+		data-textfont="{{{FontManager::C_GameFontSemiBold}}}"
+		data-textitalicslope=".2"
+		data-halign="center"
+		data-valign="center"
+		data-iconcolortype="{{{Button::C_ColorType_Colorize}}}"
+		data-iconcolor="FFF"
+		data-icon="{{{Const::C_ImageUrl_Icon_Add_Member}}}"
+		data-iconfocus="{{{Const::C_ImageUrl_Icon_Add_Member}}}"
+		data-iconsize="9 9"
+		data-iconxpos="0.15"
+		data-iconypos="-0.4"
+		data-iconopacityunfocus=".5"
+		data-nav-inputs="select;cancel;down;left"
+		data-nav-targets="_;_;{{{P}}}button-invitations;{{{P}}}button-leave-squad"
+		data-nav-group="{{{C_NavGroupName}}}"
+		data-nav-zone="{{{Button::C_NavZone}}}"
+		data-nav-locked="{{{IsFromFirstParty}}}"
+		hidden="{{{IsFromFirstParty}}}"
+	/>
+
+	<frame id="{{{P}}}frame-friends" hidden="1">
+		<label id="{{{P}}}label-online-friends" hidden="1" pos="-40 17" text="{{{Text_OnlineFriends}}}" textfont="{{{FontManager::C_GameFontExtraBold}}}" size="100 10" halign="left" class="{{{P}}}text-base" textsize="3.5"/>
+		<label id="{{{P}}}label-no-online-friends" hidden="1" pos="5 -10" text="{{{Text_NoOnlineFriends}}}" size="150 10" textprefix="$i" class="{{{P}}}text-base" textsize="3"/>
+		<frameinstance id="{{{P}}}frame-loading-spinner" modelid="{{{LoadingSpinner::C_Name}}}" pos="5 -25" halign="center" valign="center" z-index="2"/>
+		<frameinstance modelid="{{{Scroll::C_Name}}}" data-scroll-parent="{{{P}}}frame-friends-scroll" z-index="1" />
+		<frame
+			pos="-40 12"
+			data-elements-per-line="{{{FriendColumnsNb}}}"
+			data-elements-per-page="{{{FriendsPerPage}}}"
+			data-element-size="{{{Size_Friend.X}}} {{{Size_Friend.Y}}}"
+			data-margin-size="{{{Size_FriendsMargin.X}}} {{{Size_FriendsMargin.Y}}}"
+			data-window-size="{{{Size_FriendsScrollWindow.X}}} {{{Size_FriendsScrollWindow.Y}}}"
+			data-header-height="{{{Size_FriendHeader.Y}}}"
+			data-footer-height="{{{Size_FriendFooter.Y}}}"
+			data-scroll-indicator="1"
+			data-scroll-indicator-y-offset="-11"
+			data-scroll-indicator-x-offset="-10"
+			data-scroll-indicator-image="{{{Const::C_ImageUrl_Icon_Arrow_Bottom_Oblique}}}"
+			data-scroll-indicator-size="12"
+			data-scroll-indicator-colorize="FFFFFF"
+			data-scrollbar-visibility="{{{Scroll::C_ScrollBarVisibility_DuringScroll}}}"
+			data-scrollbar-xoffset="1."
+			data-skew="-10"
+			data-skew-valign="{{{Scroll::C_SkewVAlign_Top}}}"
+			data-scrollpadding="20"
+			class="{{{Scroll::C_Class_Window}}} {{{Navigation::C_Class}}}"
+			data-nav-inputs="select;cancel;pageup;pagedown"
+			data-nav-targets="_;_;_;_"
+			data-nav-group="{{{C_NavGroupName}}}"
+			id="{{{P}}}frame-friends-scroll"
+		>
+			<quad z-index="-1" scriptevents="1" class="{{{Scroll::C_Class_ScrollEvent}}}" />
+			{{{ML_FriendList}}}
+		</frame>
+		<label id="{{{P}}}label-friends-infos" pos="-7 -75" size="150 10" textprefix="$i" class="{{{P}}}text-base" textsize="3"/>
+	</frame>
+
+	<frame id="{{{P}}}frame-invitations" hidden="1">
+		<label id="{{{P}}}label-no-invitations" hidden="1" pos="5 -10" text="{{{Text_NoInvits}}}" size="150 10" textprefix="$i" class="{{{P}}}text-base" textsize="3"/>
+		<frameinstance modelid="{{{Scroll::C_Name}}}" data-scroll-parent="{{{P}}}frame-invitations-scroll" z-index="1" />
+		<frame
+			pos="-90 12"
+			data-elements-per-line="{{{InvitationColumnsNb}}}"
+			data-elements-per-page="{{{InvitationsPerPage}}}"
+			data-element-size="{{{Size_Invitation.X}}} {{{Size_Invitation.Y}}}"
+			data-margin-size="{{{Size_InvitationsMargin.X}}} {{{Size_InvitationsMargin.Y}}}"
+			data-window-size="{{{Size_InvitationsScrollWindow.X}}} {{{Size_InvitationsScrollWindow.Y}}}"
+			data-header-height="{{{Size_InvitationHeader.Y}}}"
+			data-footer-height="{{{Size_InvitationFooter.Y}}}"
+			data-scroll-indicator="1"
+			data-scroll-indicator-y-offset="-11"
+			data-scroll-indicator-x-offset="-10"
+			data-scroll-indicator-image="{{{Const::C_ImageUrl_Icon_Arrow_Bottom_Oblique}}}"
+			data-scroll-indicator-size="12"
+			data-scroll-indicator-colorize="FFFFFF"
+			data-scrollbar-visibility="{{{Scroll::C_ScrollBarVisibility_DuringScroll}}}"
+			data-scrollbar-xoffset="1."
+			data-skew="-10"
+			data-skew-valign="{{{Scroll::C_SkewVAlign_Top}}}"
+			data-scrollpadding="20"
+			class="{{{Scroll::C_Class_Window}}} {{{Navigation::C_Class}}}"
+			data-nav-inputs="select;cancel;pageup;pagedown"
+			data-nav-targets="_;_;_;_"
+			data-nav-group="{{{C_NavGroupName}}}"
+			id="{{{P}}}frame-invitations-scroll"
+		>
+			<quad z-index="-1" scriptevents="1" class="{{{Scroll::C_Class_ScrollEvent}}}" />
+			{{{ML_InvitationList}}}
+		</frame>
+		<label id="{{{P}}}label-invitations-infos" pos="-7 -75" size="150 10" textprefix="$i" class="{{{P}}}text-base" textsize="3"/>
+	</frame>
+	
+</frame>
+""",
+"""
+#Include "TextLib" as {{{P}}}TL
+#Include "ColorLib" as {{{P}}}CL
+#Include "Libs/Nadeo/CommonLibs/Common/Task.Script.txt" as {{{P}}}Task
+#Include "Libs/Nadeo/CommonLibs/Common/SquadNotificationObserver_Common.Script.txt" as {{{P}}}NotificationObserver_Common
+#Include "Libs/Nadeo/CommonLibs/Common/SquadNotificationObserver_Social_Menu.Script.txt" as {{{P}}}NotificationObserver
+#Include "Libs/Nadeo/CommonLibs/Common/MainUser.Script.txt" as {{{P}}}MainUser
+#Include "Libs/Nadeo/MenuLibs/Common/Components/Tools.Script.txt" as {{{P}}}Tools
+#Include "Libs/Nadeo/TMNext/TrackMania/Config.Script.txt" as {{{P}}}Config
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Overlays/ControllerInfo_ML.Script.txt" as {{{P}}}ControllerInfo
+#Include "Libs/Nadeo/CommonLibs/Common/Log.Script.txt" as {{{P}}}Log
+
+#Const {{{P}}}C_Event_Cancel 0
+#Const {{{P}}}C_Event_HasSeenInvits 1
+#Const {{{P}}}C_Event_InvitationWaiting 2
+#Const {{{P}}}C_Event_InvitationCanceled 3
+#Const {{{P}}}C_Event_InvitationAccepted 4
+#Const {{{P}}}C_Event_MemberAdded 5
+#Const {{{P}}}C_Event_MemberRemoved 6
+#Const {{{P}}}C_Event_InvitationsNbUpdate 7
+#Const {{{P}}}C_Event_SquadUpdated 8
+#Const {{{P}}}C_Event_SquadLeft 9
+#Const {{{P}}}C_Event_SquadLocked 10
+#Const {{{P}}}C_Event_UbiConnectError 11
+#Const {{{P}}}C_Event_GetCurrentSquad 12
+
+#Const {{{P}}}C_Friend_InvitationPossible 0
+#Const {{{P}}}C_Friend_InvitationSent 1
+#Const {{{P}}}C_Friend_InvitationAccepted 3
+
+#Const {{{P}}}C_InvitationMessage_TimeDuration 2500
+#Const {{{P}}}C_InvitationMessage_FadeTime 750
+
+#Const {{{P}}}C_Invitation_Accept 0
+#Const {{{P}}}C_Invitation_Decline 1
+
+#Const {{{P}}}C_ErrorCode_Accept_SquadFull "C-BD-02-03"
+
+#Const {{{P}}}C_Open_UbiConnectFriendsList 0
+#Const {{{P}}}C_Open_FirstPartyFriendsList 1
+#Const {{{P}}}C_Open_UbiConnectInvitesList 2
+
+#Struct {{{P}}}K_Friend {
+	Text AccountId;
+	Text DisplayName;
+	Boolean IsFirstPartyDisplayName;
+	Text ClubTag;
+	Text ZoneUrl;
+	Text SkinName;
+	Text SkinUrl;
+	Text SkinPrestigeOptions;
+	Integer InvitationState;
+}
+
+#Struct {{{P}}}K_Invitation {
+	Text AccountId;
+	Text DisplayName;
+	Boolean IsFirstPartyDisplayName;
+	Text ClubTag;
+	Text ZoneUrl;
+	Text SquadId;
+}
+
+#Struct {{{P}}}K_Event {
+	Integer	Type;
+	{{{P}}}K_Friend Friend;
+	{{{P}}}K_Friend[Text] SquadMembers;
+	Integer InvitationsNb;
+	Boolean NotifSound;
+	Boolean IsLocked;
+	Text SquadType;
+	Text SquadId;
+	Text ErrorMessage;
+	Text SquadLeaderId;
+	Boolean WasForcedToLeaveDueToCrossPlaySetting;
+}
+
+#Struct {{{P}}}K_Controls {
+	CMlFrame Frame_Global;
+	CMlFrame Frame_Friends;
+	CMlFrame Frame_Invitations;
+	CMlFrame Button_Friends;
+	CMlFrame Button_Invitations;
+	CMlLabel Label_OnlineFriends;
+	CMlLabel Label_NoFriends;
+	CMlLabel Label_NoInvitations;
+	CMlLabel Label_FriendsInfos;
+	CMlLabel Label_InvitationsInfos;
+	CMlFrame Frame_Scroll_Friends;
+	CMlFrame Frame_Scroll_Invitations;
+	CMlQuad Quad_InvitationsNb;
+	CMlLabel Label_InvitationsNb;
+	CMlFrame Frame_LoadingSpinner;
+	CMlFrame Button_LeaveSquad;
+	CMlFrame PopUpMultiChoice_LeaveSquad;
+}
+
+#Struct {{{P}}}K_State {
+	Integer CurrentInvitationAction;
+	Integer CurrentInvitationNb;
+	Text CurrentSquadId;
+	{{{P}}}K_Friend[Text] CurrentSquadMembers;
+	{{{P}}}K_Friend[Text] CurrentSquadInvitations;
+	{{{P}}}Task::K_Task Task_GetFriendList;
+	{{{P}}}Task::K_Task Task_GetCurrentSquad;
+	{{{P}}}Task::K_Task Task_SquadCreate;
+	{{{P}}}Task::K_Task[Integer] Tasks_SquadInvite;
+	{{{P}}}Task::K_Task[Integer] Tasks_SquadCancelInvitation;
+	{{{P}}}Task::K_Task Task_SquadAcceptInvitation;
+	{{{P}}}Task::K_Task Task_SquadDeclineInvitation;
+	{{{P}}}Task::K_Task Task_SquadLeave;
+	{{{P}}}Task::K_Task Task_OpenUbiConnectFriends;
+	{{{P}}}Task::K_Task Task_OpenFirstPartyInvite;
+	{{{P}}}Task::K_Task Task_OpenUbiConnectInvitations;
+	{{{P}}}Task::K_Task Task_GetClubTagList;
+	Integer[] FirstInvitationKeys; //Stock friend keys before the squad is created and we can't send invitations yet
+	Integer CurrentInvitationKey;
+	Text CurrentSquadType;
+	Boolean CurrentSquadLocked;
+	Boolean NeedUpdateInvitationsList;
+	Integer CurrentFriendListChangeIndex;
+}
+""",
+"""
+declare {{{P}}}K_State {{{P}}}State;
+declare {{{P}}}K_Controls {{{P}}}Controls;
+declare {{{P}}}K_Event[] {{{P}}}PendingEvents;
+
+Void {{{P}}}ShowLoadingFriends(Boolean _Show) {
+	{{{LoadingSpinner::P}}}SetIsLoading(This, {{{P}}}Controls.Frame_LoadingSpinner, _Show);
+	{{{P}}}Controls.Frame_Scroll_Friends.Visible = !_Show;
+}
+
+Void {{{P}}}UpdateFriendList() {
+	{{{P}}}State.Task_GetFriendList = {{{P}}}Task::DestroyAndCreate({{{P}}}State.Task_GetFriendList, UserMgr, UserMgr.Friend_GetList({{{P}}}MainUser::GetMainUserId()));
+	{{{P}}}ShowLoadingFriends(True);
+}
+
+Void {{{P}}}GetCurrentSquad() {
+	{{{P}}}State.Task_GetCurrentSquad = {{{P}}}Task::DestroyAndCreate({{{P}}}State.Task_GetCurrentSquad, UserMgr, UserMgr.Squad_GetCurrent({{{P}}}MainUser::GetMainUserId()));
+}
+
+Void {{{P}}}CreateSquad() {
+	{{{P}}}State.Task_SquadCreate = {{{P}}}Task::DestroyAndCreate({{{P}}}State.Task_SquadCreate, UserMgr, UserMgr.Squad_Create({{{P}}}MainUser::GetMainUserId(), "squad_" ^ LocalUser.Name, {{{SquaddingStruct::P}}}C_MaxSquadSize, {{{P}}}State.CurrentSquadType));
+}
+
+Void {{{P}}}SendSquadInvitation(Text _FriendAccountId, Integer _Key) {
+	if ({{{P}}}State.Tasks_SquadInvite.existskey(_Key) && {{{P}}}Task::IsInitialized({{{P}}}State.Tasks_SquadInvite[_Key])) {
+		{{{P}}}State.Tasks_SquadInvite[_Key] = {{{P}}}Task::Destroy({{{P}}}State.Tasks_SquadInvite[_Key]);
+	}
+	{{{P}}}State.Tasks_SquadInvite[_Key] = {{{P}}}Task::Create(UserMgr, UserMgr.Squad_Invite({{{P}}}MainUser::GetMainUserId(), {{{P}}}State.CurrentSquadId, _FriendAccountId));
+}
+
+Void {{{P}}}CancelSquadInvitation(Text _FriendAccountId, Integer _Key) {
+	if ({{{P}}}State.Tasks_SquadCancelInvitation.existskey(_Key) && {{{P}}}Task::IsInitialized({{{P}}}State.Tasks_SquadCancelInvitation[_Key])) {
+		{{{P}}}State.Tasks_SquadCancelInvitation[_Key] = {{{P}}}Task::Destroy({{{P}}}State.Tasks_SquadCancelInvitation[_Key]);
+	}
+	{{{P}}}State.Tasks_SquadCancelInvitation[_Key] = {{{P}}}Task::Create(UserMgr, UserMgr.Squad_CancelInvitation({{{P}}}MainUser::GetMainUserId(), {{{P}}}State.CurrentSquadId, _FriendAccountId));
+}
+
+Void {{{P}}}AcceptSquadInvitation(Text _SquadId) {
+	{{{P}}}State.Task_SquadAcceptInvitation = {{{P}}}Task::DestroyAndCreate({{{P}}}State.Task_SquadAcceptInvitation, UserMgr, UserMgr.Squad_AcceptInvitation({{{P}}}MainUser::GetMainUserId(), _SquadId));
+}
+
+Void {{{P}}}DeclineSquadInvitation(Text _SquadId) {
+	{{{P}}}State.Task_SquadDeclineInvitation = {{{P}}}Task::DestroyAndCreate({{{P}}}State.Task_SquadDeclineInvitation, UserMgr, UserMgr.Squad_DeclineInvitation({{{P}}}MainUser::GetMainUserId(), _SquadId));
+}
+
+Void {{{P}}}LeaveSquad() {
+	{{{P}}}State.Task_SquadLeave = {{{P}}}Task::DestroyAndCreate({{{P}}}State.Task_SquadLeave, UserMgr, UserMgr.Squad_Leave({{{P}}}MainUser::GetMainUserId(), {{{P}}}State.CurrentSquadId));
+}
+
+Void {{{P}}}Open(Integer _OpenChoice) {
+	switch (_OpenChoice) {
+		case {{{P}}}C_Open_UbiConnectFriendsList: {
+			{{{P}}}State.Task_OpenUbiConnectFriends = {{{P}}}Task::DestroyAndCreate({{{P}}}State.Task_OpenUbiConnectFriends, UserMgr, UserMgr.UbisoftConnect_ShowSocialFriendList({{{P}}}MainUser::GetMainUserId()));
+		}
+		case {{{P}}}C_Open_FirstPartyFriendsList: {
+			{{{P}}}State.Task_OpenFirstPartyInvite = {{{P}}}Task::DestroyAndCreate({{{P}}}State.Task_OpenFirstPartyInvite, UserMgr, UserMgr.LiveSession_ShowFirstPartyInviteUI({{{P}}}MainUser::GetMainUserId()));
+		}
+		case {{{P}}}C_Open_UbiConnectInvitesList: {
+			{{{P}}}State.Task_OpenUbiConnectInvitations = {{{P}}}Task::DestroyAndCreate({{{P}}}State.Task_OpenUbiConnectInvitations, UserMgr, UserMgr.UbisoftConnect_ShowSocialInvitationList({{{P}}}MainUser::GetMainUserId()));
+		}
+	}
+}
+
+Void {{{P}}}Focus(CMlControl _From, CMlControl _To) {
+	if ({{{Transition::P}}}IsInTransition(This)) return;
+	
+	if (_From != Null) {
+		{{{Navigation::P}}}Unfocus(This, _From);
+		if ({{{Button::P}}}IsButton(_From)) {
+			{{{Button::P}}}Unfocus(This, (_From as CMlFrame));
+		}	else if ({{{Scroll::P}}}IsScroll(_From)) {
+			{{{Scroll::P}}}Unfocus(This, (_From as CMlFrame));
+			{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName_InvitationsActions}}}", False);
+		}
+	}
+	
+	if (_To != Null) {
+		{{{Navigation::P}}}Focus(This, _To);
+		if ({{{Button::P}}}IsButton(_To)) {
+			{{{Button::P}}}Focus(This, (_To as CMlFrame));
+		} else if ({{{Scroll::P}}}IsScroll(_To)) {
+			{{{Scroll::P}}}Focus(This, (_To as CMlFrame));
+			{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName_InvitationsActions}}}", True);
+		}
+	}
+}
+
+Void {{{P}}}ChangeTab(Boolean _ShowInvitations) {
+	{{{P}}}Controls.Frame_Friends.Visible = !_ShowInvitations;
+	{{{P}}}Controls.Frame_Invitations.Visible = _ShowInvitations;
+	declare CMlFrame Frame_ToFocus;
+	if (_ShowInvitations) {
+		if ({{{Scroll::P}}}GetElementsTotal({{{P}}}Controls.Frame_Scroll_Invitations) > 0) Frame_ToFocus <=> {{{P}}}Controls.Frame_Scroll_Invitations;
+		else Frame_ToFocus <=> {{{P}}}Controls.Button_Invitations;	
+		{{{P}}}Controls.Quad_InvitationsNb.Opacity = 1.;
+		{{{P}}}Controls.Label_InvitationsNb.Opacity = 1.;
+		{{{Navigation::P}}}ChangeControlTarget(This, {{{P}}}Controls.Button_Friends, "down", {{{P}}}Controls.Frame_Scroll_Invitations.ControlId);
+		{{{Navigation::P}}}ChangeControlTarget(This, {{{P}}}Controls.Button_Invitations, "down", {{{P}}}Controls.Frame_Scroll_Invitations.ControlId);
+		{{{P}}}PendingEvents.add({{{P}}}K_Event {
+			Type = {{{P}}}C_Event_HasSeenInvits
+		});
+	}	else {
+		{{{P}}}Controls.Quad_InvitationsNb.Opacity = 0.4;
+		{{{P}}}Controls.Label_InvitationsNb.Opacity = 0.4;
+		if ({{{Scroll::P}}}GetElementsTotal({{{P}}}Controls.Frame_Scroll_Friends) > 0) Frame_ToFocus <=> {{{P}}}Controls.Frame_Scroll_Friends;
+		else Frame_ToFocus <=> {{{P}}}Controls.Button_Friends;		
+		{{{Navigation::P}}}ChangeControlTarget(This, {{{P}}}Controls.Button_Friends, "down", {{{P}}}Controls.Frame_Scroll_Friends.ControlId);
+		{{{Navigation::P}}}ChangeControlTarget(This, {{{P}}}Controls.Button_Invitations, "down", {{{P}}}Controls.Frame_Scroll_Friends.ControlId);
+		{{{P}}}UpdateFriendList();
+	}
+	{{{Scroll::P}}}LockNavigation({{{P}}}Controls.Frame_Scroll_Friends, _ShowInvitations);
+	{{{Scroll::P}}}LockNavigation({{{P}}}Controls.Frame_Scroll_Invitations, !_ShowInvitations);
+	{{{P}}}Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), Frame_ToFocus);
+}
+
+Void {{{P}}}Select(CMlControl _Control) {
+	if (_Control == Null || {{{Transition::P}}}IsInTransition(This)) return;
+
+	switch (_Control.ControlId) {
+		case "{{{P}}}button-friends": {{{P}}}ChangeTab(False);
+		case "{{{P}}}button-invitations": {{{P}}}ChangeTab(True);
+		case "{{{P}}}button-leave-squad": {{{PopUpMultiChoice::P}}}Open(This, {{{P}}}Controls.PopUpMultiChoice_LeaveSquad);
+		case "{{{P}}}button-add-friend": {
+			{{{P}}}State.Task_OpenUbiConnectFriends = {{{P}}}Task::DestroyAndCreate({{{P}}}State.Task_OpenUbiConnectFriends, UserMgr, UserMgr.UbisoftConnect_ShowSocialFriendList({{{P}}}MainUser::GetMainUserId()));
+		}
+	}
+}
+
+Void {{{P}}}Private_Display(Boolean _Visible, Boolean _OpenInvitationsTab) {
+	{{{P}}}Controls.Frame_Global.Visible = _Visible;
+	{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", _Visible);
+	if (!_Visible) {
+		{{{P}}}PendingEvents.add({{{P}}}K_Event {
+			Type = {{{P}}}C_Event_Cancel
+		});
+		{{{P}}}ControllerInfo::SetButtons([
+			"A" => _("Select"), 
+			"B" => _("Back")
+		]);
+	} else {
+		{{{P}}}ControllerInfo::SetButtons([
+			"A" => _("Select"), 
+			"B" => _("Back"),
+			"pageup" => "{{{Text_Friends}}}",
+			"pagedown" => "{{{Text_Invitations}}}"
+		]);
+		{{{P}}}ChangeTab(_OpenInvitationsTab);
+	}
+}
+
+Void {{{P}}}Show(Boolean _OpenInvitationsTab) {
+	{{{P}}}Private_Display(True, _OpenInvitationsTab);
+}
+
+Void {{{P}}}Show() {
+	{{{P}}}Show(False);
+}
+
+Void {{{P}}}Hide() {
+	{{{P}}}Private_Display(False, False);
+}
+
+Boolean {{{P}}}IsDisplayed() {
+	return {{{P}}}Controls.Frame_Global.Visible;
+}
+
+Void {{{P}}}SetCurrentSquadType(Text _CurrentModeId) {
+	declare Text PreviousSquadType = {{{P}}}State.CurrentSquadType;
+	switch (_CurrentModeId) {
+		case {{{MatchmakingStruct::P}}}C_Mode_Teams3v3: {
+			{{{P}}}State.CurrentSquadType = {{{SquaddingStruct::P}}}C_SquadType_Ranked;
+		}
+		case {{{MatchmakingStruct::P}}}C_Mode_Royal: {
+			{{{P}}}State.CurrentSquadType = {{{SquaddingStruct::P}}}C_SquadType_Royal;
+		}
+	}
+	if (PreviousSquadType != {{{P}}}State.CurrentSquadType) {{{P}}}State.NeedUpdateInvitationsList = True;
+}
+
+Void {{{P}}}FocusFriend(CMlFrame _Frame_Friend, Boolean _IsFocused) {
+	declare Real QuadOpacity = 0.2;
+	declare Real LabelOpacity = 0.6;
+	if (_IsFocused) {
+		QuadOpacity = 0.8;
+		LabelOpacity = 1.;
+	}
+	(_Frame_Friend.GetFirstChild("{{{P}}}label-name") as CMlLabel).Opacity = LabelOpacity;
+	(_Frame_Friend.GetFirstChild("{{{P}}}quad-flag") as CMlQuad).Opacity = LabelOpacity;
+	(_Frame_Friend.GetFirstChild("{{{P}}}quad-friend") as CMlQuad).Opacity = QuadOpacity;
+	(_Frame_Friend.GetFirstChild("{{{P}}}quad-invit-icon") as CMlQuad).Opacity = LabelOpacity;
+}
+
+Void {{{P}}}ShowFriend(CMlFrame _Frame_Friend, {{{P}}}K_Friend _Friend) {
+	_Frame_Friend.Show();
+	declare CMlLabel Label_Name <=> (_Frame_Friend.GetFirstChild("{{{P}}}label-name") as CMlLabel);
+	Label_Name.Value = {{{UserStore::P}}}GetPlayerName(_Friend.DisplayName, _Friend.ClubTag, _Friend.IsFirstPartyDisplayName);
+	{{{P}}}Tools::FitLabelValue(Label_Name, 3., 1., 0.25);
+	{{{P}}}Tools::FirstPartyLogoMatchLuminance(Label_Name);
+	(_Frame_Friend.GetFirstChild("{{{P}}}quad-flag") as CMlQuad).ChangeImageUrl(_Friend.ZoneUrl);
+
+	declare CMlQuad Quad_Invit_Icon <=> (_Frame_Friend.GetFirstChild("{{{P}}}quad-invit-icon") as CMlQuad);
+	switch (_Friend.InvitationState) {
+		case {{{P}}}C_Friend_InvitationPossible: {
+			Quad_Invit_Icon.ChangeImageUrl("{{{Const::C_ImageUrl_Icon_Add_Member}}}");
+			Quad_Invit_Icon.Colorize = <1., 1., 1.>;
+		}
+		case {{{P}}}C_Friend_InvitationSent: {
+			Quad_Invit_Icon.ChangeImageUrl("{{{Const::C_ImageUrl_Icon_LeaveClub}}}");
+			Quad_Invit_Icon.Colorize = <1., 0., 0.>;
+		}
+		case {{{P}}}C_Friend_InvitationAccepted: {
+			Quad_Invit_Icon.ChangeImageUrl("{{{Const::C_ImageUrl_Icon_Role_Member}}}");
+			Quad_Invit_Icon.Colorize = {{{ColorPalette::C_Color_Vec3_GreenOne}}};
+		}
+	}
+}
+
+Void {{{P}}}MessageAnimation(CMlLabel _Label, Text _Message, Boolean _IsErrorMessage) {
+	if (_IsErrorMessage) _Label.TextColor = {{{P}}}CL::Hex6ToRgb("{{{ColorPalette::C_Color_ErrorRed}}}");
+	else _Label.TextColor = <1., 1., 1.>;
+	_Label.Value = _Message;
+	AnimMgr.Flush(_Label);
+	AnimMgr.Add(_Label, "<a opacity=\"1.\" />", 50, CAnimManager::EAnimManagerEasing::QuadOut);
+	AnimMgr.Add(_Label, "<a opacity=\"0.\" />", Now+{{{P}}}C_InvitationMessage_TimeDuration, {{{P}}}C_InvitationMessage_FadeTime, CAnimManager::EAnimManagerEasing::QuadOut);
+}
+
+Void {{{P}}}SelectFriend({{{P}}}K_Friend _Friend, Integer _Key) {
+	switch (_Friend.InvitationState) {
+		case {{{P}}}C_Friend_InvitationPossible : {
+			if ({{{P}}}State.CurrentSquadMembers.count < {{{SquaddingStruct::P}}}C_MaxSquadSize) {
+				if ({{{P}}}State.CurrentSquadId == "") {
+					{{{P}}}CreateSquad();
+					{{{P}}}State.FirstInvitationKeys.add(_Key);
+				} else {
+					{{{P}}}SendSquadInvitation(_Friend.AccountId, _Key);
+				} 
+			} else {
+				{{{P}}}MessageAnimation({{{P}}}Controls.Label_FriendsInfos, "{{{Text_SquadFull}}}", False);
+			}
+		}
+		case {{{P}}}C_Friend_InvitationSent : {
+			{{{P}}}CancelSquadInvitation(_Friend.AccountId, _Key);
+		}
+		case {{{P}}}C_Friend_InvitationAccepted : {
+			{{{P}}}MessageAnimation({{{P}}}Controls.Label_FriendsInfos, {{{P}}}TL::Compose("{{{Text_AlreadyInvit}}}", _Friend.DisplayName), False);
+		}
+	}
+}
+
+Void {{{P}}}HideFriend(CMlFrame _Frame_Friend) {
+	_Frame_Friend.Hide();
+}
+
+Void {{{P}}}SetNewInvitActionByMouse(CMlQuad _Quad_Action) {
+	if (_Quad_Action != Null) {
+		if (_Quad_Action.HasClass("{{{C_Invitation_ActionClass_Accept}}}")) {
+			{{{P}}}State.CurrentInvitationAction = {{{P}}}C_Invitation_Accept;
+		} else if (_Quad_Action.HasClass("{{{C_Invitation_ActionClass_Decline}}}")) {
+			{{{P}}}State.CurrentInvitationAction = {{{P}}}C_Invitation_Decline;
+		}
+	}
+}
+
+Void {{{P}}}SetNewInvitActionByInput(CMlScriptEvent::EMenuNavAction _Input) {
+	switch (_Input) {
+		case CMlScriptEvent::EMenuNavAction::Left : {
+			if ({{{P}}}State.CurrentInvitationAction == {{{P}}}C_Invitation_Decline) {{{P}}}State.CurrentInvitationAction = {{{P}}}C_Invitation_Accept;
+		}
+		case CMlScriptEvent::EMenuNavAction::Right : {
+			if ({{{P}}}State.CurrentInvitationAction == {{{P}}}C_Invitation_Accept) {{{P}}}State.CurrentInvitationAction = {{{P}}}C_Invitation_Decline;
+		}
+	}
+}
+
+Void {{{P}}}FocusInvitation(CMlFrame _Frame_Invitation, Boolean _IsFocused) {
+	declare Real QuadOpacity = 0.2;
+	declare Real LabelOpacity = 0.6;
+	declare Real AcceptLabelOpacity = 0.6;
+	declare Real DeclineLabelOpacity = 0.6;
+	if (_IsFocused) {
+		QuadOpacity = 0.8;
+		LabelOpacity = 1.;
+		if ({{{P}}}State.CurrentInvitationAction == {{{P}}}C_Invitation_Accept) AcceptLabelOpacity = 1.;
+		else if ({{{P}}}State.CurrentInvitationAction == {{{P}}}C_Invitation_Decline) DeclineLabelOpacity = 1.;
+		{{{Navigation::P}}}Focus(This, _Frame_Invitation);
+	}
+	(_Frame_Invitation.GetFirstChild("{{{P}}}label-name") as CMlLabel).Opacity = LabelOpacity;
+	(_Frame_Invitation.GetFirstChild("{{{P}}}label-invited") as CMlLabel).Opacity = LabelOpacity;
+	(_Frame_Invitation.GetFirstChild("{{{P}}}label-accept") as CMlLabel).Opacity = AcceptLabelOpacity;
+	(_Frame_Invitation.GetFirstChild("{{{P}}}label-decline") as CMlLabel).Opacity = DeclineLabelOpacity;
+	(_Frame_Invitation.GetFirstChild("{{{P}}}quad-flag") as CMlQuad).Opacity = LabelOpacity;
+	(_Frame_Invitation.GetFirstChild("{{{P}}}quad-invit") as CMlQuad).Opacity = QuadOpacity;
+}
+
+Void {{{P}}}ShowInvitation(CMlFrame _Frame_Invitation, {{{P}}}K_Invitation _Invitation) {
+	_Frame_Invitation.Show();
+	declare CMlLabel Label_Name = (_Frame_Invitation.GetFirstChild("{{{P}}}label-name") as CMlLabel);
+	Label_Name.Value = {{{UserStore::P}}}GetPlayerName(_Invitation.DisplayName, _Invitation.ClubTag, _Invitation.IsFirstPartyDisplayName);
+	{{{P}}}Tools::FitLabelValue(Label_Name, 3., 1., 0.25);
+	{{{P}}}Tools::FirstPartyLogoMatchLuminance(Label_Name);
+	declare Real NameWidth = ML::Min(Label_Name.Size.X, Label_Name.ComputeWidth(Label_Name.Value));
+	(_Frame_Invitation.GetFirstChild("{{{P}}}label-invited") as CMlLabel).RelativePosition_V3.X = Label_Name.RelativePosition_V3.X + NameWidth;
+	(_Frame_Invitation.GetFirstChild("{{{P}}}quad-flag") as CMlQuad).ChangeImageUrl(_Invitation.ZoneUrl);
+	{{{P}}}Tools::FitLabelValue((_Frame_Invitation.GetFirstChild("{{{P}}}label-accept") as CMlLabel), 3.25, 2.75, 0.1);
+	{{{P}}}Tools::FitLabelValue((_Frame_Invitation.GetFirstChild("{{{P}}}label-decline") as CMlLabel), 3.25, 2.75, 0.1);
+}
+
+Void {{{P}}}SelectInvitation(Text _SquadId, Integer _Key) {
+	{{{P}}}State.CurrentInvitationKey = _Key;
+	if ({{{P}}}State.CurrentInvitationAction == {{{P}}}C_Invitation_Accept) {
+		{{{P}}}AcceptSquadInvitation(_SquadId);
+	} else if ({{{P}}}State.CurrentInvitationAction == {{{P}}}C_Invitation_Decline) {
+		{{{P}}}DeclineSquadInvitation(_SquadId);
+	}
+}
+
+Void {{{P}}}UpdateInvitationsNb(Integer _NewInvitationsNb, Boolean _NotifSound) {
+	{{{P}}}PendingEvents.add({{{P}}}K_Event {
+		Type = {{{P}}}C_Event_InvitationsNbUpdate,
+		InvitationsNb = _NewInvitationsNb,
+		NotifSound = _NotifSound
+	});
+	{{{P}}}State.CurrentInvitationNb = _NewInvitationsNb;
+	if ({{{P}}}State.CurrentInvitationNb > 0) {
+		{{{P}}}Controls.Quad_InvitationsNb.Show();
+		{{{P}}}Controls.Label_InvitationsNb.Show();
+		if ({{{P}}}State.CurrentInvitationNb > 9) {{{P}}}Controls.Label_InvitationsNb.SetText("9+");
+		else {{{P}}}Controls.Label_InvitationsNb.SetText(""^{{{P}}}State.CurrentInvitationNb);
+	} else {
+		{{{P}}}Controls.Quad_InvitationsNb.Hide();
+		{{{P}}}Controls.Label_InvitationsNb.Hide();
+	}
+	{{{P}}}Controls.Label_NoInvitations.Visible = ({{{P}}}State.CurrentInvitationNb == 0);
+}
+
+{{{P}}}K_Invitation[] {{{P}}}UpdateInvitationsDisplay({{{P}}}K_Invitation[] _InvitationsList) {
+	declare {{{P}}}K_Invitation[] InvitationsList = _InvitationsList;
+	InvitationsList.removekey({{{P}}}State.CurrentInvitationKey);
+	{{{Scroll::P}}}SetElementsTotal(This, {{{P}}}Controls.Frame_Scroll_Invitations, InvitationsList.count);
+	{{{P}}}UpdateInvitationsNb(InvitationsList.count, False);
+	return InvitationsList;
+}
+
+{{{P}}}K_Invitation[] {{{P}}}RemoveMyInvitation({{{P}}}K_Invitation[] _InvitationsList, Text _CancelerName, Text _SquadId) {
+	declare {{{P}}}K_Invitation[] InvitationsList = _InvitationsList;
+	
+	foreach (Key => Invitation in InvitationsList) {
+		if (Invitation.SquadId == _SquadId) {
+			//L16N Message to inform the player that their friend have canceled their squad invitation
+			if (_CancelerName != "") {{{P}}}MessageAnimation({{{P}}}Controls.Label_InvitationsInfos, {{{P}}}TL::Compose(_("%1 canceled their invitation"), "$<"^_CancelerName^"$>"), False);
+			{{{P}}}State.CurrentInvitationKey = Key;
+			InvitationsList = {{{P}}}UpdateInvitationsDisplay(InvitationsList);
+			{{{P}}}State.CurrentInvitationKey = -1;
+			break;
+		}
+	}
+
+	return InvitationsList;
+}
+Void {{{P}}}HideInvitation(CMlFrame _Frame_Invitation) {
+	_Frame_Invitation.Hide();
+}
+
+{{{P}}}K_Friend[] {{{P}}}CheckFriendsStatus({{{P}}}K_Friend[] _FriendsList) {
+	declare {{{P}}}K_Friend[] FriendsList = _FriendsList;
+
+	foreach (I => Friend in FriendsList) {
+		FriendsList[I].InvitationState = {{{P}}}C_Friend_InvitationPossible;
+		foreach (Id => Member in {{{P}}}State.CurrentSquadMembers) {
+			if (Id == Friend.AccountId) {
+				FriendsList[I].InvitationState = {{{P}}}C_Friend_InvitationAccepted;
+			}
+		}
+		foreach (Id => Invitation in {{{P}}}State.CurrentSquadInvitations) {
+			if (Id == Friend.AccountId) {
+				FriendsList[I].InvitationState = {{{P}}}C_Friend_InvitationSent;
+			}
+		}
+	}
+	{{{Scroll::P}}}SetElementsTotal(This, {{{P}}}Controls.Frame_Scroll_Friends, FriendsList.count, False);
+	return FriendsList;
+}
+
+Void {{{P}}}ResetVoiceChatFromSquadId(Text _SquadId) {
+	ParentApp.VoiceChat.Manual_Channel = _SquadId;
+	{{{P}}}Log::SendCustomLog("[SOCIAL MENU] Manual_Channel = " ^ ParentApp.VoiceChat.Manual_Channel);
+	ParentApp.VoiceChat.Manual_ClearUsers();
+	ParentApp.VoiceChat.NewRemoteUser_DefaultMuteSetting = CGameUserVoiceChat::EMuteSetting::NotMuted;
+}
+
+Void {{{P}}}SetVoiceChatFromSquadMembers(Text[] _SquadMembersAccountIds) {
+	ParentApp.VoiceChat.Manual_ClearUsers();
+	foreach (MemberId in _SquadMembersAccountIds) {
+		ParentApp.VoiceChat.Manual_UserAdd_Proc(MemberId);
+		{{{P}}}Log::SendCustomLog("[SOCIAL MENU] Add User = " ^ MemberId);
+	}
+	// Do not forget to add the local user
+	ParentApp.VoiceChat.Manual_UserAdd_Proc(LocalUser.WebServicesUserId);
+	{{{P}}}Log::SendCustomLog("[SOCIAL MENU] Add User = " ^ LocalUser.WebServicesUserId);
+}
+
+{{{P}}}K_Friend[] {{{P}}}AddSquadMember(
+	{{{P}}}K_Friend[] _FriendsList,
+	Text _SquadId,
+	Text _MemberId,
+	Text _MemberName,
+	Boolean _MemberIsFirstPartyDisplayName,
+	Text _MemberZone,
+	Text _MemberSkinName,
+	Text _MemberSkinUrl,
+	Text _MemberSkinPrestigeOptions
+) {
+	declare {{{P}}}K_Friend[] FriendsList = _FriendsList;
+
+	{{{P}}}State.CurrentSquadMembers[_MemberId] = {{{P}}}K_Friend {
+		AccountId = _MemberId,
+		DisplayName = _MemberName,
+		IsFirstPartyDisplayName = _MemberIsFirstPartyDisplayName,
+		ZoneUrl = _MemberZone,
+		SkinName = _MemberSkinName,
+		SkinUrl = _MemberSkinUrl,
+		SkinPrestigeOptions = _MemberSkinPrestigeOptions,
+		InvitationState = {{{P}}}C_Friend_InvitationAccepted
+	};
+	{{{P}}}PendingEvents.add({{{P}}}K_Event {
+		Type = {{{P}}}C_Event_InvitationAccepted,
+		SquadId = _SquadId,
+		Friend = {{{P}}}K_Friend {
+			AccountId = _MemberId,
+			DisplayName = _MemberName,
+			IsFirstPartyDisplayName = _MemberIsFirstPartyDisplayName,
+			ZoneUrl = _MemberZone,
+			SkinName = _MemberSkinName,
+			SkinUrl = _MemberSkinUrl,
+			SkinPrestigeOptions = _MemberSkinPrestigeOptions
+		}
+	});
+	{{{P}}}PendingEvents.add({{{P}}}K_Event {
+		Type = {{{P}}}C_Event_MemberAdded,
+		SquadId = _SquadId,
+		Friend = {{{P}}}K_Friend {
+			AccountId = _MemberId,
+			DisplayName = _MemberName,
+			IsFirstPartyDisplayName = _MemberIsFirstPartyDisplayName,
+			ZoneUrl = _MemberZone,
+			SkinName = _MemberSkinName,
+			SkinUrl = _MemberSkinUrl,
+			SkinPrestigeOptions = _MemberSkinPrestigeOptions
+		}
+	});
+	{{{P}}}State.CurrentSquadInvitations.removekey(_MemberId);
+
+	return {{{P}}}CheckFriendsStatus(FriendsList);
+}
+
+{{{P}}}K_Friend[] {{{P}}}RemoveSquadMember({{{P}}}K_Friend[] _FriendsList, Text _MemberId, Text _MemberName) {
+	declare {{{P}}}K_Friend[] FriendsList = _FriendsList;
+
+	{{{P}}}State.CurrentSquadMembers.removekey(_MemberId);
+	{{{P}}}PendingEvents.add({{{P}}}K_Event {
+		Type = {{{P}}}C_Event_MemberRemoved,
+		Friend = {{{P}}}K_Friend {
+			AccountId = _MemberId,
+			DisplayName = _MemberName
+		}
+	});
+
+	return {{{P}}}CheckFriendsStatus(FriendsList);
+}
+
+{{{P}}}K_Friend[] {{{P}}}AddSquadInvitation({{{P}}}K_Friend[] _FriendsList, Text _InvitationId, Text _InvitationName, Boolean _InvitationIsFirstPartyDisplayName, Text _InvitationZone) {
+	declare {{{P}}}K_Friend[] FriendsList = _FriendsList;
+
+	{{{P}}}State.CurrentSquadInvitations[_InvitationId] = {{{P}}}K_Friend {
+		AccountId = _InvitationId,
+		DisplayName = _InvitationName,
+		IsFirstPartyDisplayName = _InvitationIsFirstPartyDisplayName,
+		ZoneUrl = _InvitationZone,
+		InvitationState = {{{P}}}C_Friend_InvitationSent
+	};
+
+	return {{{P}}}CheckFriendsStatus(FriendsList);
+}
+
+{{{P}}}K_Friend[] {{{P}}}RemoveSquadInvitation({{{P}}}K_Friend[] _FriendsList, Text _InvitationId) {
+	declare {{{P}}}K_Friend[] FriendsList = _FriendsList;
+	{{{P}}}State.CurrentSquadInvitations.removekey(_InvitationId);
+	return {{{P}}}CheckFriendsStatus(FriendsList);
+}
+
+Void {{{P}}}ResetSquad(Text _NewSquadId, Boolean _InSquad) {
+	{{{P}}}State.CurrentSquadId = _NewSquadId;
+	{{{P}}}State.CurrentSquadMembers.clear();
+	{{{P}}}State.CurrentSquadInvitations.clear();
+	{{{P}}}Controls.Button_LeaveSquad.Visible = _InSquad;
+	{{{Navigation::P}}}Lock({{{P}}}Controls.Button_LeaveSquad, !_InSquad);
+}
+
+Void {{{P}}}SetNewSquad(CTaskResult_Squad _SourceTask) {
+	{{{P}}}ResetSquad(_SourceTask.Squad.Id, True);
+
+	foreach (Member in _SourceTask.Squad.MemberList) {
+		declare Text SkinName;
+		declare Text SkinUrl;
+		foreach (Skin in Member.SkinList) {
+			if (Skin.Type == "{{{Const::C_SkinType_CarSport}}}") {
+				SkinName = Skin.Name;
+				SkinUrl = Skin.Url;
+				break;
+			}
+		}
+		{{{P}}}State.CurrentSquadMembers[Member.AccountId] = {{{P}}}K_Friend {
+			AccountId = Member.AccountId,
+			DisplayName = Member.DisplayName,
+			IsFirstPartyDisplayName = Member.IsFirstPartyDisplayName,
+			ZoneUrl = Member.CountryFlagUrl,
+			SkinName = SkinName,
+			SkinUrl = SkinUrl,
+			SkinPrestigeOptions = Member.PrestigeSkinOptions,
+			InvitationState = {{{P}}}C_Friend_InvitationAccepted
+		};
+	}
+	{{{P}}}PendingEvents.add({{{P}}}K_Event {
+		Type = {{{P}}}C_Event_GetCurrentSquad,
+		SquadMembers = {{{P}}}State.CurrentSquadMembers,
+		SquadType = {{{P}}}State.CurrentSquadType,
+		SquadId = _SourceTask.Squad.Id,
+		SquadLeaderId = _SourceTask.Squad.LeaderWebServicesUserId
+	});
+	foreach (Invitation in _SourceTask.Squad.InvitationList) {
+		{{{P}}}State.CurrentSquadInvitations[Invitation.AccountId] = {{{P}}}K_Friend {
+			AccountId = Invitation.AccountId,
+			DisplayName = Invitation.DisplayName,
+			IsFirstPartyDisplayName = Invitation.IsFirstPartyDisplayName,
+			ZoneUrl = Invitation.CountryFlagUrl,
+			InvitationState = {{{P}}}C_Friend_InvitationSent
+		};
+	}
+}
+***MainInit***
+***
+declare CMlFrame LastScrollFocusInvitation;
+declare CMlFrame LastMouseFocusInvitation;
+
+declare {{{P}}}K_Friend[] {{{P}}}FriendsList;
+declare {{{P}}}K_Invitation[][Text] {{{P}}}InvitationsLists;
+***
+
+***MainStart***
+***
+{{{P}}}Controls.Frame_Global = (Page.GetFirstChild("{{{P}}}frame-global") as CMlFrame);
+{{{P}}}Controls.Frame_Friends = ({{{P}}}Controls.Frame_Global.GetFirstChild("{{{P}}}frame-friends") as CMlFrame);
+{{{P}}}Controls.Frame_Invitations = ({{{P}}}Controls.Frame_Global.GetFirstChild("{{{P}}}frame-invitations") as CMlFrame);
+{{{P}}}Controls.Button_Friends = ({{{P}}}Controls.Frame_Global.GetFirstChild("{{{P}}}button-friends") as CMlFrame);
+{{{P}}}Controls.Button_Invitations = ({{{P}}}Controls.Frame_Global.GetFirstChild("{{{P}}}button-invitations") as CMlFrame);
+{{{P}}}Controls.Label_OnlineFriends = ({{{P}}}Controls.Frame_Global.GetFirstChild("{{{P}}}label-online-friends") as CMlLabel);
+{{{P}}}Controls.Label_NoFriends = ({{{P}}}Controls.Frame_Global.GetFirstChild("{{{P}}}label-no-online-friends") as CMlLabel);
+{{{P}}}Controls.Label_NoInvitations = ({{{P}}}Controls.Frame_Global.GetFirstChild("{{{P}}}label-no-invitations") as CMlLabel);
+{{{P}}}Controls.Label_FriendsInfos = ({{{P}}}Controls.Frame_Global.GetFirstChild("{{{P}}}label-friends-infos") as CMlLabel);
+{{{P}}}Controls.Label_InvitationsInfos = ({{{P}}}Controls.Frame_Global.GetFirstChild("{{{P}}}label-invitations-infos") as CMlLabel);
+{{{P}}}Controls.Frame_Scroll_Friends <=> ({{{P}}}Controls.Frame_Global.GetFirstChild("{{{P}}}frame-friends-scroll") as CMlFrame);
+{{{P}}}Controls.Frame_Scroll_Invitations <=> ({{{P}}}Controls.Frame_Global.GetFirstChild("{{{P}}}frame-invitations-scroll") as CMlFrame);
+{{{P}}}Controls.Quad_InvitationsNb <=> ({{{P}}}Controls.Frame_Global.GetFirstChild("{{{P}}}quad-invitations-nb") as CMlQuad);
+{{{P}}}Controls.Label_InvitationsNb <=> ({{{P}}}Controls.Frame_Global.GetFirstChild("{{{P}}}label-invitations-nb") as CMlLabel);
+{{{P}}}Controls.Frame_LoadingSpinner <=> ({{{P}}}Controls.Frame_Global.GetFirstChild("{{{P}}}frame-loading-spinner") as CMlFrame);
+{{{P}}}Controls.Button_LeaveSquad <=> ({{{P}}}Controls.Frame_Global.GetFirstChild("{{{P}}}button-leave-squad") as CMlFrame);
+{{{P}}}Controls.PopUpMultiChoice_LeaveSquad <=> ({{{P}}}Controls.Frame_Global.GetFirstChild("{{{P}}}popupmultichoice-leave-squad") as CMlFrame);
+
+{{{P}}}State = {{{P}}}K_State {
+	CurrentInvitationAction = {{{P}}}C_Invitation_Accept,
+	CurrentInvitationNb = 0,
+	CurrentSquadId = "",
+	CurrentSquadMembers = [],
+	CurrentSquadInvitations = [],
+	Task_GetFriendList = {{{P}}}Task::GetEmptyTask(),
+	Task_GetCurrentSquad = {{{P}}}Task::GetEmptyTask(),
+	Task_SquadCreate = {{{P}}}Task::GetEmptyTask(),
+	Tasks_SquadInvite = [],
+	Tasks_SquadCancelInvitation = [],
+	Task_SquadAcceptInvitation = {{{P}}}Task::GetEmptyTask(),
+	Task_SquadDeclineInvitation = {{{P}}}Task::GetEmptyTask(),
+	Task_SquadLeave = {{{P}}}Task::GetEmptyTask(),
+	Task_OpenUbiConnectFriends = {{{P}}}Task::GetEmptyTask(),
+	Task_OpenFirstPartyInvite = {{{P}}}Task::GetEmptyTask(),
+	Task_OpenUbiConnectInvitations = {{{P}}}Task::GetEmptyTask(),
+	Task_GetClubTagList = {{{P}}}Task::GetEmptyTask(),
+	FirstInvitationKeys = [],
+	CurrentInvitationKey = -1,
+	CurrentSquadType = "",
+	NeedUpdateInvitationsList = False,
+	CurrentFriendListChangeIndex = 0
+};
+
+{{{Scroll::P}}}SetElementsTotal(This, {{{P}}}Controls.Frame_Scroll_Friends, 0);
+{{{Scroll::P}}}SetElementsTotal(This, {{{P}}}Controls.Frame_Scroll_Invitations, 0);
+{{{P}}}UpdateInvitationsNb(0, False);
+
+{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", False);
+{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName_InvitationsActions}}}", False);
+***
+
+***MainLoop***
+***
+{{{P}}}PendingEvents = [];
+
+if (PageIsVisible && {{{P}}}Controls.Frame_Global.Visible) { 
+	if ({{{P}}}State.CurrentFriendListChangeIndex != UserMgr.Friend_GetLastChangeIndex({{{P}}}MainUser::GetMainUserId())) {
+		{{{P}}}State.CurrentFriendListChangeIndex = UserMgr.Friend_GetLastChangeIndex({{{P}}}MainUser::GetMainUserId());
+		{{{P}}}UpdateFriendList();
+	}
+
+	if ({{{P}}}State.NeedUpdateInvitationsList) {
+		{{{P}}}State.NeedUpdateInvitationsList = False;
+		declare {{{P}}}K_Invitation[] CurrentInvitationList = {{{P}}}InvitationsLists.get({{{P}}}State.CurrentSquadType, []);
+		{{{P}}}UpdateInvitationsDisplay(CurrentInvitationList);
+	}
+
+	foreach (Event in {{{PopUpBackground::P}}}GetPendingEvents(This)) {
+		if (Event.Type == {{{PopUpBackground::P}}}C_Event_LeavePopUp && Event.PopUpName == "{{{C_Name}}}") {
+			{{{P}}}Hide();
+		}
+	}
+
+	foreach (Event in {{{Scroll::P}}}GetPendingEvents(This)) {
+		if (Event.Scroll != Null) {
+			if (Event.Scroll.Id == {{{P}}}Controls.Frame_Scroll_Friends.Id) {
+				switch (Event.Type) {
+					case {{{Scroll::P}}}C_EventType_Focus: {
+						if (Event.From != Null) {{{P}}}FocusFriend(Event.From, False);
+						if (Event.To != Null) {
+							if (Event.IsMouse && !{{{Scroll::P}}}IsFocused(Event.Scroll)) {
+								{{{P}}}Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), Event.Scroll);
+							}
+							{{{P}}}FocusFriend(Event.To, True);
+						}
+					}
+					case {{{Scroll::P}}}C_EventType_Select: {
+						if (
+							{{{P}}}FriendsList.existskey(Event.ToKey) && 
+							!{{{P}}}State.Tasks_SquadInvite.existskey(Event.ToKey) &&
+							!{{{P}}}State.FirstInvitationKeys.exists(Event.ToKey) &&
+							!{{{P}}}State.Tasks_SquadCancelInvitation.existskey(Event.ToKey)
+						) {
+							{{{P}}}SelectFriend({{{P}}}FriendsList[Event.ToKey], Event.ToKey);
+						}
+					}
+					case {{{Scroll::P}}}C_EventType_Update: {
+						foreach (Key => Frame_Element in Event.ElementsVisible) {
+							if ({{{P}}}FriendsList.existskey(Key)) {
+								{{{P}}}ShowFriend(Frame_Element, {{{P}}}FriendsList[Key]);
+							} else {
+								{{{P}}}HideFriend(Frame_Element);
+							}
+						}
+						foreach (Key => Frame_Element in Event.ElementsHidden) {
+							{{{P}}}HideFriend(Frame_Element);
+						}
+					}
+					case {{{Scroll::P}}}C_EventType_ReachLimit: {
+						if (Event.NavAction == CMlScriptEvent::EMenuNavAction::Up) {
+							{{{P}}}Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), {{{P}}}Controls.Button_Friends);
+						}
+					}
+				}
+			} else if (Event.Scroll.Id == {{{P}}}Controls.Frame_Scroll_Invitations.Id) {
+				switch (Event.Type) {
+					case {{{Scroll::P}}}C_EventType_Focus: {
+						if (Event.From != Null) {
+							{{{P}}}FocusInvitation(Event.From, False);
+						}
+						if (Event.To != Null) {
+							if (Event.IsMouse && !{{{Scroll::P}}}IsFocused(Event.Scroll)) {
+								{{{P}}}Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), Event.Scroll);
+							}
+							{{{P}}}FocusInvitation(Event.To, True);
+							LastScrollFocusInvitation = Event.To;
+						}
+					}
+					case {{{Scroll::P}}}C_EventType_Select: {
+						declare {{{P}}}K_Invitation[] CurrentInvitationList = {{{P}}}InvitationsLists.get({{{P}}}State.CurrentSquadType, []);
+						if (CurrentInvitationList.existskey(Event.ToKey) && {{{P}}}State.CurrentInvitationKey == -1) {
+							{{{P}}}SelectInvitation(CurrentInvitationList[Event.ToKey].SquadId, Event.ToKey);
+						}
+					}
+					case {{{Scroll::P}}}C_EventType_Update: {
+						foreach (Key => Frame_Element in Event.ElementsVisible) {
+							declare Integer InvitationKey for Frame_Element;
+							InvitationKey = Key;
+							declare {{{P}}}K_Invitation[] CurrentInvitationList = {{{P}}}InvitationsLists.get({{{P}}}State.CurrentSquadType, []);
+							if (CurrentInvitationList.existskey(Key)) {
+								{{{P}}}ShowInvitation(Frame_Element, CurrentInvitationList[Key]);
+							} else {
+								{{{P}}}HideInvitation(Frame_Element);
+							}
+						}
+						foreach (Key => Frame_Element in Event.ElementsHidden) {
+							declare Integer InvitationKey for Frame_Element;
+							InvitationKey = -1;
+							{{{P}}}HideInvitation(Frame_Element);
+						}
+					}
+					case {{{Scroll::P}}}C_EventType_ReachLimit: {
+						if (Event.NavAction == CMlScriptEvent::EMenuNavAction::Up) {
+							{{{P}}}Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), {{{P}}}Controls.Button_Invitations);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	foreach (Event in {{{Navigation::P}}}GetPendingEvents(This)) {
+		if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName}}}")) {
+			switch (Event.Type) {
+				case {{{Navigation::P}}}C_EventType_NavigateInput: {
+					if (Event.Input == CMlScriptEvent::EMenuNavAction::Select) {
+						{{{P}}}Select(Event.To);
+					} else if (Event.Input == CMlScriptEvent::EMenuNavAction::Cancel) {
+						{{{P}}}Hide();
+					} else if (Event.Input == CMlScriptEvent::EMenuNavAction::PageDown || Event.Input == CMlScriptEvent::EMenuNavAction::PageUp) {
+						{{{P}}}ChangeTab(Event.Input == CMlScriptEvent::EMenuNavAction::PageDown);
+					} else {
+						{{{P}}}Focus(Event.From, Event.To);
+					}
+				}
+				case {{{Navigation::P}}}C_EventType_NavigateMouse: {
+					if (Event.Mouse == CMlScriptEvent::Type::MouseClick) {
+						{{{P}}}Select(Event.To);
+					} else if (Event.Mouse == CMlScriptEvent::Type::MouseOver) {
+						{{{P}}}Focus(Event.From, Event.To);
+					}
+				}
+			}
+		} else if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName_InvitationsActions}}}")) {
+			switch (Event.Type) {
+				case {{{Navigation::P}}}C_EventType_NavigateInput: {
+					if (Event.Input == CMlScriptEvent::EMenuNavAction::Left || Event.Input == CMlScriptEvent::EMenuNavAction::Right) {
+						if (Event.To != Null && Event.To.HasClass("{{{C_Class_Invitation}}}")) {
+							{{{P}}}SetNewInvitActionByInput(Event.Input);
+							{{{P}}}FocusInvitation((Event.To as CMlFrame), True);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	foreach (Event in PendingEvents) {
+		switch (Event.Type) {
+			case CMlScriptEvent::Type::MouseOver: {
+				if (Event.Control != Null && Event.Control.Parent != Null && Event.Control.HasClass("{{{C_Invitation_ActionClass}}}")) {
+					{{{P}}}SetNewInvitActionByMouse((Event.Control as CMlQuad));
+					if (LastMouseFocusInvitation != Null) {						
+						{{{P}}}FocusInvitation(LastMouseFocusInvitation, False);
+						LastMouseFocusInvitation = Null;
+					}
+					if (LastScrollFocusInvitation != Null) {
+						{{{P}}}FocusInvitation(LastScrollFocusInvitation, False);
+						LastScrollFocusInvitation = Null;
+					}						
+					{{{P}}}FocusInvitation(Event.Control.Parent, True);
+					declare Integer InvitationKey for Event.Control.Parent;
+					{{{Scroll::P}}}SetFocusedElementKey(This, {{{P}}}Controls.Frame_Scroll_Invitations, InvitationKey, True, False);
+				}
+			}
+			case CMlScriptEvent::Type::MouseOut: {
+				if (Event.Control.Parent != Null && Event.Control.HasClass("{{{C_Invitation_ActionClass}}}")) {
+					LastMouseFocusInvitation = Event.Control.Parent;
+				}
+			}
+			case CMlScriptEvent::Type::MouseClick: {
+				if (Event.Control.HasClass("{{{C_Invitation_ActionClass}}}")) {
+					declare Integer InvitationKey for Event.Control.Parent;
+					declare {{{P}}}K_Invitation[] CurrentInvitationList = {{{P}}}InvitationsLists.get({{{P}}}State.CurrentSquadType, []);
+					if (CurrentInvitationList.existskey(InvitationKey) && {{{P}}}State.CurrentInvitationKey == -1) {
+						{{{P}}}SelectInvitation(CurrentInvitationList[InvitationKey].SquadId, InvitationKey);
+					}
+				}
+			}
+		}
+	}
+
+	/* PopUpMultiChoice events */
+	foreach (Event in {{{PopUpMultiChoice::P}}}GetPendingEvents(This)) {
+		if (Event.PopUpMultiChoice != Null && Event.PopUpMultiChoice.Id == {{{P}}}Controls.PopUpMultiChoice_LeaveSquad.Id) {
+			switch (Event.Type) {
+				case {{{PopUpMultiChoice::P}}}C_EventType_Display: {
+					{{{Scroll::P}}}LockNavigation({{{P}}}Controls.Frame_Scroll_Friends, Event.PopUpMultiChoice.Visible);
+					{{{Scroll::P}}}LockNavigation({{{P}}}Controls.Frame_Scroll_Invitations, Event.PopUpMultiChoice.Visible);
+					{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", !Event.PopUpMultiChoice.Visible);
+				}
+				case {{{PopUpMultiChoice::P}}}C_EventType_Select: {
+					switch (Event.SelectedIndex) {
+						case {{{C_Choice_Leave}}}: {
+							{{{P}}}Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), {{{P}}}Controls.Button_Friends);
+							{{{P}}}LeaveSquad();
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+// Friend list task
+if ({{{P}}}Task::IsInitialized({{{P}}}State.Task_GetFriendList)) {
+	{{{P}}}State.Task_GetFriendList = {{{P}}}Task::Update({{{P}}}State.Task_GetFriendList);
+	if (!{{{P}}}Task::IsRunning({{{P}}}State.Task_GetFriendList)) {
+		declare CTaskResult_FriendList SourceTask = {{{P}}}Task::GetSourceTask_FriendList({{{P}}}State.Task_GetFriendList);
+		if ({{{P}}}Task::IsSuccess({{{P}}}State.Task_GetFriendList) && SourceTask != Null) {
+			{{{P}}}FriendsList.clear();
+			declare Text[] AccountIds = [];
+			foreach (Friend in SourceTask.FriendList) {
+				if (
+					Friend.Presence == {{{SquaddingStruct::P}}}C_FriendPresenceOnline ||
+					Friend.Presence == {{{SquaddingStruct::P}}}C_FriendPresenceAway ||
+					Friend.Presence == {{{SquaddingStruct::P}}}C_FriendPresenceDoNotDisturb ||
+					{{{P}}}Config::HasFeature({{{P}}}Config::C_Feature_Squadding) //@ToRemove to playtest on MP we need to hack the presence
+				) {
+					AccountIds.add(Friend.AccountId);
+					{{{P}}}FriendsList.add({{{P}}}K_Friend {
+						AccountId = Friend.AccountId,
+						DisplayName = Friend.DisplayName,
+						IsFirstPartyDisplayName = Friend.IsFirstPartyDisplayName,
+						ZoneUrl = Friend.CountryFlagUrl,
+						InvitationState = {{{P}}}C_Friend_InvitationPossible
+					});
+				}
+			}
+			{{{P}}}State.Task_GetClubTagList = {{{P}}}Task::DestroyAndCreate({{{P}}}State.Task_GetClubTagList, UserMgr, UserMgr.Tag_GetClubTagList({{{P}}}MainUser::GetMainUserId(), AccountIds));
+			{{{P}}}FriendsList = {{{P}}}CheckFriendsStatus({{{P}}}FriendsList);
+		} else if (SourceTask != Null) {
+			declare Boolean OnlineFriends = ({{{P}}}FriendsList.count > 0);
+			//L16N Error while retrieving the friend list %1 will be replace with a code e.g. "Error code: 500"
+			{{{P}}}MessageAnimation({{{P}}}Controls.Label_FriendsInfos, {{{P}}}TL::Compose(_("Error while retrieving the friend list. (Error code: %1)"), SourceTask.ErrorCode), True);
+			{{{P}}}Controls.Label_NoFriends.Visible = !OnlineFriends;
+			{{{P}}}Controls.Label_OnlineFriends.Visible = OnlineFriends;
+			{{{P}}}ShowLoadingFriends(False);
+			{{{Scroll::P}}}SetElementsTotal(This, {{{P}}}Controls.Frame_Scroll_Friends, {{{P}}}FriendsList.count);
+		}
+		{{{P}}}State.Task_GetFriendList = {{{P}}}Task::Destroy({{{P}}}State.Task_GetFriendList);
+	}
+}
+
+// Club's tag task
+if ({{{P}}}Task::IsInitialized({{{P}}}State.Task_GetClubTagList)) {
+	{{{P}}}State.Task_GetClubTagList = {{{P}}}Task::Update({{{P}}}State.Task_GetClubTagList);
+	if (!{{{P}}}Task::IsRunning({{{P}}}State.Task_GetClubTagList)) {
+		declare CTaskResult_ClubTagList SourceTask = {{{P}}}Task::GetSourceTask_ClubTagList({{{P}}}State.Task_GetClubTagList);
+		if ({{{P}}}Task::IsSuccess({{{P}}}State.Task_GetClubTagList) && SourceTask != Null) {
+			// Update friends tab
+			foreach (Key => Friend in {{{P}}}FriendsList) {
+				{{{P}}}FriendsList[Key].ClubTag = SourceTask.GetClubTag(Friend.AccountId);
+			}
+
+			// Update invitations tab
+			declare {{{P}}}K_Invitation[] CurrentInvitationList = {{{P}}}InvitationsLists.get({{{P}}}State.CurrentSquadType, []);
+			foreach (Key => Invitation in CurrentInvitationList) {
+				CurrentInvitationList[Key].ClubTag = SourceTask.GetClubTag(Invitation.AccountId);
+			}
+			{{{P}}}InvitationsLists[{{{P}}}State.CurrentSquadType] = CurrentInvitationList;
+		}
+		declare Boolean OnlineFriends = ({{{P}}}FriendsList.count > 0);
+		{{{P}}}Controls.Label_NoFriends.Visible = !OnlineFriends;
+		{{{P}}}Controls.Label_OnlineFriends.Visible = OnlineFriends;
+		{{{P}}}ShowLoadingFriends(False);
+		{{{Scroll::P}}}SetElementsTotal(This, {{{P}}}Controls.Frame_Scroll_Friends, {{{P}}}FriendsList.count);
+		if ({{{P}}}InvitationsLists.existskey({{{P}}}State.CurrentSquadType)) {
+			{{{P}}}UpdateInvitationsNb({{{P}}}InvitationsLists[{{{P}}}State.CurrentSquadType].count, False);
+			{{{Scroll::P}}}SetElementsTotal(This, {{{P}}}Controls.Frame_Scroll_Invitations, {{{P}}}InvitationsLists[{{{P}}}State.CurrentSquadType].count);
+		}
+
+		{{{P}}}State.Task_GetClubTagList = {{{P}}}Task::Destroy({{{P}}}State.Task_GetClubTagList);
+	}
+}
+
+// Get current squad task
+if ({{{P}}}Task::IsInitialized({{{P}}}State.Task_GetCurrentSquad)) {
+	{{{P}}}State.Task_GetCurrentSquad = {{{P}}}Task::Update({{{P}}}State.Task_GetCurrentSquad);
+	if (!{{{P}}}Task::IsRunning({{{P}}}State.Task_GetCurrentSquad)) {
+		declare CTaskResult_Squad SourceTask = {{{P}}}Task::GetSourceTask_Squad({{{P}}}State.Task_GetCurrentSquad);
+		if ({{{P}}}Task::IsSuccess({{{P}}}State.Task_GetCurrentSquad) && SourceTask != Null) {
+			{{{P}}}SetNewSquad(SourceTask);
+			{{{P}}}FriendsList = {{{P}}}CheckFriendsStatus({{{P}}}FriendsList);
+			declare {{{P}}}K_Invitation[] CurrentInvitationList = {{{P}}}InvitationsLists.get({{{P}}}State.CurrentSquadType, []);
+			{{{P}}}InvitationsLists[{{{P}}}State.CurrentSquadType] = {{{P}}}UpdateInvitationsDisplay(CurrentInvitationList);
+		}
+		{{{P}}}State.Task_GetCurrentSquad = {{{P}}}Task::Destroy({{{P}}}State.Task_GetCurrentSquad);
+	}
+}
+
+// Create squad task
+if ({{{P}}}Task::IsInitialized({{{P}}}State.Task_SquadCreate)) {
+	{{{P}}}State.Task_SquadCreate = {{{P}}}Task::Update({{{P}}}State.Task_SquadCreate);
+	if (!{{{P}}}Task::IsRunning({{{P}}}State.Task_SquadCreate)) {
+		declare CTaskResult_Squad SourceTask = {{{P}}}Task::GetSourceTask_Squad({{{P}}}State.Task_SquadCreate);
+		if ({{{P}}}Task::IsSuccess({{{P}}}State.Task_SquadCreate) && SourceTask != Null) {
+			{{{P}}}SetNewSquad(SourceTask);
+			foreach (Key in {{{P}}}State.FirstInvitationKeys) {
+				{{{P}}}SendSquadInvitation({{{P}}}FriendsList[Key].AccountId, Key);
+			}
+			{{{P}}}State.FirstInvitationKeys.clear();
+		} else if (SourceTask != Null) {
+			//L16N Error when creating a squad. %1 will be replace with a code e.g. "Error code: 500"
+			{{{P}}}MessageAnimation({{{P}}}Controls.Label_FriendsInfos, {{{P}}}TL::Compose(_("Error while creating the squad. (Error code: %1)"), SourceTask.ErrorCode), True);
+		}
+		{{{P}}}State.Task_SquadCreate = {{{P}}}Task::Destroy({{{P}}}State.Task_SquadCreate);
+	}
+}
+
+// Send squad invitation tasks
+declare TmpSquadInvites = {{{P}}}State.Tasks_SquadInvite;
+foreach (Key => Task_SquadInvite in TmpSquadInvites) {
+	if ({{{P}}}Task::IsInitialized(Task_SquadInvite)) {
+		{{{P}}}State.Tasks_SquadInvite[Key] = {{{P}}}Task::Update(Task_SquadInvite);
+		if (!{{{P}}}Task::IsRunning(Task_SquadInvite)) {
+			declare CTaskResult_Squad SourceTask = {{{P}}}Task::GetSourceTask_Squad(Task_SquadInvite);
+			if ({{{P}}}Task::IsSuccess(Task_SquadInvite) && SourceTask != Null) {
+				declare {{{P}}}K_Friend Friend = {{{P}}}FriendsList[Key];
+				{{{P}}}FriendsList = {{{P}}}AddSquadInvitation(
+					{{{P}}}FriendsList,
+					Friend.AccountId,
+					Friend.DisplayName,
+					Friend.IsFirstPartyDisplayName,
+					Friend.ZoneUrl
+				);
+				{{{P}}}MessageAnimation({{{P}}}Controls.Label_FriendsInfos, {{{P}}}TL::Compose("{{{Text_InvitSent}}}", {{{P}}}FriendsList[Key].DisplayName), False);
+			} else if (SourceTask != Null) {
+				//L16N Error when sending a squad invitation. %1 will be replace with a code e.g. "Error code: 500"
+				{{{P}}}MessageAnimation({{{P}}}Controls.Label_FriendsInfos, {{{P}}}TL::Compose(_("Error while sending a squad invitation. (Error code: %1)"), SourceTask.ErrorCode), True);
+			}
+			{{{P}}}State.Tasks_SquadInvite[Key] = {{{P}}}Task::Destroy(Task_SquadInvite);
+			{{{P}}}State.Tasks_SquadInvite.removekey(Key);
+		}
+	}
+}
+
+// Cancel squad invitation tasks
+declare TmpSquadCancelInvitations = {{{P}}}State.Tasks_SquadCancelInvitation;
+foreach (Key => Task_SquadCancelInvitation in TmpSquadCancelInvitations) {
+	if ({{{P}}}Task::IsInitialized(Task_SquadCancelInvitation)) {
+		{{{P}}}State.Tasks_SquadCancelInvitation[Key] = {{{P}}}Task::Update(Task_SquadCancelInvitation);
+		if (!{{{P}}}Task::IsRunning(Task_SquadCancelInvitation)) {
+			declare CTaskResult_Squad SourceTask = {{{P}}}Task::GetSourceTask_Squad(Task_SquadCancelInvitation);
+			if ({{{P}}}Task::IsSuccess(Task_SquadCancelInvitation) && SourceTask != Null) {
+				{{{P}}}FriendsList = {{{P}}}RemoveSquadInvitation({{{P}}}FriendsList, {{{P}}}FriendsList[Key].AccountId);
+				{{{P}}}MessageAnimation({{{P}}}Controls.Label_FriendsInfos, {{{P}}}TL::Compose("{{{Text_InvitCanceled}}}", {{{P}}}FriendsList[Key].DisplayName), False);
+			} else if (SourceTask != Null) {
+				//L16N Error when canceling a squad invitation. %1 will be replace with a code e.g. "Error code: 500"
+				{{{P}}}MessageAnimation({{{P}}}Controls.Label_FriendsInfos, {{{P}}}TL::Compose(_("Error while canceling a squad invitation. (Error code: %1)"), SourceTask.ErrorCode), True);
+			}
+			{{{P}}}State.Tasks_SquadCancelInvitation[Key] = {{{P}}}Task::Destroy(Task_SquadCancelInvitation);
+			{{{P}}}State.Tasks_SquadCancelInvitation.removekey(Key);
+		}
+	}
+}
+
+// Accept squad invitation task
+if ({{{P}}}Task::IsInitialized({{{P}}}State.Task_SquadAcceptInvitation)) {
+	{{{P}}}State.Task_SquadAcceptInvitation = {{{P}}}Task::Update({{{P}}}State.Task_SquadAcceptInvitation);
+	if (!{{{P}}}Task::IsRunning({{{P}}}State.Task_SquadAcceptInvitation)) {
+		declare CTaskResult_Squad SourceTask = {{{P}}}Task::GetSourceTask_Squad({{{P}}}State.Task_SquadAcceptInvitation);
+		if ({{{P}}}Task::IsSuccess({{{P}}}State.Task_SquadAcceptInvitation) && SourceTask != Null) {
+			{{{P}}}SetNewSquad(SourceTask);
+			{{{P}}}FriendsList = {{{P}}}CheckFriendsStatus({{{P}}}FriendsList);
+			declare {{{P}}}K_Invitation[] CurrentInvitationList = {{{P}}}InvitationsLists.get({{{P}}}State.CurrentSquadType, []);
+			{{{P}}}InvitationsLists[{{{P}}}State.CurrentSquadType] = {{{P}}}UpdateInvitationsDisplay(CurrentInvitationList);
+			{{{P}}}Hide();
+		} else if (SourceTask != Null) {
+			if (SourceTask.ErrorCode == {{{P}}}C_ErrorCode_Accept_SquadFull) {
+				//L16N Can not accept a squad invitation because the squad is already full
+				{{{P}}}MessageAnimation({{{P}}}Controls.Label_InvitationsInfos, _("The squad is already full. Cannot join it."), True);
+				declare {{{P}}}K_Invitation[] CurrentInvitationList = {{{P}}}InvitationsLists.get({{{P}}}State.CurrentSquadType, []);
+				{{{P}}}InvitationsLists[{{{P}}}State.CurrentSquadType] = {{{P}}}UpdateInvitationsDisplay(CurrentInvitationList);
+			} else {
+				//L16N Error when accepting a squad invitation. %1 will be replace with a code e.g. "Error code: 500"
+				{{{P}}}MessageAnimation({{{P}}}Controls.Label_InvitationsInfos, {{{P}}}TL::Compose(_("Error while accepting a squad invitation. (Error code: %1)"), SourceTask.ErrorCode), True);
+			}
+		}
+		{{{P}}}State.CurrentInvitationKey = -1;
+		{{{P}}}State.Task_SquadAcceptInvitation = {{{P}}}Task::Destroy({{{P}}}State.Task_SquadAcceptInvitation);
+	}
+}
+
+// Decline squad invitation task
+if ({{{P}}}Task::IsInitialized({{{P}}}State.Task_SquadDeclineInvitation)) {
+	{{{P}}}State.Task_SquadDeclineInvitation = {{{P}}}Task::Update({{{P}}}State.Task_SquadDeclineInvitation);
+	if (!{{{P}}}Task::IsRunning({{{P}}}State.Task_SquadDeclineInvitation)) {
+		declare CTaskResult_Squad SourceTask = {{{P}}}Task::GetSourceTask_Squad({{{P}}}State.Task_SquadDeclineInvitation);
+		if ({{{P}}}Task::IsSuccess({{{P}}}State.Task_SquadDeclineInvitation) && SourceTask != Null) {
+			declare {{{P}}}K_Invitation[] CurrentInvitationList = {{{P}}}InvitationsLists.get({{{P}}}State.CurrentSquadType, []);
+			{{{P}}}MessageAnimation({{{P}}}Controls.Label_InvitationsInfos, {{{P}}}TL::Compose("{{{Text_DeclinedInvit}}}", CurrentInvitationList[{{{P}}}State.CurrentInvitationKey].DisplayName), False);
+			{{{P}}}InvitationsLists[{{{P}}}State.CurrentSquadType] = {{{P}}}UpdateInvitationsDisplay(CurrentInvitationList);
+		} else if (SourceTask != Null) {
+			//L16N Error when declining a squad invitation. %1 will be replace with a code e.g. "Error code: 500"
+			{{{P}}}MessageAnimation({{{P}}}Controls.Label_InvitationsInfos, {{{P}}}TL::Compose(_("Error while declining a squad invitation. (Error code: %1)"), SourceTask.ErrorCode), True);
+		}
+		{{{P}}}State.CurrentInvitationKey = -1;
+		{{{P}}}State.Task_SquadDeclineInvitation = {{{P}}}Task::Destroy({{{P}}}State.Task_SquadDeclineInvitation);
+	}
+}
+
+// Leave squad task
+if ({{{P}}}Task::IsInitialized({{{P}}}State.Task_SquadLeave)) {
+	{{{P}}}State.Task_SquadLeave = {{{P}}}Task::Update({{{P}}}State.Task_SquadLeave);
+	if (!{{{P}}}Task::IsRunning({{{P}}}State.Task_SquadLeave)) {
+		declare CTaskResult_Squad SourceTask = {{{P}}}Task::GetSourceTask_Squad({{{P}}}State.Task_SquadLeave);
+		if (!{{{P}}}Task::IsSuccess({{{P}}}State.Task_SquadLeave)) log({{{P}}}TL::Compose(_("Error while leaving the squad. (Error code: %1)"), SourceTask.ErrorCode));
+		{{{P}}}ResetSquad("", False);
+		{{{P}}}PendingEvents.add({{{P}}}K_Event {
+			Type = {{{P}}}C_Event_SquadLeft
+		});
+		{{{P}}}FriendsList = {{{P}}}CheckFriendsStatus({{{P}}}FriendsList);
+		{{{P}}}State.Task_SquadLeave = {{{P}}}Task::Destroy({{{P}}}State.Task_SquadLeave);
+	}
+}
+
+// Open Friends list in Ubisoft Connect overlay
+if ({{{P}}}Task::IsInitialized({{{P}}}State.Task_OpenUbiConnectFriends)) {
+	{{{P}}}State.Task_OpenUbiConnectFriends = {{{P}}}Task::Update({{{P}}}State.Task_OpenUbiConnectFriends);
+	if (!{{{P}}}Task::IsRunning({{{P}}}State.Task_OpenUbiConnectFriends)) {
+		if (!{{{P}}}Task::IsSuccess({{{P}}}State.Task_OpenUbiConnectFriends)) {
+			{{{P}}}PendingEvents.add({{{P}}}K_Event {
+				Type = {{{P}}}C_Event_UbiConnectError,
+				//L16N Error while opening Ubisoft Connect overlay. %1 will be replaced with an error type and %2 with a code e.g. "Error from WebServices - 500"
+				ErrorMessage = {{{P}}}TL::Compose(
+					"%1 (%2)",
+					//L16N Error while opening Ubisoft Connect overlay.
+					_("Error while opening Ubisoft Connect"),
+					{{{P}}}Task::GetCustomError({{{P}}}State.Task_OpenUbiConnectFriends).Code
+				)
+			});
+		}
+		{{{P}}}State.Task_OpenUbiConnectFriends = {{{P}}}Task::Destroy({{{P}}}State.Task_OpenUbiConnectFriends);
+	}
+}
+
+// Open First Party invite system overlay
+if ({{{P}}}Task::IsInitialized({{{P}}}State.Task_OpenFirstPartyInvite)) {
+	{{{P}}}State.Task_OpenFirstPartyInvite = {{{P}}}Task::Update({{{P}}}State.Task_OpenFirstPartyInvite);
+	if (!{{{P}}}Task::IsRunning({{{P}}}State.Task_OpenFirstPartyInvite)) {
+		{{{P}}}State.Task_OpenFirstPartyInvite = {{{P}}}Task::Destroy({{{P}}}State.Task_OpenFirstPartyInvite);
+	}
+}
+
+// Open Invitation list in Ubisoft Connect overlay
+if ({{{P}}}Task::IsInitialized({{{P}}}State.Task_OpenUbiConnectInvitations)) {
+	{{{P}}}State.Task_OpenUbiConnectInvitations = {{{P}}}Task::Update({{{P}}}State.Task_OpenUbiConnectInvitations);
+	if (!{{{P}}}Task::IsRunning({{{P}}}State.Task_OpenUbiConnectInvitations)) {
+		if (!{{{P}}}Task::IsSuccess({{{P}}}State.Task_OpenUbiConnectInvitations)) {
+			{{{P}}}PendingEvents.add({{{P}}}K_Event {
+				Type = {{{P}}}C_Event_UbiConnectError,
+				//L16N Error while opening Ubisoft Connect overlay. %1 will be replaced with an error type and %2 with a code e.g. "Error from WebServices - 500"
+				ErrorMessage = {{{P}}}TL::Compose(
+					"%1 (%2)",
+					//L16N Error while opening Ubisoft Connect overlay.
+					_("Error while opening Ubisoft Connect"),
+					{{{P}}}Task::GetCustomError({{{P}}}State.Task_OpenUbiConnectInvitations).Code
+				)
+			});
+		}
+		{{{P}}}State.Task_OpenUbiConnectInvitations = {{{P}}}Task::Destroy({{{P}}}State.Task_OpenUbiConnectInvitations);
+	}
+}
+
+// Retrieve squad notifications
+declare Integer I = 0;
+while ({{{P}}}State.CurrentSquadType != "" && {{{P}}}NotificationObserver::IsNotificationAvailable()) {
+	if (I > 100) break;
+	I +=1;
+	declare {{{P}}}NotificationObserver_Common::K_Notification Notif = {{{P}}}NotificationObserver::GetNextNotification();
+	switch (Notif.Type) {
+		case {{{P}}}NotificationObserver_Common::C_NotificationSubType_InvitReceived: {
+			if (!{{{P}}}InvitationsLists.existskey({{{P}}}State.CurrentSquadType)) {{{P}}}InvitationsLists[{{{P}}}State.CurrentSquadType] = [];
+			{{{P}}}InvitationsLists[{{{P}}}State.CurrentSquadType].add({{{P}}}K_Invitation {
+				AccountId = Notif.SenderAccountId,
+				DisplayName = Notif.SenderDisplayName,
+				IsFirstPartyDisplayName = Notif.SenderIsFirstPartyDisplayName,
+				ZoneUrl = Notif.SenderZoneUrl,
+				SquadId = Notif.SquadId
+			});
+			{{{P}}}UpdateInvitationsNb({{{P}}}InvitationsLists[{{{P}}}State.CurrentSquadType].count, True);
+			{{{Scroll::P}}}SetElementsTotal(This, {{{P}}}Controls.Frame_Scroll_Invitations, {{{P}}}InvitationsLists[{{{P}}}State.CurrentSquadType].count);
+			{{{P}}}State.Task_GetClubTagList = {{{P}}}Task::DestroyAndCreate({{{P}}}State.Task_GetClubTagList, UserMgr, UserMgr.Tag_GetClubTagList({{{P}}}MainUser::GetMainUserId(), [Notif.SenderAccountId]));
+		}
+		case {{{P}}}NotificationObserver_Common::C_NotificationSubType_InvitAdded: {
+			{{{P}}}FriendsList = {{{P}}}AddSquadInvitation({{{P}}}FriendsList, Notif.AccountId, Notif.DisplayName, Notif.IsFirstPartyDisplayName, Notif.ZoneUrl);
+		}
+		case {{{P}}}NotificationObserver_Common::C_NotificationSubType_InvitCanceled: {
+			if (Notif.AccountId == LocalUser.WebServicesUserId) {
+				declare {{{P}}}K_Invitation[] CurrentInvitationList = {{{P}}}InvitationsLists.get({{{P}}}State.CurrentSquadType, []);
+				{{{P}}}InvitationsLists[{{{P}}}State.CurrentSquadType] = {{{P}}}RemoveMyInvitation(CurrentInvitationList, Notif.SenderDisplayName, Notif.SquadId);
+			} else {
+				{{{P}}}FriendsList = {{{P}}}RemoveSquadInvitation({{{P}}}FriendsList, Notif.AccountId);
+			}
+		}
+		case {{{P}}}NotificationObserver_Common::C_NotificationSubType_InvitCanceledForFullSquad: {
+			if (Notif.AccountId == LocalUser.WebServicesUserId) {
+				declare {{{P}}}K_Invitation[] CurrentInvitationList = {{{P}}}InvitationsLists.get({{{P}}}State.CurrentSquadType, []);
+				{{{P}}}InvitationsLists[{{{P}}}State.CurrentSquadType] = {{{P}}}RemoveMyInvitation(CurrentInvitationList, "", Notif.SquadId);
+			} else {
+				{{{P}}}FriendsList = {{{P}}}RemoveSquadInvitation({{{P}}}FriendsList, Notif.AccountId);
+			}
+		}
+		case {{{P}}}NotificationObserver_Common::C_NotificationSubType_InvitCanceledForExitingPlayer:{
+			{{{P}}}FriendsList = {{{P}}}RemoveSquadInvitation({{{P}}}FriendsList, Notif.AccountId);
+		}
+		case {{{P}}}NotificationObserver_Common::C_NotificationSubType_SquadDeleted: {
+			declare {{{P}}}K_Invitation[] CurrentInvitationList = {{{P}}}InvitationsLists.get({{{P}}}State.CurrentSquadType, []);
+			{{{P}}}InvitationsLists[{{{P}}}State.CurrentSquadType] = {{{P}}}RemoveMyInvitation(CurrentInvitationList, "", Notif.SquadId);
+		}
+		case {{{P}}}NotificationObserver_Common::C_NotificationSubType_MemberAdded, {{{P}}}NotificationObserver_Common::C_NotificationSubType_InvitAccepted: {
+			if (Notif.SquadType != "" && Notif.SquadType == {{{P}}}State.CurrentSquadType) {
+				{{{P}}}FriendsList = {{{P}}}AddSquadMember(
+					{{{P}}}FriendsList,
+					Notif.SquadId,
+					Notif.AccountId,
+					Notif.DisplayName,
+					Notif.IsFirstPartyDisplayName,
+					Notif.ZoneUrl,
+					Notif.SkinName,
+					Notif.SkinUrl,
+					Notif.SkinPrestigeOptions
+				);
+			}
+		}
+		case {{{P}}}NotificationObserver_Common::C_NotificationSubType_InvitDeclined: {
+			{{{P}}}FriendsList = {{{P}}}RemoveSquadInvitation({{{P}}}FriendsList, Notif.AccountId);
+		}
+		case {{{P}}}NotificationObserver_Common::C_NotificationSubType_MemberRemoved: {
+			if (Notif.SquadType != "" && Notif.SquadType == {{{P}}}State.CurrentSquadType) {
+				{{{P}}}FriendsList = {{{P}}}RemoveSquadMember({{{P}}}FriendsList, Notif.AccountId, Notif.DisplayName);
+			}
+		}
+		case {{{P}}}NotificationObserver_Common::C_NotificationSubType_SquadUpdated: {
+			if ({{{P}}}State.CurrentSquadType != Notif.SquadType) { // @TODO set squad type if local player is the squad leader (request is not read if not sent from the leader in C++, so no bugs but to avoid send useless requests)
+				UserMgr.Squad_SetType({{{P}}}MainUser::GetMainUserId(), Notif.SquadId, {{{P}}}State.CurrentSquadType); 
+			}
+			{{{P}}}PendingEvents.add({{{P}}}K_Event {
+				Type = {{{P}}}C_Event_SquadUpdated,
+				SquadType = Notif.SquadType,
+				SquadId = Notif.SquadId,
+				SquadLeaderId = Notif.SquadLeaderId,
+				WasForcedToLeaveDueToCrossPlaySetting = Notif.WasForcedToLeaveDueToCrossPlaySetting
+			});
+		}
+		case {{{P}}}NotificationObserver_Common::C_NotificationSubType_SquadLockUpdated: {
+			{{{P}}}State.CurrentSquadLocked = Notif.IsLocked;
+			{{{P}}}PendingEvents.add({{{P}}}K_Event {
+				Type = {{{P}}}C_Event_SquadLocked,
+				IsLocked = {{{P}}}State.CurrentSquadLocked
+			});
+		}
+	}
+}
+***
+""",
+[
+	PopUpBackground::ComponentV2(),
+	Scroll::ComponentV2(),
+	Navigation::ComponentV2(),
+	Button::ComponentV2(),
+	Transition::ComponentV2(),
+	MenuSounds::ComponentV2(),
+	SquaddingStruct::Component(),
+	UserStore::ComponentV2(),
+	LoadingSpinner::ComponentV2(),
+	PopUpMultiChoice::ComponentV2(),
+	MatchmakingStruct::Component()
+],
+[]
+);
+}

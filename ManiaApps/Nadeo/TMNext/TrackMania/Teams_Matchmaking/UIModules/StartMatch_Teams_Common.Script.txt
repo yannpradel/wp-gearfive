@@ -1,0 +1,25 @@
+/**
+ *	UI module: StartMatch_Teams common
+ */
+#Const Version		"2020-12-07"
+#Const ScriptName	"ManiaApps/Nadeo/TMNext/TrackMania/Teams_Matchmaking/UIModules/StartMatch_Teams_Common.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Common.Script.txt" as UIModules_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Id "UIModule_Teams_Matchmaking_StartMatch_Teams"
+#Const C_LayerType CUILayer::EUILayerType::Normal
+#Const C_UIModuleConfig UIModules_Common::ComponentModeLibsUIModules_K_ModuleConfig {
+	Id = "Teams_Matchmaking_StartMatch_Teams", //< Do not modify this Id once in production. It is used by the xmlrpc protocole and would break compatibility.
+	IsCustomizable = False,
+	Properties = UIModules_Common::ComponentModeLibsUIModules_K_ModuleProperties {
+		Position = <0., 0.>,
+		Scale = 1.,
+		Visible = True
+	}
+}

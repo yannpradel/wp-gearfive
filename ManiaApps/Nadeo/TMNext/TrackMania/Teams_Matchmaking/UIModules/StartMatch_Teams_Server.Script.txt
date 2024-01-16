@@ -1,0 +1,100 @@
+/**
+ *	UI module: StartMatch_Teams server side
+ */
+#Const Version		"2023-03-28"
+#Const ScriptName	"ManiaApps/Nadeo/TMNext/TrackMania/Teams_Matchmaking/UIModules/StartMatch_Teams_Server.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Common.Script.txt" as UIModules_Common
+#Include "ManiaApps/Nadeo/TMNext/TrackMania/Teams_Matchmaking/UIModules/StartMatch_Teams_Common.Script.txt" as UIModules_StartMatch_Teams_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the id of the UI module
+Text GetId() {
+	return UIModules_StartMatch_Teams_Common::C_Id;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the configuration of the UI module
+UIModules_Common::ComponentModeLibsUIModules_K_ModuleConfig GetConfig() {
+	return UIModules_StartMatch_Teams_Common::C_UIModuleConfig;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Send the display duration of the UI
+Void SetDisplayDuration(Integer _DisplayDuration) {
+	declare netwrite Integer Net_Teams_Matchmaking_StartMatch_DisplayDuration for Teams[0];
+	Net_Teams_Matchmaking_StartMatch_DisplayDuration = _DisplayDuration;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Show or hide the UI
+ *
+ *	@param	_Player										The player to update
+ *	@param	_Display									True to show
+ *																		False to hide
+ */
+Void SetVisibility(CPlayer _Player, Boolean _Display) {
+	if (_Player == Null) return;
+	
+	declare netwrite Boolean Net_Teams_Matchmaking_StartMatch_Teams_IsVisible for _Player;
+	Net_Teams_Matchmaking_StartMatch_Teams_IsVisible = _Display;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if the player has the permission to chat
+Boolean CanPlayerChat(CPlayer _Player) {
+	if (_Player == Null) return True;
+	declare PlayerUI = UIManager.GetUI(_Player);
+	if (PlayerUI == Null) return True;
+	declare netread Boolean Net_Teams_Matchmaking_StartMatch_PlayerCanChat for PlayerUI;
+	return Net_Teams_Matchmaking_StartMatch_PlayerCanChat;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Send a message in the chat to explain that some players are not allowed to write in the chat 
+Void DisplayChatNotAllowedPlayers() {
+	declare netwrite Text[] Net_Teams_Matchmaking_StartMatch_Teams_StarterAccessPlayersAccountIds for Teams[0] = [];
+
+	Net_Teams_Matchmaking_StartMatch_Teams_StarterAccessPlayersAccountIds.clear();
+	foreach (Player in AllPlayers) {
+		if (!CanPlayerChat(Player) && Player.User != Null) {
+			Net_Teams_Matchmaking_StartMatch_Teams_StarterAccessPlayersAccountIds.add(Player.User.WebServicesUserId);
+		}
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Initialize a player
+ *
+ *	@param	_Player										The player to initialize
+ */
+Void InitializePlayer(CPlayer _Player) {
+	if (_Player == Null) return;
+	
+	SetVisibility(_Player, False);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Unload the library
+Void Unload() {
+	foreach (Player in AllPlayers) {
+		InitializePlayer(Player);
+	}
+	SetDisplayDuration(-1);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Load the library
+Void Load() {
+	Unload();
+}

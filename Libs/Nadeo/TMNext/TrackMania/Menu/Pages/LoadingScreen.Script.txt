@@ -1,0 +1,134 @@
+/** 
+ *	Page: LoadingScreen
+ */
+#Const Version		"2023-03-29"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Menu/Pages/LoadingScreen.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "ManiaApps/Nadeo/CommonLibs/Common/Layers.Script.txt" as Layers
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as Const
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/MainBackground.Script.txt" as MainBackground
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "Page_LoadingScreen"
+
+#Const C_Background_Default "Default"
+#Const C_Background_Royal "Royal"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the page manialink
+ *
+ *	@return														The page manialink
+ */
+Text GetManialink() {
+	return MV::Create(
+C_Name, 3,
+"""
+<stylesheet>
+	<style class="text-base" halign="center" valign="center2" textfont="{{{FontManager::C_GameFontExtraBold}}}" textcolor="FFF" textsize="8" />
+</stylesheet>
+
+<frame id="frame-global" z-index="-1">
+	<frameinstance modelid="{{{MainBackground::C_Name}}}" z-index="-1" />
+	<label id="label-title" textprefix="$i$t" halign="right" pos="130 -80.6" size="150 10" class="text-base" filter-profanities="OnlyIfNotTranslated" z-index="1" />
+</frame>
+""",
+"""
+#Const C_Background_Default {{{dump(C_Background_Default)}}}
+#Const C_Background_Royal {{{dump(C_Background_Royal)}}}
+
+#Const C_BackgroundImageUrl_Royal {{{dump(Const::C_ImageUrl_Menu_Matchmaking_BG_Royal)}}}
+""",
+"""
+Void UpdateBackground(Text _Background) {
+	switch (_Background) {
+		case C_Background_Royal: {
+			{{{MainBackground::P}}}ChangeBackgroundImages(C_BackgroundImageUrl_Royal, False);
+		}
+		default: { //< C_Background_Default
+			{{{MainBackground::P}}}ResetBackgroundImages();
+		}
+	}
+}
+
+***MainInit***
+***
+declare CMlFrame Frame_Global;
+declare CMlLabel Label_Title;
+***
+
+***MainStart***
+***
+Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+Label_Title <=> (Frame_Global.GetFirstChild("label-title") as CMlLabel);
+***
+
+***MainLoop***
+***
+foreach (Event in PendingEvents) {
+	if (Event.Type == CMlScriptEvent::Type::PluginCustomEvent) {
+		switch (Event.CustomEventType) {
+			case "{{{Const::C_Event_UpdateLoadingScreen}}}": {
+				if (Event.CustomEventData.count >= 1) {
+					Label_Title.SetText(Event.CustomEventData[0]);
+				} else {
+					Label_Title.SetText("");
+				}
+				if (Event.CustomEventData.count >= 2) {
+					UpdateBackground(Event.CustomEventData[1]);
+				} else {
+					UpdateBackground(C_Background_Default);
+				}
+			}
+		}
+	}
+}
+***
+""",
+[MainBackground::Component()],
+[]
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+Void UpdateLoadingScreen(Text[] _CustomEventData) {
+	declare CUILayer LoadingScreenLayer <=> Layers::Get(C_Name);
+	if (LoadingScreenLayer != Null) {
+		LayerCustomEvent(LoadingScreenLayer, Const::C_Event_UpdateLoadingScreen, _CustomEventData);
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Create and display layer
+Void Load() {
+	Layers::Create(C_Name);
+	declare CUILayer LoadingScreenLayer <=> Layers::Get(C_Name);
+	if (LoadingScreenLayer != Null) {
+		LoadingScreenLayer.Type = CUILayer::EUILayerType::LoadingScreen;
+		LoadingScreenLayer.IsVisible = True;
+		LoadingScreenLayer.ManialinkPage = GetManialink();
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update from the ManiaApp
+Void Yield() {
+	foreach(Event in PendingEvents) {
+		if (Event.Type == CManiaAppEvent::EType::LayerCustomEvent && Event.CustomEventType == Const::C_Event_UpdateLoadingScreen) {
+			declare Text[] CustomEventData;
+			foreach (Data in Event.CustomEventData) {
+				CustomEventData.add(Data);
+			}
+			UpdateLoadingScreen(CustomEventData);
+		}
+	}
+}

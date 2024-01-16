@@ -1,0 +1,51 @@
+/**
+ *	Common structures and constants for Squad Notification Observers
+ */
+#Const Version		"2023-06-16"
+#Const ScriptName	"Libs/Nadeo/CommonLibs/Common/SquadNotificationObserver_Common.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_NotificationSubType_InvitReceived "SquadInvitationReceived"
+#Const C_NotificationSubType_InvitAdded "SquadInvitationAdded"
+#Const C_NotificationSubType_InvitCanceled "SquadInvitationCanceled"
+#Const C_NotificationSubType_InvitAccepted "SquadInvitationAccepted"
+#Const C_NotificationSubType_InvitDeclined "SquadInvitationDeclined"
+#Const C_NotificationSubType_MemberRemoved "SquadMemberRemoved"
+#Const C_NotificationSubType_MemberAdded "SquadMemberAdded"
+#Const C_NotificationSubType_InvitCanceledForFullSquad "SquadInvitationCanceledForFullSquad"
+#Const C_NotificationSubType_SquadDeleted "SquadDeleted"
+#Const C_NotificationSubType_SquadUpdated "SquadUpdated"
+#Const C_NotificationSubType_InvitCanceledForExitingPlayer "SquadInvitationCanceledForExitingPlayer"
+#Const C_NotificationSubType_SquadLockUpdated "SquadLockStateUpdated"
+
+#Const C_NotificationLifeTime 3600 // in sec, after this duration we remove the notification from our state array
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_Notification {
+	Text Type;
+	Text AccountId;
+	Text DisplayName;
+	Boolean IsFirstPartyDisplayName;
+	Text ZoneUrl;
+	Text SkinName;
+	Text SkinUrl;
+	Text SkinPrestigeOptions;
+	Text SenderAccountId;
+	Text SenderDisplayName;
+	Boolean SenderIsFirstPartyDisplayName;
+	Text SenderZoneUrl;
+	Text SquadId;
+	Text SquadLeaderId;
+	Text SquadType;
+	Boolean IsLocked;
+	Boolean WasForcedToLeaveDueToCrossPlaySetting;
+	Integer TimeStamp;
+}
+
+#Struct K_State {
+	K_Notification[] SquadNotifications;
+}

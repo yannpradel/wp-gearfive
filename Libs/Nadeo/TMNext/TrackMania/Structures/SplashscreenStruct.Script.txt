@@ -1,0 +1,77 @@
+/**
+ *	Structures for Splashscreens
+ */
+#Const Version		"2020-11-25"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Structures/SplashscreenStruct.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_ComponentName "lib-splashscreen-struct"
+#Const P "LibSplashscreenStruct_"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct LibSplashscreenStruct_K_Splashscreen {
+	Integer Id;
+	Text Headline;
+	Text Body;
+	Text Link;
+	Text MediaUrl;
+	Boolean Viewed;
+}
+
+#Struct LibSplashscreenStruct_K_SplashscreenList {
+	LibSplashscreenStruct_K_Splashscreen[] Splashscreens;
+	Integer Total;
+	Integer UnreadNb;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_SplashscreenNullId 0
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if a splashscreen is invalid
+Boolean IsEmptySplashscreen(LibSplashscreenStruct_K_Splashscreen _Splashscreen) {
+	return _Splashscreen.Id == C_SplashscreenNullId;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the manialink component
+Text Component() {
+	return MV::Component(
+		C_ComponentName,
+		"""
+		""",
+		"""
+{{{dumptype(LibSplashscreenStruct_K_Splashscreen)}}}
+{{{dumptype(LibSplashscreenStruct_K_SplashscreenList)}}}
+
+#Const {{{P}}}C_SplashscreenNullId {{{dump(C_SplashscreenNullId)}}}
+		""",
+		"""
+{{{P}}}K_Splashscreen {{{P}}}GetEmptySplashscreen() {
+	return {{{P}}}K_Splashscreen {
+		Id = {{{P}}}C_SplashscreenNullId
+	};
+}
+
+Boolean {{{P}}}IsEmptySplashscreen({{{P}}}K_Splashscreen _Splashscreen) {
+	return _Splashscreen.Id == {{{P}}}C_SplashscreenNullId;
+}
+		""",
+		[],
+		[]
+	);
+}

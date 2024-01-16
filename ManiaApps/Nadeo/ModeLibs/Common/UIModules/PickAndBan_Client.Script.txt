@@ -1,0 +1,770 @@
+/**
+ *	UI module: PickAndBan client side
+ */
+#Const Version		"2023-04-07"
+#Const ScriptName	"ManiaApps/Nadeo/ModeLibs/Common/UIModules/PickAndBan_Client.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "MathLib" as ML
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/ControlBlockList.Script.txt" as ControlBlockList
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/MenuButtonList.Script.txt" as MenuButtonList
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Outline.Script.txt" as Outline
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Scroll.Script.txt" as Scroll
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Client.Script.txt" as UIModules
+#Include "ManiaApps/Nadeo/TMxSM/Race/ZIndex.Script.txt" as ZIndex
+#Include "ManiaApps/Nadeo/ModeLibs/Common/UIModules/PickAndBan_Common.Script.txt" as UIModules_PickAndBan_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_StepsMax 10
+#Const C_TeamsMax 2
+#Const C_TeamsCheckInterval 1000
+#Const C_ImgPath "file://Media/Manialinks/Nadeo/ModeLibs/PickBan"
+
+//L16N [PicksAndBans] Sequence during which the players select the tracks on which they will play (pick) or not (ban)
+#Const C_Text_PicksAndBans _("Picks & Bans")
+//L16N [PicksAndBans] Track selected to be played during the match
+#Const C_Text_Pick _("|PicksAndBans|Pick")
+//L16N [PicksAndBans] Track selected not to be played during the match
+#Const C_Text_Ban _("|PicksAndBans|Ban")
+//L16N [PicksAndBans] Track selected randomly
+#Const C_Text_Random _("|PicksAndBans|Random")
+//L16N [PicksAndBans] Last track of the match selected during the pick and ban. It will be picked randomly.
+#Const C_Text_Decider _("|PicksAndBans|Decider")
+
+#Const C_TextSizeMax_LabelTeamsVs 6.
+#Const C_TextSizeMin_LabelTeamsVs 2.
+#Const C_TextSizeStep_LabelTeamsVs 0.5
+
+#Const C_TextSizeMax_LabelMatchInfo 6.
+#Const C_TextSizeMin_LabelMatchInfo 2.
+#Const C_TextSizeStep_LabelMatchInfo 0.5
+
+#Const C_TextSizeMax_LabelTeamName 3.5
+#Const C_TextSizeMin_LabelTeamName 0.5
+#Const C_TextSizeStep_LabelTeamName 0.5
+
+#Const C_TextSizeMax_LabelAction 3.5
+#Const C_TextSizeMin_LabelAction 0.5
+#Const C_TextSizeStep_LabelAction 0.5
+
+#Const C_Color_DefaultBg "000514"
+#Const C_ColorVec3_DefaultTeam <0., 0.02, 0.078>
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the id of the UI module
+Text GetId() {
+	return UIModules_PickAndBan_Common::C_Id;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the type of layer of the UI module
+CUILayer::EUILayerType GetLayerType() {
+	return UIModules_PickAndBan_Common::C_LayerType;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the module manialink
+ *
+ *  @return                           The module manialink
+ */
+Text GetML() {
+	// Steps properties
+	declare Real SizeX_Steps = 296.;
+	declare Real SizeX_StepsGutter = 1.;
+	declare Real SizeX_Step = ML::Max(0., (SizeX_Steps - ((C_StepsMax - 1) * SizeX_StepsGutter)) / C_StepsMax);
+
+	declare Text ML_StepsPlayer = "";
+	for (I, 0, C_StepsMax - 1) {
+		ML_StepsPlayer ^= """<frameinstance modelid="framemodel-step-player" pos="{{{I * (SizeX_Step + SizeX_StepsGutter)}}} 0" />""";
+	}
+	declare Text ML_StepsSpectator = "";
+	for (I, 0, C_StepsMax - 1) {
+		ML_StepsSpectator ^= """<frameinstance modelid="framemodel-step-spectator" pos="{{{I * (SizeX_Step + SizeX_StepsGutter)}}} 0" />""";
+	}
+
+	// Tracks scroll properties
+	declare Vec2 Size_TracksScroll = <164., 66.>;
+	declare Vec2 Size_TracksScrollGutter = <1., 1.>;
+	declare Int2 Dimension_TracksScroll = <5, 2>;
+	declare Vec2 Size_TracksScrollItem = Scroll::GetElementSize(Size_TracksScroll, Size_TracksScrollGutter, Dimension_TracksScroll.X, Dimension_TracksScroll.Y);
+	declare Integer TracksItemNb = Scroll::GetRequiredElementsNb(Size_TracksScroll, Size_TracksScrollItem, Size_TracksScrollGutter, Dimension_TracksScroll.X);
+	declare Text ML_TracksScrollLines;
+	for (I, 1, TracksItemNb) {
+		ML_TracksScrollLines ^= """<frameinstance modelid="framemodel-track" class="{{{Scroll::C_Class_Element}}}" />""";
+	}
+
+	return MV::Create(
+GetId(), 3,
+"""
+<stylesheet>
+	<style class="text-extrabold" textprefix="$t" textfont="{{{FontManager::C_GameFontExtraBold}}}" textcolor="ffffff" />
+	<style class="text-regular" textprefix="$t" textfont="{{{FontManager::C_GameFontRegular}}}" textcolor="ffffff" />
+</stylesheet>
+<framemodel id="framemodel-step-player">
+	<quad id="quad-team-logo-bg" z-index="0" size="{{{SizeX_Step}}} 17" image="{{{C_ImgPath}}}/PickBan_Square.dds" />
+	<quad id="quad-team-logo" pos="{{{SizeX_Step * 0.5}}} -8.5" z-index="1" size="{{{SizeX_Step - 2}}} 15" halign="center" valign="center" keepratio="fit" />
+	<label id="label-team-name" class="text-extrabold" pos="{{{SizeX_Step * 0.5}}} -8.5" z-index="2" size="{{{SizeX_Step - 2}}} 15" halign="center" valign="center2" textsize="{{{C_TextSizeMax_LabelTeamName}}}" hidden="1" />
+	<label id="label-action" class="text-extrabold" pos="{{{SizeX_Step * 0.5}}} -22" z-index="3" size="{{{SizeX_Step}}} 9" halign="center" valign="center2" textsize="{{{C_TextSizeMax_LabelAction}}}" />
+	<quad id="quad-track-name-bg" pos="0 -26"z-index="0" size="{{{SizeX_Step}}} 8" bgcolor="008800" />
+	<frameinstance id="control-block-list-track-name" modelid="{{{ControlBlockList::C_Name}}}" data-type="{{{ControlBlockList::C_Type_Label}}}" pos="{{{SizeX_Step * 0.5}}} -30" z-index="1" data-size="{{{SizeX_Step - 2}}} 6" data-halign="center" data-valign="center2" data-textsize="1.6" data-textsize-fitlabel-min="0.5" data-textsize-fitlabel-step="0.1" data-textprefix="$t" data-textfont="{{{FontManager::C_GameFontRegular}}}" data-textcolor="ffffff" data-filter-profanities="Always" />
+</framemodel>
+<framemodel id="framemodel-step-spectator">
+	<quad id="quad-team-logo-bg" z-index="0" size="{{{SizeX_Step}}} {{{SizeX_Step}}}" image="{{{C_ImgPath}}}/PickBan_Square.dds" />
+	<quad id="quad-team-logo" pos="{{{SizeX_Step * 0.5}}} {{{SizeX_Step * -0.5}}}" z-index="1" size="{{{SizeX_Step - 2}}} {{{SizeX_Step - 2}}}" halign="center" valign="center" keepratio="fit" />
+	<label id="label-team-name" class="text-extrabold" pos="{{{SizeX_Step * 0.5}}} {{{SizeX_Step * -0.5}}}" z-index="2" size="{{{SizeX_Step - 2}}} {{{SizeX_Step - 2}}}" halign="center" valign="center2" textsize="{{{C_TextSizeMax_LabelTeamName}}}" hidden="1" />
+	<label id="label-action" class="text-extrabold" pos="{{{SizeX_Step * 0.5}}} {{{-SizeX_Step - 5}}}" z-index="3" size="{{{SizeX_Step}}} 9" halign="center" valign="center2" textsize="{{{C_TextSizeMax_LabelAction}}}" />
+	<frameinstance id="control-block-list-track-thumbnail" modelid="{{{ControlBlockList::C_Name}}}" data-type="{{{ControlBlockList::C_Type_Quad}}}" pos="0 {{{-SizeX_Step - 9}}}" z-index="1" data-size="{{{SizeX_Step}}} {{{SizeX_Step}}}" data-keepratio="clip" />
+	<quad id="quad-track-thumbnail-bg" pos="0 {{{-SizeX_Step - 9}}}" z-index="0" size="{{{SizeX_Step}}} {{{SizeX_Step}}}" image="{{{C_ImgPath}}}/PickBan_Square.dds" />
+	<frameinstance id="control-block-list-track-name" modelid="{{{ControlBlockList::C_Name}}}" data-type="{{{ControlBlockList::C_Type_Label}}}" pos="{{{SizeX_Step * 0.5}}} {{{(SizeX_Step * -2) - 13}}}" z-index="1" data-size="{{{SizeX_Step - 2}}} 6" data-halign="center" data-valign="center2" data-textsize="1.6" data-textsize-fitlabel-min="0.5" data-textsize-fitlabel-step="0.1" data-textprefix="$t" data-textfont="{{{FontManager::C_GameFontRegular}}}" data-textcolor="ffffff" data-filter-profanities="Always" />
+</framemodel>
+<framemodel id="framemodel-track">
+	<quad class="{{{Scroll::C_Class_ActivationZone}}}" z-index="1" size="{{{Size_TracksScrollItem.X}}} {{{Size_TracksScrollItem.Y}}}" opacity="0" scriptevents="1" />
+	<frameinstance id="control-block-list-track-thumbnail" modelid="{{{ControlBlockList::C_Name}}}" data-type="{{{ControlBlockList::C_Type_Quad}}}" z-index="2" data-size="{{{Size_TracksScrollItem.X}}} {{{Size_TracksScrollItem.Y}}}" data-keepratio="clip" />
+	<quad z-index="3" size="{{{Size_TracksScrollItem.X}}} {{{Size_TracksScrollItem.Y}}}" image="{{{C_ImgPath}}}/PickBan_Gradient.dds" colorize="000000" opacity="0.8" />
+	<frameinstance id="control-block-list-track-name" modelid="{{{ControlBlockList::C_Name}}}" data-type="{{{ControlBlockList::C_Type_Label}}}" pos="{{{Size_TracksScrollItem.X * 0.5}}} {{{-Size_TracksScrollItem.Y + 1}}}" z-index="4" data-size="{{{Size_TracksScrollItem.X - 2}}} 4" data-halign="center" data-valign="bottom" data-textsize="2" data-textsize-fitlabel-min="0.5" data-textsize-fitlabel-step="0.25" data-textprefix="$t" data-textfont="{{{FontManager::C_GameFontRegular}}}" data-textcolor="ffffff" data-filter-profanities="Always" />
+	<frameinstance id="outline-track-selection" modelid="{{{Outline::C_Name}}}" z-index="5" data-size="{{{Size_TracksScrollItem.X}}} {{{Size_TracksScrollItem.Y}}}" data-color="ffffff" data-width="0.5" />
+</framemodel>
+<frame id="frame-global" z-index="{{{ZIndex::C_ZIndex_PickAndBan}}}" hidden="1">
+	<frame {{{UIModules::CustomizableUIModule(UIModules_PickAndBan_Common::C_UIModuleConfig)}}}>
+		<quad id="quad-background" z-index="0" size="320 180" halign="center" valign="center" bgcolor="{{{C_Color_DefaultBg}}}" fullscreen="1" />
+		<frame z-index="1">
+			<!-- Top line -->
+			<label id="label-title" class="text-extrabold" pos="0 62" z-index="4" size="190 14" halign="center" valign="center2" textsize="17" text="{{{C_Text_PicksAndBans}}}" />
+			<label id="label-user-action" class="text-regular" pos="0 52" z-index="4" size="190 6" halign="center" valign="center2" textsize="5" filter-profanities="Always" />
+			<quad id="quad-logo-top-left" pos="-125 62" z-index="1" size="50 20" halign="center" valign="center" keepratio="fit" />
+			<quad id="quad-logo-top-right" pos="125 62" z-index="1" size="50 20" halign="center" valign="center" keepratio="fit" />
+			<!-- Bottom line -->
+			<quad id="quad-logo-bottom" pos="0 -76" z-index="1" size="50 20" halign="center" valign="center" keepratio="fit" />
+			<label id="label-teams-vs" class="text-regular" pos="-148 -74" z-index="2" size="118 8" halign="left" valign="center2" textsize="{{{C_TextSizeMax_LabelTeamsVs}}}" filter-profanities="Always" />
+			<label id="label-match-info" class="text-regular" pos="148 -74" z-index="2" size="118 8" halign="right" valign="center2" textsize="{{{C_TextSizeMax_LabelMatchInfo}}}" filter-profanities="Always" />
+			<!-- Steps -->
+			<frame id="frame-steps-player" pos="{{{SizeX_Steps * -0.5}}} 46" z-index="2">
+				{{{ML_StepsPlayer}}}
+			</frame>
+			<frame id="frame-steps-spectator" pos="{{{SizeX_Steps * -0.5}}} 46" z-index="2" hidden="1">
+				{{{ML_StepsSpectator}}}
+			</frame>
+			<frameinstance id="outline-active-step-spectator" modelid="{{{Outline::C_Name}}}" pos="{{{SizeX_Steps * -0.5}}} 46" z-index="3" data-size="{{{SizeX_Step}}} {{{(SizeX_Step * 2) + 9}}}" data-color="ffffff" data-width="0.5" hidden="1" />
+			<!-- Tracks scroll -->
+			<frameinstance modelid="{{{Scroll::C_Name}}}" data-scroll-parent="scroll-tracks" z-index="4" />
+			<frame
+				id="scroll-tracks"
+				class="{{{Scroll::C_Class_Window}}}"
+				pos="{{{Size_TracksScroll.X * -0.5}}} 4"
+				z-index="3"
+				data-elements-per-line="{{{Dimension_TracksScroll.X}}}"
+				data-element-size="{{{Size_TracksScrollItem.X}}} {{{Size_TracksScrollItem.Y}}}"
+				data-margin-size="{{{Size_TracksScrollGutter.X}}} {{{Size_TracksScrollGutter.Y}}}"
+				data-window-size="{{{Size_TracksScroll.X}}} {{{Size_TracksScroll.Y}}}"
+				data-scrollbar-xoffset="2"
+			>
+				<quad z-index="-1" scriptevents="1" class="{{{Scroll::C_Class_ScrollEvent}}}" />
+				{{{ML_TracksScrollLines}}}
+			</frame>
+			<!-- Controller info -->
+			<frameinstance id="button-list-pick-and-ban" modelid="{{{MenuButtonList::C_Name}}}" z-index="5" />
+		</frame>
+	</frame>
+</frame>
+""",
+"""
+#Include "MathLib" as ML
+#Include "Libs/Nadeo/CommonLibs/Common/MainUser.Script.txt" as MainUser
+#Include "Libs/Nadeo/CommonLibs/Common/Task.Script.txt" as Task
+#Include "Libs/Nadeo/MenuLibs/Common/Components/Tools.Script.txt" as Tools
+#Include "ManiaApps/Nadeo/ModeLibs/Common/UIModules/PickAndBan_Common.Script.txt" as PickAndBan_Common
+
+#Struct K_Team {
+	Text Name;
+	Text LogoUrl;
+	Vec3 Color;
+}
+#Struct K_Map {
+	Text Uid;
+	Text Name;
+	Text ThumbnailUrl;
+	Text AuthorAccountId;
+}
+#Struct K_ControlsStep {
+	CMlFrame Frame_Step;
+	CMlQuad Quad_TeamLogoBg;
+	CMlQuad Quad_TeamLogo;
+	CMlLabel Label_TeamName;
+	CMlLabel Label_Action;
+	CMlQuad Quad_TrackThumbnailBg;
+	CMlFrame ControlBlockList_TrackThumbnail;
+	CMlQuad Quad_TrackNameBg;
+	CMlFrame ControlBlockList_TrackName;
+}
+#Struct K_Controls {
+	CMlFrame Frame_Global;
+	CMlQuad Quad_Background;
+	CMlQuad Quad_LogoTopLeft;
+	CMlQuad Quad_LogoTopRight;
+	CMlQuad Quad_LogoBottom;
+	CMlLabel Label_TeamsVs;
+	CMlLabel Label_MatchInfo;
+	CMlFrame Frame_StepsPlayer;
+	K_ControlsStep[] StepsPlayer;
+	CMlFrame Frame_StepsSpectator;
+	K_ControlsStep[] StepsSpectator;
+	CMlFrame ButtonList_PickAndBan;
+	CMlFrame Scroll_Tracks;
+	CMlFrame Outline_ActiveStepSpectator;
+}
+#Struct K_State {
+	K_Controls Controls;
+	Boolean DisplayModule;
+	Text BackgroundUrl;
+	Text TopLeftLogoUrl;
+	Text TopRightLogoUrl;
+	Text BottomLogoUrl;
+	Integer TeamsCheckTime;
+	K_Team[] Teams;
+	Text MatchInfo;
+	Text PickAndBanOrder;
+	PickAndBan_Common::K_Step[] Steps;
+	Boolean IsSpectator;
+	Boolean MapListRequestIsInProgress;
+	K_Map[Text] MapList;
+	Text[] ScrollMapList;
+	Task::K_Task Task_GetMapInfoListFromUid;
+}
+
+#Const C_State_Null K_State {
+	Controls = K_Controls {},
+	DisplayModule = False,
+	BackgroundUrl = "",
+	TopLeftLogoUrl = "",
+	TopRightLogoUrl = "",
+	BottomLogoUrl = "",
+	TeamsCheckTime = 0,
+	Teams = [],
+	MatchInfo = "",
+	PickAndBanOrder = "",
+	Steps = [],
+	IsSpectator = False,
+	MapListRequestIsInProgress = False,
+	MapList = [],
+	ScrollMapList = [],
+	Task_GetMapInfoListFromUid = Task::K_Task {}
+}
+#Const C_Map_Null K_Map {
+	Uid = ""
+}
+
+#Const C_TeamsMax {{{dump(C_TeamsMax)}}}
+#Const C_TeamsCheckInterval {{{dump(C_TeamsCheckInterval)}}}
+#Const C_ImgPath {{{dump(C_ImgPath)}}}
+#Const C_SizeX_StepsGutter {{{dump(SizeX_StepsGutter)}}}
+#Const C_SizeX_Step {{{dump(SizeX_Step)}}}
+
+#Const C_ColorVec3_DefaultTeam {{{dump(C_ColorVec3_DefaultTeam)}}}
+
+#Const C_TextSizeMax_LabelTeamsVs {{{dump(C_TextSizeMax_LabelTeamsVs)}}}
+#Const C_TextSizeMin_LabelTeamsVs {{{dump(C_TextSizeMin_LabelTeamsVs)}}}
+#Const C_TextSizeStep_LabelTeamsVs {{{dump(C_TextSizeStep_LabelTeamsVs)}}}
+#Const C_TextSizeMax_LabelMatchInfo {{{dump(C_TextSizeMax_LabelMatchInfo)}}}
+#Const C_TextSizeMin_LabelMatchInfo {{{dump(C_TextSizeMin_LabelMatchInfo)}}}
+#Const C_TextSizeStep_LabelMatchInfo {{{dump(C_TextSizeStep_LabelMatchInfo)}}}
+#Const C_TextSizeMax_LabelTeamName {{{dump(C_TextSizeMax_LabelTeamName)}}}
+#Const C_TextSizeMin_LabelTeamName {{{dump(C_TextSizeMin_LabelTeamName)}}}
+#Const C_TextSizeStep_LabelTeamName {{{dump(C_TextSizeStep_LabelTeamName)}}}
+#Const C_TextSizeMax_LabelAction {{{dump(C_TextSizeMax_LabelAction)}}}
+#Const C_TextSizeMin_LabelAction {{{dump(C_TextSizeMin_LabelAction)}}}
+#Const C_TextSizeStep_LabelAction {{{dump(C_TextSizeStep_LabelAction)}}}
+
+#Const C_Text_Pick {{{dump(C_Text_Pick)}}}
+#Const C_Text_Ban {{{dump(C_Text_Ban)}}}
+#Const C_Text_Random {{{dump(C_Text_Random)}}}
+#Const C_Text_Decider {{{dump(C_Text_Decider)}}}
+""",
+"""
+Void UpdateButtonList(K_State _State) {
+	{{{MenuButtonList::P}}}SetButtons(_State.Controls.ButtonList_PickAndBan, []);
+}
+
+Void UpdateNavigation(K_State _State) {
+	{{{Scroll::P}}}LockNavigation(_State.Controls.Scroll_Tracks, _State.IsSpectator);
+}
+
+K_State SetBackgroundUrl(K_State _State, Text _BackgroundUrl) {
+	if (_State.BackgroundUrl == _BackgroundUrl) return _State;
+
+	declare K_State State = _State;
+	State.BackgroundUrl = _BackgroundUrl;
+	State.Controls.Quad_Background.ImageUrl = State.BackgroundUrl;
+	return State;
+}
+
+K_State SetTopLeftLogoUrl(K_State _State, Text _TopLeftLogoUrl) {
+	if (_State.TopLeftLogoUrl == _TopLeftLogoUrl) return _State;
+
+	declare K_State State = _State;
+	State.TopLeftLogoUrl = _TopLeftLogoUrl;
+	State.Controls.Quad_LogoTopLeft.ImageUrl = State.TopLeftLogoUrl;
+	return State;
+}
+
+K_State SetTopRightLogoUrl(K_State _State, Text _TopRightLogoUrl) {
+	if (_State.TopRightLogoUrl == _TopRightLogoUrl) return _State;
+
+	declare K_State State = _State;
+	State.TopRightLogoUrl = _TopRightLogoUrl;
+	State.Controls.Quad_LogoTopRight.ImageUrl = State.TopRightLogoUrl;
+	return State;
+}
+
+K_State SetBottomLogoUrl(K_State _State, Text _BottomLogoUrl) {
+	if (_State.BottomLogoUrl == _BottomLogoUrl) return _State;
+
+	declare K_State State = _State;
+	State.BottomLogoUrl = _BottomLogoUrl;
+	State.Controls.Quad_LogoBottom.ImageUrl = State.BottomLogoUrl;
+	return State;
+}
+
+K_State SetVisibility(K_State _State, Boolean _DisplayModule) {
+	declare K_State State = _State;
+	State.DisplayModule = _DisplayModule;
+	State.Controls.Frame_Global.Visible = State.DisplayModule;
+	if (State.DisplayModule) {
+		State.TeamsCheckTime = Now;
+	}
+	return State;
+}
+
+Void UpdateSteps(K_State _State) {
+	declare K_ControlsStep[] ControlsStep;
+	declare CMlFrame Frame_Steps;
+	if (_State.IsSpectator) {
+		ControlsStep = _State.Controls.StepsSpectator;
+		Frame_Steps <=> _State.Controls.Frame_StepsSpectator;
+	} else {
+		ControlsStep = _State.Controls.StepsPlayer;
+		Frame_Steps <=> _State.Controls.Frame_StepsPlayer;
+	}
+
+	foreach (Key => ControlsStep in ControlsStep) {
+		if (_State.Steps.existskey(Key)) {
+			declare PickAndBan_Common::K_Step Step = _State.Steps[Key];
+			if (Step.Team > 0 && _State.Teams.existskey(Step.Team - 1)) {
+				declare K_Team LocalTeam = _State.Teams[Step.Team - 1];
+				ControlsStep.Quad_TeamLogoBg.Colorize = LocalTeam.Color;
+				if (ControlsStep.Quad_TrackNameBg != Null) {
+					ControlsStep.Quad_TrackNameBg.BgColor = LocalTeam.Color;
+				}
+				if (ControlsStep.Quad_TrackThumbnailBg != Null) {
+					ControlsStep.Quad_TrackThumbnailBg.Colorize = LocalTeam.Color;
+				}
+				if (LocalTeam.LogoUrl == "") {
+					ControlsStep.Label_TeamName.Value = LocalTeam.Name;
+					Tools::FitLabelValue(ControlsStep.Label_TeamName, C_TextSizeMax_LabelTeamName, C_TextSizeMin_LabelTeamName, C_TextSizeStep_LabelTeamName);
+					ControlsStep.Quad_TeamLogo.Visible = False;
+					ControlsStep.Label_TeamName.Visible = True;
+				} else {
+					ControlsStep.Quad_TeamLogo.ImageUrl = LocalTeam.LogoUrl;
+					ControlsStep.Quad_TeamLogo.Colorize = <-1., -1., -1.>;
+					ControlsStep.Quad_TeamLogo.Visible = True;
+					ControlsStep.Label_TeamName.Visible = False;
+				}
+			} else {
+				if (Step.Action == PickAndBan_Common::C_Action_Random) {
+					if (Key == _State.Steps.count - 1) {
+						ControlsStep.Quad_TeamLogo.ImageUrl = C_ImgPath^"/Decider.dds";
+						ControlsStep.Quad_TeamLogo.Colorize = <1., 1., 1.>;
+						ControlsStep.Quad_TeamLogo.Visible = True;
+						ControlsStep.Label_TeamName.Visible = False;
+					} else {
+						ControlsStep.Label_TeamName.Value = "?";
+						ControlsStep.Label_TeamName.TextSizeReal = 16.;
+						ControlsStep.Quad_TeamLogo.Visible = False;
+						ControlsStep.Label_TeamName.Visible = True;
+					}
+				} else {
+					ControlsStep.Quad_TeamLogo.Visible = False;
+					ControlsStep.Label_TeamName.Visible = False;
+				}
+				ControlsStep.Quad_TeamLogoBg.Colorize = C_ColorVec3_DefaultTeam;
+				if (ControlsStep.Quad_TrackNameBg != Null) {
+					ControlsStep.Quad_TrackNameBg.BgColor = C_ColorVec3_DefaultTeam;
+				}
+				if (ControlsStep.Quad_TrackThumbnailBg != Null) {
+					ControlsStep.Quad_TrackThumbnailBg.Colorize = C_ColorVec3_DefaultTeam;
+				}
+			}
+			switch (Step.Action) {
+				case PickAndBan_Common::C_Action_Pick: {
+					ControlsStep.Label_Action.Value = C_Text_Pick;
+				}
+				case PickAndBan_Common::C_Action_Ban: {
+					ControlsStep.Label_Action.Value = C_Text_Ban;
+				}
+				case PickAndBan_Common::C_Action_Random: {
+					if (Key == _State.Steps.count - 1) {
+						ControlsStep.Label_Action.Value = C_Text_Decider;
+					} else {
+						ControlsStep.Label_Action.Value = C_Text_Random;
+					}
+				}
+				default: {
+					ControlsStep.Label_Action.Value = "";
+				}
+			}
+			ControlsStep.Label_Action.Visible = (ControlsStep.Label_Action.Value != "");
+			if (ControlsStep.Label_Action.Visible) {
+				Tools::FitLabelValue(ControlsStep.Label_Action, C_TextSizeMax_LabelAction, C_TextSizeMin_LabelAction, C_TextSizeStep_LabelAction);
+			}
+			ControlsStep.Frame_Step.Visible = True;
+		} else {
+			ControlsStep.Frame_Step.Visible = False;
+		}
+	}
+
+	declare Integer StepsNb = ML::Min(_State.Steps.count, ControlsStep.count);
+	if (StepsNb > 0) {
+		Frame_Steps.RelativePosition_V3.X = ((StepsNb * C_SizeX_Step) + ((StepsNb - 1) * C_SizeX_StepsGutter)) * -0.5;
+	} else {
+		Frame_Steps.RelativePosition_V3.X = 0.;
+	}
+}
+
+Void UpdateTeamsVs(K_State _State) {
+	declare Text TeamsVs = "";
+	foreach (Team in _State.Teams) {
+		if (TeamsVs == "") {
+			TeamsVs ^= Team.Name;
+		} else {
+			TeamsVs ^= " vs "^Team.Name;
+		}
+	}
+	_State.Controls.Label_TeamsVs.Value = TeamsVs;
+	Tools::FitLabelValue(_State.Controls.Label_TeamsVs, C_TextSizeMax_LabelTeamsVs, C_TextSizeMin_LabelTeamsVs, C_TextSizeStep_LabelTeamsVs);
+}
+
+K_State UpdateTeams(K_State _State) {
+	declare K_State State = _State;
+
+	declare Boolean TeamsUpdated = False;
+	for (I, 0, C_TeamsMax - 1) {
+		declare CTeam ModeTeam <=> Teams[I];
+		if (State.Teams.existskey(I)) {
+			declare K_Team LocalTeam = State.Teams[I];
+			if (LocalTeam.Name != ModeTeam.Name) {
+				LocalTeam.Name = ModeTeam.Name;
+				TeamsUpdated = True;
+			}
+			if (LocalTeam.LogoUrl != ModeTeam.EmblemUrl) {
+				LocalTeam.LogoUrl = ModeTeam.EmblemUrl;
+				TeamsUpdated = True;
+			}
+			if (LocalTeam.Color != ModeTeam.ColorUI) {
+				LocalTeam.Color = ModeTeam.ColorUI;
+				TeamsUpdated = True;
+			}
+			if (TeamsUpdated) {
+				State.Teams[I] = LocalTeam;
+			}
+		} else {
+			TeamsUpdated = True;
+			State.Teams.add(K_Team {
+				Name = ModeTeam.Name,
+				LogoUrl = ModeTeam.EmblemUrl,
+				Color = ModeTeam.ColorUI
+			});
+		}
+	}
+
+	if (TeamsUpdated) {
+		UpdateTeamsVs(State);
+		UpdateSteps(State);
+	}
+
+	return State;
+}
+
+K_State SetMatchInfo(K_State _State, Text _MatchInfo) {
+	if (_State.MatchInfo == _MatchInfo) return _State;
+
+	declare K_State State = _State;
+
+	State.MatchInfo = _MatchInfo;
+	State.Controls.Label_MatchInfo.Value = State.MatchInfo;
+	Tools::FitLabelValue(_State.Controls.Label_MatchInfo, C_TextSizeMax_LabelMatchInfo, C_TextSizeMin_LabelMatchInfo, C_TextSizeStep_LabelMatchInfo);
+
+	return State;
+}
+
+K_State SetPickAndBanOrder(K_State _State, Text _PickAndBanOrder) {
+	if (_State.PickAndBanOrder == _PickAndBanOrder) return _State;
+
+	declare K_State State = _State;
+
+	State.PickAndBanOrder = _PickAndBanOrder;
+	if (State.PickAndBanOrder == "") {
+		State.Steps = [];
+	} else {
+		State.Steps.fromjson(State.PickAndBanOrder);
+	}
+
+	UpdateSteps(State);
+
+	return State;
+}
+
+K_State SetIsSpectator(K_State _State, Boolean _IsSpectator) {
+	if (_State.IsSpectator == _IsSpectator) return _State;
+
+	declare K_State State = _State;
+
+	State.IsSpectator = _IsSpectator;
+	State.Controls.Frame_StepsPlayer.Visible = !State.IsSpectator;
+	State.Controls.Frame_StepsSpectator.Visible = State.IsSpectator;
+	State.Controls.Scroll_Tracks.Visible = !State.IsSpectator;
+	
+	UpdateNavigation(State);
+	UpdateSteps(State);
+
+	return State;
+}
+
+Void FocusScrollTrack(CMlFrame _Frame_Track, Boolean _IsFocused) {
+	declare CMlFrame Outline_TrackSelection <=> (_Frame_Track.GetFirstChild("outline-track-selection") as CMlFrame);
+}
+
+Void UdateScrollTrack(K_State _State, Integer _Key, CMlFrame _Frame_Track) {
+	declare Text MapUid = Tools::Ternary(_State.ScrollMapList.existskey(_Key), _State.ScrollMapList[_Key], "");
+	declare K_Map Map = _State.MapList.get(MapUid, C_Map_Null);
+
+	declare CMlFrame ControlBlockList_TrackThumbnail <=> (_Frame_Track.GetFirstChild("control-block-list-track-thumbnail") as CMlFrame);
+	declare CMlFrame ControlBlockList_TrackName <=> (_Frame_Track.GetFirstChild("control-block-list-track-name") as CMlFrame);
+
+	declare Text MapThumbnailUrl = Tools::Ternary(Map.ThumbnailUrl == "", "file://Thumbnails/MapUid/"^Map.Uid, Map.ThumbnailUrl);
+	{{{ControlBlockList::P}}}SetOwnerAndImageUrl(This, ControlBlockList_TrackThumbnail, Map.AuthorAccountId, MapThumbnailUrl);
+	{{{ControlBlockList::P}}}SetOwnerAndTextValue(This, ControlBlockList_TrackName, Map.AuthorAccountId, Map.Name);
+}
+
+Void UpdateMapList(K_State _State) {
+	{{{Scroll::P}}}SetElementsTotal(This, _State.Controls.Scroll_Tracks, _State.ScrollMapList.count);
+}
+
+K_State SetMapList(K_State _State, CPlaygroundClient _Playground) {
+	declare K_State State = _State;
+
+	State.MapListRequestIsInProgress = _Playground.MapList_IsInProgress;
+	if (!State.MapListRequestIsInProgress) {
+		declare Text[] NewMapUids;
+		declare K_Map[Text] NewMapList;
+		State.ScrollMapList = [];
+		foreach (Key => MapUid in _Playground.MapList_MapUids) {
+			declare K_Map Map = State.MapList.get(MapUid, C_Map_Null);
+			if (Map.Uid == "" || Map.ThumbnailUrl == "" || Map.AuthorAccountId == "") {
+				NewMapUids.add(MapUid);
+				Map = K_Map {
+					Uid = MapUid,
+					Name = Tools::Ternary(_Playground.MapList_Names.existskey(Key), _Playground.MapList_Names[Key], ""),
+					ThumbnailUrl = "",
+					AuthorAccountId = ""
+				};
+			}
+			if (!State.ScrollMapList.exists(MapUid)) {
+				State.ScrollMapList.add(MapUid);
+			}
+			NewMapList[MapUid] = Map;
+		}
+		if (NewMapUids.count > 0) {
+			State.Task_GetMapInfoListFromUid = Task::DestroyAndCreate(
+				State.Task_GetMapInfoListFromUid,
+				DataFileMgr,
+				DataFileMgr.Map_NadeoServices_GetListFromUid(MainUser::GetMainUserId(), NewMapUids)
+			);
+		}
+		State.MapList = NewMapList;
+		UpdateMapList(State);
+	}
+
+	return State;
+}
+
+K_State RequestMapListUpdate(K_State _State, CPlaygroundClient _Playground) {
+	declare K_State State = _State;
+
+	if (!_Playground.MapList_IsInProgress) {
+		_Playground.MapList_Request();
+	}
+	State = SetMapList(State, _Playground);
+
+	return State;
+}
+
+K_ControlsStep[] GetStepsControls(CMlFrame _Frame_Steps) {
+	declare K_ControlsStep[] StepsControls;
+
+	foreach (Control in _Frame_Steps.Controls) {
+		declare CMlFrame Frame_Step = (Control as CMlFrame);
+		declare K_ControlsStep ControlsStep = K_ControlsStep {
+			Frame_Step = Frame_Step,
+			Quad_TeamLogoBg = (Frame_Step.GetFirstChild("quad-team-logo-bg") as CMlQuad),
+			Quad_TeamLogo = (Frame_Step.GetFirstChild("quad-team-logo") as CMlQuad),
+			Label_TeamName = (Frame_Step.GetFirstChild("label-team-name") as CMlLabel),
+			Label_Action = (Frame_Step.GetFirstChild("label-action") as CMlLabel),
+			Quad_TrackThumbnailBg = (Frame_Step.GetFirstChild("quad-track-thumbnail-bg") as CMlQuad),
+			ControlBlockList_TrackThumbnail = (Frame_Step.GetFirstChild("control-block-list-track-thumbnail") as CMlFrame),
+			Quad_TrackNameBg = (Frame_Step.GetFirstChild("quad-track-name-bg") as CMlQuad),
+			ControlBlockList_TrackName = (Frame_Step.GetFirstChild("control-block-list-track-name") as CMlFrame)
+		};
+		StepsControls.add(ControlsStep);
+	}
+
+	return StepsControls;
+}
+
+***MainInit***
+***
+declare netread Boolean Net_ModeLibs_PickAndBan_IsVisible for UI;
+declare netread Text Net_ModeLibs_PickAndBan_PickAndBanOrder for Teams[0] = "";
+declare netread Text Net_ModeLibs_PickAndBan_BackgroundUrl for Teams[0] = "";
+declare netread Text Net_ModeLibs_PickAndBan_TopLeftLogoUrl for Teams[0] = "";
+declare netread Text Net_ModeLibs_PickAndBan_TopRightLogoUrl for Teams[0] = "";
+declare netread Text Net_ModeLibs_PickAndBan_BottomLogoUrl for Teams[0] = "";
+declare netread Text Net_ModeLibs_PickAndBan_MatchInfo for Teams[0] = "";
+
+declare K_State State = C_State_Null;
+***
+
+***MainStart***
+***
+State.Controls.Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+State.Controls.Quad_Background <=> (State.Controls.Frame_Global.GetFirstChild("quad-background") as CMlQuad);
+State.Controls.Quad_LogoTopLeft <=> (State.Controls.Frame_Global.GetFirstChild("quad-logo-top-left") as CMlQuad);
+State.Controls.Quad_LogoTopRight <=> (State.Controls.Frame_Global.GetFirstChild("quad-logo-top-right") as CMlQuad);
+State.Controls.Quad_LogoBottom <=> (State.Controls.Frame_Global.GetFirstChild("quad-logo-bottom") as CMlQuad);
+State.Controls.Label_TeamsVs <=> (State.Controls.Frame_Global.GetFirstChild("label-teams-vs") as CMlLabel);
+State.Controls.Label_MatchInfo <=> (State.Controls.Frame_Global.GetFirstChild("label-match-info") as CMlLabel);
+State.Controls.Frame_StepsPlayer <=> (State.Controls.Frame_Global.GetFirstChild("frame-steps-player") as CMlFrame);
+State.Controls.StepsPlayer = GetStepsControls(State.Controls.Frame_StepsPlayer);
+State.Controls.Frame_StepsSpectator <=> (State.Controls.Frame_Global.GetFirstChild("frame-steps-spectator") as CMlFrame);
+State.Controls.StepsSpectator = GetStepsControls(State.Controls.Frame_StepsSpectator);
+State.Controls.Outline_ActiveStepSpectator <=> (State.Controls.Frame_Global.GetFirstChild("outline-active-step-spectator") as CMlFrame);
+State.Controls.Scroll_Tracks <=> (State.Controls.Frame_Global.GetFirstChild("scroll-tracks") as CMlFrame);
+State.Controls.ButtonList_PickAndBan <=> (State.Controls.Frame_Global.GetFirstChild("button-list-pick-and-ban") as CMlFrame);
+
+{{{Scroll::P}}}UseLocalEvents(This, True);
+
+State = SetVisibility(State, State.Controls.Frame_Global.Visible);
+State = SetBackgroundUrl(State, Net_ModeLibs_PickAndBan_BackgroundUrl);
+State = SetTopLeftLogoUrl(State, Net_ModeLibs_PickAndBan_TopLeftLogoUrl);
+State = SetTopRightLogoUrl(State, Net_ModeLibs_PickAndBan_TopRightLogoUrl);
+State = SetBottomLogoUrl(State, Net_ModeLibs_PickAndBan_BottomLogoUrl);
+State = UpdateTeams(State);
+State = SetMatchInfo(State, Net_ModeLibs_PickAndBan_MatchInfo);
+State = SetPickAndBanOrder(State, Net_ModeLibs_PickAndBan_PickAndBanOrder);
+State = SetIsSpectator(State, IsSpectatorClient);
+State = RequestMapListUpdate(State, Playground);
+UpdateButtonList(State);
+***
+
+***MainLoop***
+***
+if (PageIsVisible) {
+	if (State.DisplayModule != Net_ModeLibs_PickAndBan_IsVisible) {
+		State = SetVisibility(State, Net_ModeLibs_PickAndBan_IsVisible);
+	}
+
+	if (State.DisplayModule) {
+		if (State.BackgroundUrl != Net_ModeLibs_PickAndBan_BackgroundUrl) {
+			State = SetBackgroundUrl(State, Net_ModeLibs_PickAndBan_BackgroundUrl);
+		}
+		if (State.TopLeftLogoUrl != Net_ModeLibs_PickAndBan_TopLeftLogoUrl) {
+			State = SetTopLeftLogoUrl(State, Net_ModeLibs_PickAndBan_TopLeftLogoUrl);
+		}
+		if (State.TopRightLogoUrl != Net_ModeLibs_PickAndBan_TopRightLogoUrl) {
+			State = SetTopRightLogoUrl(State, Net_ModeLibs_PickAndBan_TopRightLogoUrl);
+		}
+		if (State.BottomLogoUrl != Net_ModeLibs_PickAndBan_BottomLogoUrl) {
+			State = SetBottomLogoUrl(State, Net_ModeLibs_PickAndBan_BottomLogoUrl);
+		}
+		if (State.TeamsCheckTime <= Now) {
+			State.TeamsCheckTime = Now + C_TeamsCheckInterval;
+			State = UpdateTeams(State);
+		}
+		if (State.MatchInfo != Net_ModeLibs_PickAndBan_MatchInfo) {
+			State = SetMatchInfo(State, Net_ModeLibs_PickAndBan_MatchInfo);
+		}
+		if (State.PickAndBanOrder != Net_ModeLibs_PickAndBan_PickAndBanOrder) {
+			State = SetPickAndBanOrder(State, Net_ModeLibs_PickAndBan_PickAndBanOrder);
+		}
+		if (State.IsSpectator != IsSpectatorClient) {
+			State = SetIsSpectator(State, IsSpectatorClient);
+		}
+		if (State.MapListRequestIsInProgress != Playground.MapList_IsInProgress) {
+			State = SetMapList(State, Playground);
+		}
+	}
+}
+
+if (Task::IsInitialized(State.Task_GetMapInfoListFromUid)) {
+	State.Task_GetMapInfoListFromUid = Task::Update(State.Task_GetMapInfoListFromUid);
+	if (!Task::IsRunning(State.Task_GetMapInfoListFromUid)) {
+		declare CTaskResult_NSMapList SourceTask = Task::GetSourceTask_NSMapList(State.Task_GetMapInfoListFromUid);
+		if (Task::IsSuccess(State.Task_GetMapInfoListFromUid) && SourceTask != Null) {
+			declare Boolean MapListUpdated = False;
+			foreach (Map in SourceTask.MapList) {
+				declare K_Map LocalMap = State.MapList.get(Map.Uid, C_Map_Null);
+				if (LocalMap.Uid != "") {
+					LocalMap.ThumbnailUrl = Map.ThumbnailUrl;
+					LocalMap.AuthorAccountId = Map.AuthorAccountId;
+					State.MapList[LocalMap.Uid] = LocalMap;
+					MapListUpdated = True;
+				}
+			}
+			if (MapListUpdated) {
+				UpdateMapList(State);
+			}
+		}
+		State.Task_GetMapInfoListFromUid = Task::Destroy(State.Task_GetMapInfoListFromUid);
+	}
+}
+
+foreach (Event in {{{Scroll::P}}}GetPendingEvents(This)) {
+	if (Event.Scroll == State.Controls.Scroll_Tracks) {
+		switch (Event.Type) {
+			case {{{Scroll::P}}}C_EventType_Update: {
+				foreach (Key => Frame_Track in Event.ElementsVisible) {
+					UdateScrollTrack(State, Key, Frame_Track);
+					Frame_Track.Visible = True;
+				}
+				foreach (Frame_Track in Event.ElementsHidden) {
+					Frame_Track.Visible = False;
+				}
+			}
+			case {{{Scroll::P}}}C_EventType_Focus: {
+				
+			}
+			case {{{Scroll::P}}}C_EventType_Select: {
+				
+			}
+		}
+	}
+}
+***
+""",
+[
+	UIModules::Component(),
+	Scroll::ComponentV2(),
+	ControlBlockList::ComponentV2(),
+	Outline::ComponentV2(),
+	MenuButtonList::Component()
+],
+[]
+	);
+}

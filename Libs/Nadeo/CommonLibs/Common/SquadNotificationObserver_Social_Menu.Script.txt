@@ -1,0 +1,238 @@
+/**
+ *	Squad notification observer for Social Menu
+ */
+#Const Version		"2023-06-16"
+#Const ScriptName	"Libs/Nadeo/CommonLibs/Common/SquadNotificationObserver_Social_Menu.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/CommonLibs/Common/SquadNotificationObserver_Common.Script.txt" as Common
+#Include "Libs/Nadeo/CommonLibs/Common/Log.Script.txt" as Log
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as Const
+#Include "TimeLib" as TiL
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+// Add new notification to our state array and check if we can remove old ones
+Void AddNotification(Common::K_Notification _Notification) {
+	declare Common::K_State LibCommonSquadNotificationObserver_SocialMenu_State for System;
+	// Check to remove old notifications if array contains more than 10 elements
+	declare Integer[] ToRemove = [];
+	if (LibCommonSquadNotificationObserver_SocialMenu_State.SquadNotifications.count > 10) {
+		foreach (Key => Notif in LibCommonSquadNotificationObserver_SocialMenu_State.SquadNotifications) {
+			if (TiL::GetDelta(TiL::GetCurrent(), ""^Notif.TimeStamp) > Common::C_NotificationLifeTime) ToRemove.add(Key);
+		}
+		foreach (Key in ToRemove) {
+			LibCommonSquadNotificationObserver_SocialMenu_State.SquadNotifications.removekey(Key);
+		}
+	}
+	// Then add new notification
+	LibCommonSquadNotificationObserver_SocialMenu_State.SquadNotifications.add(_Notification);
+}
+
+// Get the oldest notification and remove it from our state array
+Common::K_Notification GetNextNotification() {
+	declare Common::K_State LibCommonSquadNotificationObserver_SocialMenu_State for System;
+	declare Common::K_Notification Notif;
+	if (LibCommonSquadNotificationObserver_SocialMenu_State.SquadNotifications.count > 0) {
+		Notif = LibCommonSquadNotificationObserver_SocialMenu_State.SquadNotifications[0];
+		LibCommonSquadNotificationObserver_SocialMenu_State.SquadNotifications.removekey(0);
+	}
+	return Notif;
+}
+
+// Check if squad notifications are available
+Boolean IsNotificationAvailable() {
+	declare Common::K_State LibCommonSquadNotificationObserver_SocialMenu_State for System;
+	return (LibCommonSquadNotificationObserver_SocialMenu_State.SquadNotifications.count > 0);
+}
+
+// Function used in NotificationManager to parse the notification and stock it in our state array
+Void OnEvent(CTaskResult_WSNotification _NotificationTask) {
+	declare Common::K_State LibCommonSquadNotificationObserver_SocialMenu_State for System;
+	declare Text AccountId;
+	declare Text DisplayName;
+	declare Boolean IsFirstPartyDisplayName;
+	declare Text ZoneUrl;
+	declare Text SkinName;
+	declare Text SkinUrl;
+	declare Text SkinPrestigeOptions;
+	declare Text SenderAccountId;
+	declare Text SenderDisplayName;
+	declare Boolean SenderIsFirstPartyDisplayName;
+	declare Text SenderZoneUrl;
+	declare Text SquadId;
+	declare Text SquadLeaderId;
+	declare Text SquadType;
+	declare Boolean IsLocked;
+	declare Boolean WasForcedToLeaveDueToCrossPlaySetting;
+	declare Integer TimeStamp;
+	switchtype (_NotificationTask.Notification) {
+		case CNotification_SquadInvitationAccepted: {
+			declare CNotification_SquadInvitationAccepted Notification_SquadInvitationAccepted <=> (_NotificationTask.Notification as CNotification_SquadInvitationAccepted);
+			AccountId = Notification_SquadInvitationAccepted.InvitedAccountId;
+			DisplayName = Notification_SquadInvitationAccepted.InvitedDisplayName;
+			IsFirstPartyDisplayName = Notification_SquadInvitationAccepted.InvitedIsFirstPartyDisplayName;
+			ZoneUrl = Notification_SquadInvitationAccepted.InvitedCountryFlagUrl;
+			SquadId = Notification_SquadInvitationAccepted.SquadId;
+			TimeStamp = Notification_SquadInvitationAccepted.TimeStamp;
+			SkinPrestigeOptions = Notification_SquadInvitationAccepted.InvitedSkinOptions;
+			foreach (Skin in Notification_SquadInvitationAccepted.InvitedSkinList) {
+				if (Skin.Type == Const::C_SkinType_CarSport) {
+					SkinName = Skin.Name;
+					SkinUrl = Skin.Url;
+					break;
+				}
+			}
+			SquadType = Notification_SquadInvitationAccepted.SquadType;
+		}
+		case CNotification_SquadInvitationAdded: {
+			declare CNotification_SquadInvitationAdded Notification_SquadInvitationAdded <=> (_NotificationTask.Notification as CNotification_SquadInvitationAdded);
+			AccountId = Notification_SquadInvitationAdded.InvitedAccountId;
+			DisplayName = Notification_SquadInvitationAdded.InvitedDisplayName;
+			IsFirstPartyDisplayName = Notification_SquadInvitationAdded.InvitedIsFirstPartyDisplayName;
+			ZoneUrl = Notification_SquadInvitationAdded.InvitedCountryFlagUrl;
+			SenderAccountId = Notification_SquadInvitationAdded.InviterAccountId;
+			SenderDisplayName = Notification_SquadInvitationAdded.InviterDisplayName;
+			SenderIsFirstPartyDisplayName = Notification_SquadInvitationAdded.InviterIsFirstPartyDisplayName;
+			SenderZoneUrl = Notification_SquadInvitationAdded.InviterCountryFlagUrl;
+			SquadId = Notification_SquadInvitationAdded.SquadId;
+			TimeStamp = Notification_SquadInvitationAdded.TimeStamp;
+			SquadType = Notification_SquadInvitationAdded.SquadType;
+		}
+		case CNotification_SquadInvitationCanceled: {
+			declare CNotification_SquadInvitationCanceled Notification_SquadInvitationCanceled <=> (_NotificationTask.Notification as CNotification_SquadInvitationCanceled);
+			AccountId = Notification_SquadInvitationCanceled.InvitedAccountId;
+			DisplayName = Notification_SquadInvitationCanceled.InvitedDisplayName;
+			IsFirstPartyDisplayName = Notification_SquadInvitationCanceled.InvitedIsFirstPartyDisplayName;
+			ZoneUrl = Notification_SquadInvitationCanceled.InvitedCountryFlagUrl;
+			SenderAccountId = Notification_SquadInvitationCanceled.CancelerAccountId;
+			SenderDisplayName = Notification_SquadInvitationCanceled.CancelerDisplayName;
+			SenderIsFirstPartyDisplayName = Notification_SquadInvitationCanceled.CancelerIsFirstPartyDisplayName;
+			SenderZoneUrl = Notification_SquadInvitationCanceled.CancelerCountryFlagUrl;
+			SquadId = Notification_SquadInvitationCanceled.SquadId;
+			TimeStamp = Notification_SquadInvitationCanceled.TimeStamp;
+			SquadType = Notification_SquadInvitationCanceled.SquadType;
+		}
+		case CNotification_SquadInvitationCanceledForFullSquad: {
+			declare CNotification_SquadInvitationCanceledForFullSquad Notification_SquadInvitationCanceledFullSquad <=> (_NotificationTask.Notification as CNotification_SquadInvitationCanceledForFullSquad);
+			AccountId = Notification_SquadInvitationCanceledFullSquad.InvitedAccountId;
+			DisplayName = Notification_SquadInvitationCanceledFullSquad.InvitedDisplayName;
+			IsFirstPartyDisplayName = Notification_SquadInvitationCanceledFullSquad.InvitedIsFirstPartyDisplayName;
+			ZoneUrl = Notification_SquadInvitationCanceledFullSquad.InvitedCountryFlagUrl;
+			SquadId = Notification_SquadInvitationCanceledFullSquad.SquadId;
+			TimeStamp = Notification_SquadInvitationCanceledFullSquad.TimeStamp;
+			SquadType = Notification_SquadInvitationCanceledFullSquad.SquadType;
+		}
+		case CNotification_SquadInvitationCanceledForExitingPlayer: {
+			declare CNotification_SquadInvitationCanceledForExitingPlayer Notification_SquadInvitationCanceledExitingPlayer <=> (_NotificationTask.Notification as CNotification_SquadInvitationCanceledForExitingPlayer);
+			AccountId = Notification_SquadInvitationCanceledExitingPlayer.InvitedAccountId;
+			DisplayName = Notification_SquadInvitationCanceledExitingPlayer.InvitedDisplayName;
+			IsFirstPartyDisplayName = Notification_SquadInvitationCanceledExitingPlayer.InvitedIsFirstPartyDisplayName;
+			ZoneUrl = Notification_SquadInvitationCanceledExitingPlayer.InvitedCountryFlagUrl;
+			SquadId = Notification_SquadInvitationCanceledExitingPlayer.SquadId;
+			TimeStamp = Notification_SquadInvitationCanceledExitingPlayer.TimeStamp;
+			SquadType = Notification_SquadInvitationCanceledExitingPlayer.SquadType;
+		}
+		case CNotification_SquadInvitationDeclined: {
+			declare CNotification_SquadInvitationDeclined Notification_SquadInvitationDeclined <=> (_NotificationTask.Notification as CNotification_SquadInvitationDeclined);
+			AccountId = Notification_SquadInvitationDeclined.InvitedAccountId;
+			DisplayName = Notification_SquadInvitationDeclined.InvitedDisplayName;
+			IsFirstPartyDisplayName = Notification_SquadInvitationDeclined.InvitedIsFirstPartyDisplayName;
+			ZoneUrl = Notification_SquadInvitationDeclined.InvitedCountryFlagUrl;
+			SquadId = Notification_SquadInvitationDeclined.SquadId;
+			TimeStamp = Notification_SquadInvitationDeclined.TimeStamp;
+			SquadType = Notification_SquadInvitationDeclined.SquadType;
+		}
+		case CNotification_SquadInvitationReceived: {
+			declare CNotification_SquadInvitationReceived Notification_SquadInvitationReceived <=> (_NotificationTask.Notification as CNotification_SquadInvitationReceived);
+			SenderAccountId = Notification_SquadInvitationReceived.InviterAccountId;
+			SenderDisplayName = Notification_SquadInvitationReceived.InviterDisplayName;
+			SenderIsFirstPartyDisplayName = Notification_SquadInvitationReceived.InviterIsFirstPartyDisplayName;
+			SenderZoneUrl = Notification_SquadInvitationReceived.InviterCountryFlagUrl;
+			SquadId = Notification_SquadInvitationReceived.SquadId;
+			TimeStamp = Notification_SquadInvitationReceived.TimeStamp;
+			SquadType = Notification_SquadInvitationReceived.SquadType;
+		}
+		case CNotification_SquadMemberRemoved: {
+			declare CNotification_SquadMemberRemoved Notification_SquadMemberRemoved <=> (_NotificationTask.Notification as CNotification_SquadMemberRemoved);
+			AccountId = Notification_SquadMemberRemoved.MemberAccountId;
+			DisplayName = Notification_SquadMemberRemoved.MemberDisplayName;
+			IsFirstPartyDisplayName = Notification_SquadMemberRemoved.MemberIsFirstPartyDisplayName;
+			ZoneUrl = Notification_SquadMemberRemoved.MemberCountryFlagUrl;
+			SquadId = Notification_SquadMemberRemoved.SquadId;
+			TimeStamp = Notification_SquadMemberRemoved.TimeStamp;
+			SquadType = Notification_SquadMemberRemoved.SquadType;
+		}
+		case CNotification_SquadMemberAdded: {
+			declare CNotification_SquadMemberAdded Notification_SquadMemberAdded <=> (_NotificationTask.Notification as CNotification_SquadMemberAdded);
+			AccountId = Notification_SquadMemberAdded.MemberAccountId;
+			DisplayName = Notification_SquadMemberAdded.MemberDisplayName;
+			IsFirstPartyDisplayName = Notification_SquadMemberAdded.MemberIsFirstPartyDisplayName;
+			ZoneUrl = Notification_SquadMemberAdded.MemberCountryFlagUrl;
+			SquadId = Notification_SquadMemberAdded.SquadId;
+			TimeStamp = Notification_SquadMemberAdded.TimeStamp;
+			SkinPrestigeOptions = Notification_SquadMemberAdded.MemberSkinOptions;
+			foreach (Skin in Notification_SquadMemberAdded.MemberSkinList) {
+				if (Skin.Type == Const::C_SkinType_CarSport) {
+					SkinName = Skin.Name;
+					SkinUrl = Skin.Url;
+					break;
+				}
+			}
+			SquadType = Notification_SquadMemberAdded.SquadType;
+			Log::SendCustomLog("[NOTIF Manager] CNotification_SquadMemberAdded | SquadId : " ^ SquadId ^ " | Member : " ^ DisplayName);
+		}
+		case CNotification_SquadDeleted: {
+			declare CNotification_SquadDeleted Notification_SquadDeleted <=> (_NotificationTask.Notification as CNotification_SquadDeleted);
+			SquadId = Notification_SquadDeleted.SquadId;
+			TimeStamp = Notification_SquadDeleted.TimeStamp;
+			SquadType = Notification_SquadDeleted.SquadType;
+		}
+		case CNotification_SquadUpdated: {
+			declare CNotification_SquadUpdated Notification_SquadUpdated <=> (_NotificationTask.Notification as CNotification_SquadUpdated);
+			SquadId = Notification_SquadUpdated.SquadId;
+			TimeStamp = Notification_SquadUpdated.TimeStamp;
+			SquadType = Notification_SquadUpdated.SquadType;
+			SquadLeaderId = Notification_SquadUpdated.LeaderWebServicesUserId;
+			WasForcedToLeaveDueToCrossPlaySetting = Notification_SquadUpdated.WasForcedToLeaveDueToCrossPlaySetting;
+			Log::SendCustomLog("[NOTIF Manager] CNotification_SquadUpdated | SquadId : " ^ SquadId);
+		}
+		case CNotification_SquadLockStateUpdated: {
+			declare CNotification_SquadLockStateUpdated Notification_SquadLockUpdated <=> (_NotificationTask.Notification as CNotification_SquadLockStateUpdated);
+			SquadId = Notification_SquadLockUpdated.SquadId;
+			TimeStamp = Notification_SquadLockUpdated.TimeStamp;
+			SquadType = Notification_SquadLockUpdated.SquadType;
+			IsLocked = Notification_SquadLockUpdated.IsLocked;
+		}
+		default: {
+			Log::Log("Unknown notification class for type : " ^ _NotificationTask.Notification.Type);
+		}
+	}
+	if (SquadId != "") {
+		declare Common::K_Notification NewNotif = Common::K_Notification {
+			Type = _NotificationTask.Notification.Type,
+			AccountId = AccountId,
+			DisplayName = DisplayName,
+			IsFirstPartyDisplayName = IsFirstPartyDisplayName,
+			ZoneUrl = ZoneUrl,
+			SkinName = SkinName,
+			SkinUrl = SkinUrl,
+			SkinPrestigeOptions = SkinPrestigeOptions,
+			SenderAccountId = SenderAccountId,
+			SenderDisplayName = SenderDisplayName,
+			SenderIsFirstPartyDisplayName = SenderIsFirstPartyDisplayName,
+			SenderZoneUrl = SenderZoneUrl,
+			SquadId = SquadId,
+			SquadLeaderId = SquadLeaderId,
+			SquadType = SquadType,
+			IsLocked = IsLocked,
+			WasForcedToLeaveDueToCrossPlaySetting = WasForcedToLeaveDueToCrossPlaySetting,
+			TimeStamp = TimeStamp
+		};
+		AddNotification(NewNotif);
+	}
+}

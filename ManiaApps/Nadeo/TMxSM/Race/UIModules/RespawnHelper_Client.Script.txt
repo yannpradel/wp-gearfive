@@ -1,0 +1,359 @@
+/**
+ *  UI module: RespawnHelper client side
+ */
+#Const Version    "2023-03-23"
+#Const ScriptName "ManiaApps/Nadeo/TMxSM/Race/UIModules/RespawnHelper_Client.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Client.Script.txt" as UIModules
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+#Include "Libs/Nadeo/CommonLibs/Common/Constants.Script.txt" as CommonConst
+#Include "Libs/Nadeo/TMNext/TrackMania/ColorPalette.Script.txt" as ColorPalette
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/ExpendableAsset.Script.txt" as ExpendableAsset
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/RespawnHelper_Common.Script.txt" as UIModules_RespawnHelper_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_TextMargin 3.
+#Const C_MaxWidth 78.
+
+//L16N [RespawnHelper] Respawn at the last checkpoint with the car launched
+#Const C_Text_LaunchedRespawn _("Launched respawn")
+//L16N [RespawnHelper] Respawn at the last checkpoint with the car stopped
+#Const C_Text_StandstillRespawn _("Standstill respawn")
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the id of the UI module
+Text GetId() {
+	return UIModules_RespawnHelper_Common::C_Id;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the type of layer of the UI module
+CUILayer::EUILayerType GetLayerType() {
+	return UIModules_RespawnHelper_Common::C_LayerType;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the module manialink
+ *
+ *  @return                           The module manialink
+ */
+Text GetML() {
+	declare Text Text_NoBind = _("|Input|No binding");
+
+	return MV::Create(
+GetId(), 3,
+"""
+<stylesheet>
+	<style class="text-default" textfont="{{{FontManager::C_GameFontSemiBold}}}" textcolor="ffffff" textsize="3" textprefix="$t$i" />
+</stylesheet>
+<framemodel id="framemodel-bind-helper">
+	<frameinstance
+		id="expendable-bg-bind-helper"
+		modelid="{{{ExpendableAsset::C_Name}}}"
+		z-index="0"
+		data-height="9"
+		data-halign="right"
+		data-valign="center"
+		data-color="{{{ColorPalette::C_Color_DarkBlue}}}"
+		data-opacity="0.6"
+		data-image-right=""
+		data-colormode-right="{{{ExpendableAsset::C_ColorMode_Background}}}"
+		data-styles="{{{ExpendableAsset::C_Style_EdgesRounded}}}"
+	/>
+	<quad id="quad-bind-icon" pos="{{{-C_TextMargin}}} 0" z-index="1" size="7 7" halign="right" valign="center" hidden="1" />
+	<quad id="quad-bind-double-icon" pos="{{{-C_TextMargin - 7 - 1}}} 0" z-index="2" size="7 7" halign="right" valign="center" hidden="1" />
+	<label id="label-bind-name" class="text-default" z-index="3" size="60 10" halign="right" valign="center2" />
+</framemodel>
+<frame z-index="-2" hidden="1" id="frame-global">
+	<frame {{{UIModules::CustomizableUIModule(UIModules_RespawnHelper_Common::C_UIModuleConfig)}}}>
+		<frame id="frame-helper" size="{{{C_MaxWidth}}} 32" halign="right" valign="bottom">
+			<frameinstance id="frame-double-respawn" modelid="framemodel-bind-helper" pos="{{{C_MaxWidth}}} 27.5" hidden="1" />
+			<frameinstance id="frame-respawn" modelid="framemodel-bind-helper" pos="{{{C_MaxWidth}}} 16" hidden="1" />
+			<frameinstance id="frame-restart" modelid="framemodel-bind-helper" pos="{{{C_MaxWidth}}} 4.5" hidden="1" />
+		</frame>
+	</frame>
+</frame>
+""",
+"""
+#Include "TextLib" as TL
+#Include "MathLib" as ML
+#Include "Libs/Nadeo/MenuLibs/Common/Components/Tools.Script.txt" as Tools
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/ButtonIcon2.Script.txt" as ButtonIcon
+#Include "Libs/Nadeo/ModeLibs/TrackMania/MV_Utils.Script.txt" as MV_Utils
+
+#Struct K_BindHelper {
+	CMlFrame Frame_BindHelper;
+	CMlLabel Label_BindName;
+	CMlQuad Quad_BindIcon;
+	CMlQuad Quad_BindDoubleIcon;
+	CMlFrame Expendable_BgBindHelper;
+	Text Bind;
+	Boolean IsDouble;
+	Text ActionName;
+}
+
+#Const C_MinSpeed 10.
+#Const C_MinSpeedDelay 10000
+#Const C_PadInputs {{{dump(CommonConst::C_PadInputCharacters)}}}
+#Const C_ActivePadUpdateInterval 500
+#Const C_TextMargin {{{dump(C_TextMargin)}}}
+#Const C_MaxWidth {{{dump(C_MaxWidth)}}}
+
+#Const C_Text_StandstillRespawn {{{dump(C_Text_StandstillRespawn)}}}
+#Const C_Text_LaunchedRespawn {{{dump(C_Text_LaunchedRespawn)}}}
+""",
+"""
+Void UpdateLabel(
+	K_BindHelper _BindHelper,
+	CInputPad _Pad,
+	Text _Name,
+	Text _Bind,
+	Text _BindRaw,
+	Boolean _IsDouble
+) {
+	declare Real BindIconsSizeX = 0.;
+
+	if (_BindRaw != "" && ButtonIcon::CanGetPadButtonIcon(_Pad)) {
+		declare Text PadButtonIcon = ButtonIcon::GetPadButtonIcon(System, _Pad, _BindRaw);
+		if (_IsDouble) {
+			BindIconsSizeX = (_BindHelper.Quad_BindIcon.Size.X + 1. + _BindHelper.Quad_BindDoubleIcon.Size.X + 1.);
+			_BindHelper.Label_BindName.RelativePosition_V3.X = _BindHelper.Quad_BindDoubleIcon.RelativePosition_V3.X - _BindHelper.Quad_BindDoubleIcon.Size.X - 1.;
+			_BindHelper.Quad_BindDoubleIcon.ImageUrl = PadButtonIcon;
+			_BindHelper.Quad_BindDoubleIcon.Visible = True;
+		} else {
+			BindIconsSizeX = _BindHelper.Quad_BindIcon.Size.X + 1.;
+			_BindHelper.Label_BindName.RelativePosition_V3.X = _BindHelper.Quad_BindIcon.RelativePosition_V3.X - _BindHelper.Quad_BindIcon.Size.X - 1.;
+			_BindHelper.Quad_BindDoubleIcon.Visible = False;
+		}
+		_BindHelper.Label_BindName.Value = _Name;
+		_BindHelper.Quad_BindIcon.ImageUrl = PadButtonIcon;
+		_BindHelper.Quad_BindIcon.Visible = True;
+	} else {
+		if (_Bind == "") {
+			_BindHelper.Label_BindName.Value = TL::Compose("%1 [%2]", TL::GetTranslatedText(_Name), "{{{Text_NoBind}}}");
+		} else if (_IsDouble) {
+			if (C_PadInputs.exists(_Bind)) {
+				_BindHelper.Label_BindName.Value = TL::Compose("%1  %2 x2", TL::GetTranslatedText(_Name), _Bind);
+			} else {
+				_BindHelper.Label_BindName.Value = TL::Compose("%1 [%2 x2]", TL::GetTranslatedText(_Name), _Bind);
+			}
+		} else {
+			if (C_PadInputs.exists(_Bind)) {
+				_BindHelper.Label_BindName.Value = TL::Compose("%1  %2", TL::GetTranslatedText(_Name), _Bind);
+			} else {
+				_BindHelper.Label_BindName.Value = TL::Compose("%1 [%2]", TL::GetTranslatedText(_Name), _Bind);
+			}
+		}
+		_BindHelper.Label_BindName.RelativePosition_V3.X = _BindHelper.Quad_BindIcon.RelativePosition_V3.X;
+		_BindHelper.Quad_BindIcon.Visible = False;
+		_BindHelper.Quad_BindDoubleIcon.Visible = False;
+	}
+
+	_BindHelper.Label_BindName.Size.X = C_MaxWidth - BindIconsSizeX - (C_TextMargin * 2);
+	Tools::FitLabelValue(_BindHelper.Label_BindName, 3., 0.5, 0.5);
+
+	{{{ExpendableAsset::P}}}SetWidth(This, _BindHelper.Expendable_BgBindHelper, ML::Min(_BindHelper.Label_BindName.ComputeWidth(_BindHelper.Label_BindName.Value, True), _BindHelper.Label_BindName.Size.X) + (C_TextMargin * 2) + BindIconsSizeX);
+}
+
+Void UpdateLabels(K_BindHelper[] _BindHelpers, Ident _ActivePadId) {
+	if (Input.Pads.existskey(_ActivePadId)) {
+		declare CInputPad Pad = Input.Pads[_ActivePadId];
+		if (Pad.Type != CInputPad::EPadType::Mouse) {
+			foreach (BindHelper in _BindHelpers) {
+				declare Text ActionName = Tools::Ternary(BindHelper.ActionName == "", Input.GetActionDisplayName("Vehicle", BindHelper.Bind), BindHelper.ActionName);
+				declare Text Binding = Input.GetActionBinding(Pad, "Vehicle", BindHelper.Bind);
+				declare Text BindingRaw = Input.GetActionBindingRaw(Pad, "Vehicle", BindHelper.Bind);
+				UpdateLabel(BindHelper, Pad, ActionName, Binding, BindingRaw, BindHelper.IsDouble);
+			}
+		}
+	}
+}
+
+Boolean UpdateVisibility(K_BindHelper[] _BindHelpers, Boolean _Visible, Boolean _CanUseLaunchedCheckpoint) {
+	declare Integer Delay = 0;
+	foreach (BindHelper in _BindHelpers) {
+		AnimMgr.Flush(BindHelper.Frame_BindHelper);
+		if (
+			_Visible && (
+				!BindHelper.IsDouble ||
+				_CanUseLaunchedCheckpoint
+			)
+		) {
+			AnimMgr.Add(BindHelper.Frame_BindHelper, "<a pos=\"0 "^BindHelper.Frame_BindHelper.RelativePosition_V3.Y^"\" hidden=\"0\" />", Now + Delay, 250, CAnimManager::EAnimManagerEasing::QuadOut);
+		} else {
+			AnimMgr.Add(BindHelper.Frame_BindHelper, "<a pos=\""^C_MaxWidth^" "^BindHelper.Frame_BindHelper.RelativePosition_V3.Y^"\" hidden=\"1\" />",  Now + Delay, 250, CAnimManager::EAnimManagerEasing::QuadOut);
+		}
+		Delay += 100;
+	}
+	return _Visible;
+}
+
+K_BindHelper InitBindHelper(Text _ControlId, Text _Bind, Boolean _IsDouble, Text _ActionName) {
+	declare K_BindHelper BindHelper = K_BindHelper {
+		Bind = _Bind,
+		IsDouble = _IsDouble,
+		ActionName = _ActionName
+	};
+	BindHelper.Frame_BindHelper <=> (Page.GetFirstChild(_ControlId) as CMlFrame);
+	BindHelper.Label_BindName <=> (BindHelper.Frame_BindHelper.GetFirstChild("label-bind-name") as CMlLabel);
+	BindHelper.Quad_BindIcon <=> (BindHelper.Frame_BindHelper.GetFirstChild("quad-bind-icon") as CMlQuad);
+	BindHelper.Quad_BindDoubleIcon <=> (BindHelper.Frame_BindHelper.GetFirstChild("quad-bind-double-icon") as CMlQuad);
+	BindHelper.Expendable_BgBindHelper <=> (BindHelper.Frame_BindHelper.GetFirstChild("expendable-bg-bind-helper") as CMlFrame);
+	return BindHelper;
+}
+K_BindHelper InitBindHelper(Text _ControlId, Text _Bind, Boolean _IsDouble) {
+	return InitBindHelper(_ControlId, _Bind, _IsDouble, "");
+}
+
+Boolean CanUseLaunchedCheckpoint(CSmPlayer _Player) {
+	return (_Player != Null && _Player.RaceWaypointTimes.count > 0);
+}
+
+***MainInit***
+***
+declare CMlFrame Frame_Global;
+declare CMlFrame Frame_Helper;
+declare K_BindHelper[] BindHelpers;
+
+declare netread Integer[] Net_Race_RespawnHelper_CheckpointTimes for Teams[0];
+declare netread Integer Net_Race_RespawnHelper_CheckpointTimesUpdate for Teams[0];
+
+declare Boolean DisplayModule;
+declare Integer CheckpointTimesUpdate;
+declare Integer[] CheckpointIntervals;
+declare CSmPlayer::ESpawnStatus SpawnStatus;
+declare Integer DisplayTime;
+declare Integer CheckpointsCount;
+declare Ident ActivePadId;
+declare Integer NextActivePadUpdateTime;
+declare Boolean HelperIsVisible;
+declare Boolean CanUseLaunchedCheckpoint;
+***
+
+***MainStart***
+***
+Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+Frame_Helper <=> (Frame_Global.GetFirstChild("frame-helper") as CMlFrame);
+BindHelpers = [
+	InitBindHelper("frame-double-respawn", "Respawn", True, C_Text_StandstillRespawn),
+	InitBindHelper("frame-respawn", "Respawn", False, C_Text_LaunchedRespawn),
+	InitBindHelper("frame-restart", "GiveUp", False)
+];
+
+DisplayModule = Frame_Global.Visible;
+CheckpointTimesUpdate = -123;
+SpawnStatus = CSmPlayer::ESpawnStatus::NotSpawned;
+DisplayTime = -123;
+CheckpointsCount = -123;
+CanUseLaunchedCheckpoint = CanUseLaunchedCheckpoint(InputPlayer);
+HelperIsVisible = UpdateVisibility(BindHelpers, False, CanUseLaunchedCheckpoint);
+if (SplitScreenCount > 1) MV_Utils::AutoScaleSplitScreen(Frame_Global, 0.5, 1.);
+
+ActivePadId = Tools::GetActivePadId(Input, True);
+UpdateLabels(BindHelpers, ActivePadId);
+***
+
+***MainLoop***
+***
+if (PageIsVisible) {
+	declare Owner <=> MV_Utils::GetOwner(This);
+	if (Owner != Null) {
+		declare netread Boolean Net_Race_RespawnHelper_IsVisible for Owner;
+		if (DisplayModule != Net_Race_RespawnHelper_IsVisible) {
+			DisplayModule = Net_Race_RespawnHelper_IsVisible;
+			Frame_Global.Visible = Net_Race_RespawnHelper_IsVisible;
+		}
+	}
+
+	if (Owner == Null && DisplayModule) {
+		DisplayModule = False;
+		Frame_Global.Visible = DisplayModule;
+	}
+
+	if (Frame_Global.Visible) {
+		if (CheckpointTimesUpdate != Net_Race_RespawnHelper_CheckpointTimesUpdate) {
+			CheckpointTimesUpdate = Net_Race_RespawnHelper_CheckpointTimesUpdate;
+			CheckpointIntervals = [];
+			declare Start = 0;
+			foreach (Time in Net_Race_RespawnHelper_CheckpointTimes) {
+				CheckpointIntervals.add(Time - Start);
+				Start = Time;
+			}
+		}
+
+		// Detect active pad
+		if (HelperIsVisible && NextActivePadUpdateTime <= Now) {
+			NextActivePadUpdateTime = Now + C_ActivePadUpdateInterval;
+			declare Ident NewActivePadId = Tools::GetActivePadId(Input, True);
+			if (ActivePadId != NewActivePadId) {
+				ActivePadId = NewActivePadId;
+				UpdateLabels(BindHelpers, ActivePadId);
+			}
+		}
+
+		if (InputPlayer == Null || InputPlayer.SpawnStatus != CSmPlayer::ESpawnStatus::Spawned) {
+			if (HelperIsVisible) {
+				HelperIsVisible = UpdateVisibility(BindHelpers, False, CanUseLaunchedCheckpoint);
+				DisplayTime = -1;
+			}
+		} else {
+			// Based on speed
+			if (CheckpointIntervals.count <= 0) {
+				if (InputPlayer.IsEntityStateAvailable) {
+					if (DisplayTime < 0 && InputPlayer.Speed < C_MinSpeed) {
+						DisplayTime = GameTime + C_MinSpeedDelay;
+					} else if (DisplayTime >= 0 && InputPlayer.Speed >= C_MinSpeed) {
+						DisplayTime = -1;
+					}
+				}
+			}
+			// Based on checkpoint times
+			else {
+				if (CheckpointsCount != InputPlayer.RaceWaypointTimes.count) {
+					CheckpointsCount = InputPlayer.RaceWaypointTimes.count;
+					DisplayTime = -1;
+				}
+				if (DisplayTime < 0) {
+					if (InputPlayer.RaceWaypointTimes.count <= 0) {
+						DisplayTime = InputPlayer.StartTime + CheckpointIntervals[0];
+					} else if (CheckpointIntervals.count > InputPlayer.RaceWaypointTimes.count && InputPlayer.RaceWaypointTimes[InputPlayer.RaceWaypointTimes.count - 1] >= 0) {
+						DisplayTime = InputPlayer.StartTime + InputPlayer.RaceWaypointTimes[InputPlayer.RaceWaypointTimes.count - 1] + CheckpointIntervals[InputPlayer.RaceWaypointTimes.count];
+					}
+				}
+			}
+
+			if (CanUseLaunchedCheckpoint != CanUseLaunchedCheckpoint(InputPlayer)) {
+				CanUseLaunchedCheckpoint = CanUseLaunchedCheckpoint(InputPlayer);
+				HelperIsVisible = UpdateVisibility(BindHelpers, HelperIsVisible, CanUseLaunchedCheckpoint);
+			}
+
+			if ((DisplayTime < 0 || GameTime < DisplayTime) && HelperIsVisible) {
+				HelperIsVisible = UpdateVisibility(BindHelpers, False, CanUseLaunchedCheckpoint);
+			} else if (DisplayTime >= 0 && GameTime > DisplayTime && !HelperIsVisible) {
+				HelperIsVisible = UpdateVisibility(BindHelpers, True, CanUseLaunchedCheckpoint);
+				UpdateLabels(BindHelpers, ActivePadId);
+			}
+		}
+	}
+}
+***
+""",
+[
+	UIModules::Component(),
+	ExpendableAsset::ComponentV2()
+],
+[]
+	);
+}

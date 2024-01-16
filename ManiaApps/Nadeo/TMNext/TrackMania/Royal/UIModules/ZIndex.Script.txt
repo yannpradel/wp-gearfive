@@ -1,0 +1,23 @@
+/**
+ *	ZIndex for all the Royal UI
+ */
+#Const Version		"2021-06-23"
+#Const ScriptName	"ManiaApps/Nadeo/TMNext/TrackMania/Royal/UIModules/ZIndex.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_ZIndex_PreLoading 5
+#Const C_ZIndex_Transition 4
+#Const C_ZIndex_WaitingScreen -4
+#Const C_ZIndex_MatchResult -5
+#Const C_ZIndex_WinScreen -6
+#Const C_ZIndex_RoundEliminations -7
+#Const C_ZIndex_SegmentComplete -8
+#Const C_ZIndex_BonusTime -9
+#Const C_ZIndex_Countdown -10
+#Const C_ZIndex_LiveRanking -11
+#Const C_ZIndex_SegmentProgression -12
+#Const C_ZIndex_SpectatorInfo -13
+#Const C_ZIndex_TeamScore -14
+#Const C_ZIndex_RespawnHelper -15

@@ -1,0 +1,53 @@
+/** 
+ *	Control the ClientUI values
+ *	Several scripts can try to modify the ClientUI values
+ *	This can lead to races conditions difficult to debug
+ *	To avoid that, any modification of a ClientUI value
+ *	must go through this library
+ */
+#Const Version		"2022-09-30"
+#Const ScriptName	"Libs/Nadeo/ModeLibs/Common/ClientUI.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constant
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_UISequenceMode_FinishRace 1
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+Void Private_ApplyUISequenceModes(Integer[] _Modes) {
+	if (_Modes.exists(C_UISequenceMode_FinishRace)) {
+		ClientUI.UISequence = CUIConfig::EUISequence::Finish;
+	} else {
+		ClientUI.UISequence = CUIConfig::EUISequence::None;
+	}
+}
+
+Void SetUISequenceModeEnabled(Integer _Mode, Boolean _Enabled) {
+	declare Integer[] ComponentModeLibsClientUI_ActiveUISequenceModes for ClientUI = [];
+	if (_Enabled) {
+		if (!ComponentModeLibsClientUI_ActiveUISequenceModes.exists(_Mode)) {
+			ComponentModeLibsClientUI_ActiveUISequenceModes.add(_Mode);
+		}
+	} else {
+		ComponentModeLibsClientUI_ActiveUISequenceModes.remove(_Mode);
+	}
+
+	Private_ApplyUISequenceModes(ComponentModeLibsClientUI_ActiveUISequenceModes);
+}
+
+Boolean IsUISequenceModeEnabled(Integer _Mode) {
+	declare Integer[] ComponentModeLibsClientUI_ActiveUISequenceModes for ClientUI = [];
+	return ComponentModeLibsClientUI_ActiveUISequenceModes.exists(_Mode);
+}
+
+Void Unload() {
+	declare Integer[] ComponentModeLibsClientUI_ActiveUISequenceModes for ClientUI = [];
+	ComponentModeLibsClientUI_ActiveUISequenceModes = [];
+	Private_ApplyUISequenceModes(ComponentModeLibsClientUI_ActiveUISequenceModes);
+}
+
+Void Load() {
+	Unload();
+}

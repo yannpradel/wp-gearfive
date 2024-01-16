@@ -1,0 +1,36 @@
+/** 
+ *	Component: AudioManagerManiaAppYield
+ *	Processed events from ManiaApp because it won't work in game mode if we don't separate it
+ *	DEPRECATED: please use the Yield() in AudioManager.Script.txt
+ */
+#Const Version		"2019-09-09"
+#Const ScriptName	"Libs/Nadeo/MenuLibs/Common/AudioManagerManiaAppYield.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/AudioManager.Script.txt" as AudioManager
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update library for ManiaApp
+Void Yield() {
+	foreach (Event in PendingEvents) {
+		if (Event.Type == CManiaAppEvent::EType::LayerCustomEvent) {
+			switch (Event.CustomEventType) {
+				case AudioManager::C_Event_PlaySound: {
+					if (Event.CustomEventData.count > 0) {
+						AudioManager::PlaySound(Event.CustomEventData[0]);
+					}
+				}
+				case AudioManager::C_Event_StopSound: {
+					if (Event.CustomEventData.count > 0) {
+						AudioManager::StopSound(Event.CustomEventData[0]);
+					}
+				}
+				case AudioManager::C_Event_StopAllSounds: {
+					AudioManager::StopAllSounds();
+				}
+			}
+		}
+	}
+}

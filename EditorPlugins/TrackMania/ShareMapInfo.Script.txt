@@ -1,0 +1,27 @@
+/**
+ *	Share lib to share information between the menu and the map editor plugin
+ */
+#Const Version		"2020-01-07"
+#Const ScriptName	"EditorPlugins/TrackMania/ShareMapInfo.Script.txt"
+
+#RequireContext CMapEditorPlugin
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/TMNext/TrackMania/Share.Script.txt" as Share
+
+main() {
+	Share::ResetLastMapCreated();
+
+	while (True) {
+		foreach (Event in PendingEvents) {
+			if (Event.Type == CMapEditorPluginEvent::Type::MapSavedOrSaveCancelled) {
+				if (Event.MapSavedOrSaveCancelled) {
+					Share::SetLastMapCreated(MapName, MapFileName, Map.MapInfo);
+				}
+			}
+		}
+		yield;
+	}
+}

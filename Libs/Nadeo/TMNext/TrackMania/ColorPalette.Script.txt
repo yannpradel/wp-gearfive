@@ -1,0 +1,161 @@
+/** 
+ *	Color palette for TMNext
+ */
+#Const Version		"2023-03-18"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/ColorPalette.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "ColorLib" as CL
+#Include "MathLib" as ML
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Color_Primary "7030a0"
+#Const C_Color_TitleBarBg "eeeeee"
+#Const C_Color_ButtonFocus "eeeeee"
+#Const C_Color_ButtonFocus2 "ec0000"
+#Const C_Color_Gold "e8ab00"
+#Const C_Color_ButtonCancel "ec0000"
+#Const C_Color_Text "eeeeee"
+#Const C_Color_TextFocus "118C54"
+
+#Const C_Color_BlueSky "7FB7F8"
+
+#Const C_Color_Button_Default "005948"
+
+// Green One is the lighter color and Green Five is the darker color
+// Green Two is the reference color for transformations
+#Const C_Color_GreenFive "000A05"
+#Const C_Color_GreenFour "003228"
+#Const C_Color_GreenThree "005F46"
+#Const C_Color_GreenTwo "009B5F"
+#Const C_Color_GreenOne "6EFAA0"
+
+#Const C_Color_Vec3_GreenFive <0., 0.039, 0.019>
+#Const C_Color_Vec3_GreenFour <0., 0.196, 0.157>
+#Const C_Color_Vec3_GreenThree <0., 0.372, 0.274>
+#Const C_Color_Vec3_GreenTwo <0., 0.608, 0.372>
+#Const C_Color_Vec3_GreenOne <0.431, 0.98, 0.627>
+
+#Const C_Color_Red "FF0D0D"
+#Const C_Color_DarkRed "AA0D0D"
+#Const C_Color_Yellow "F9DC25"
+
+#Const C_Color_LightBlue "b3e5fc"
+#Const C_Color_MediumBlue "263FA8"
+#Const C_Color_DarkBlue "000514"
+#Const C_Color_Vec3_DarkBlue <0., 0.02, 0.078>
+
+#Const C_Color_DarkOrange "E07603"
+#Const C_Color_Orange "FF6E00"
+#Const C_Color_LightOrange "EFAF0F"
+#Const C_Color_LightPurple "AA99FF"
+#Const C_Color_LightRose "F25C84"
+#Const C_Color_LightRed "FF3D1D"
+
+#Const C_Color_GreenUnfocus "98C0B8"
+#Const C_Color_GreenFocus "05A859"
+
+#Const C_Color_LightGrey "AAAAAA"
+#Const C_Color_DarkGrey "444444"
+
+#Const C_Color_Black "000000"
+#Const C_Color_White "ffffff"
+#Const C_Color_Vec3_White <1., 1., 1.>
+
+#Const C_Color_Good "009B5F"
+#Const C_Color_Bad "FF0D0D"
+
+#Const C_Color_PodiumGold "FBAE17"
+#Const C_Color_PodiumSilver "B3B3B3"
+#Const C_Color_PodiumBronze "C95A24"
+
+//Colors for Team Matchmaking mode
+#Const C_Color_Team_Blue_Nickname "005096"
+#Const C_Color_Team_Blue_Bg "002775"
+#Const C_Color_Team_Blue_Flare "00C6FF"
+#Const C_Color_Team_Red_Nickname "C1272D"
+#Const C_Color_Team_Red_Bg "601E15"
+#Const C_Color_Team_Red_Flare "FF1D25"
+
+// To use with a SemiBold font if possible
+#Const C_Color_ErrorRed "CE0000"
+#Const C_Color_Vec3_ErrorRed <0.808, 0., 0.>
+
+#Const C_Color_DifficultyWhite 		<1., 1., 1.>
+#Const C_Color_DifficultyGreen 		<0.43, 0.98, 0.63>
+#Const C_Color_DifficultyBlue  		<0., 0.2, 1.>
+#Const C_Color_DifficultyRed   		<1., 0., 0.>
+#Const C_Color_DifficultyBlack 		<0., 0., 0.>
+#Const C_Color_Difficulty [
+	0 => <1., 1., 1.>,
+	1 => <0.43, 0.98, 0.63>,
+	2 => <0., 0.2, 1.>,
+	3 => <1., 0., 0.>,
+	4 => <0., 0., 0.>
+]
+
+#Const C_Vec3_Color1 <-0.044, -0.44, 0.37>
+#Const C_Vec3_Color3 <0.0194, 0., -0.24>
+#Const C_Vec3_Color4 <0.0305, 0., -0.41>
+#Const C_Vec3_Color5 <-0.0194, 0., -0.57>
+
+#Const C_Color_WarmUp "FF6E00"
+#Const C_Color_Vec3_WarmUp <1., 0.431, 0.>
+
+#Const C_Color_TMWT_BlueMain "07004C"
+#Const C_Color_Vec3_TMWT_BlueMain <0.03, 0., 0.3>
+#Const C_Color_TMWT_RedMain "490000"
+#Const C_Color_Vec3_TMWT_RedMain <0.29, 0., 0.0>
+#Const C_Color_TMWT_PinkMain "EA0089"
+#Const C_Color_Vec3_TMWT_PinkMain <0.92, 0., 0.54>
+#Const C_Color_TMWT_BlueTeam "2C49DB"
+#Const C_Color_Vec3_TMWT_BlueTeam <0.17, 0.29, 0.86>
+#Const C_Color_TMWT_RedTeam "BC3131"
+#Const C_Color_Vec3_TMWT_RedTeam <0.74, 0.19, 0.19>
+#Const C_Color_TMWT_BluePoint "2C49DB"
+#Const C_Color_Vec3_TMWT_BluePoint <0.17, 0.29, 0.86>
+#Const C_Color_TMWT_RedPoint "EA3636"
+#Const C_Color_Vec3_TMWT_RedPoint <0.92, 0.21, 0.21>
+#Const C_Color_TMWT_RankDown "D61919"
+#Const C_Color_Vec3_TMWT_RankDown <0.84, 0.1, 0.1>
+#Const C_Color_TMWT_RankUp "009B5F"
+#Const C_Color_Vec3_TMWT_RankUp <0., 0.608, 0.372>
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+Vec3 TransformColor(Vec3 _BaseColor, Vec3 _Transformation) {
+	declare Vec3 NewColor = _BaseColor;
+	NewColor = CL::RgbToHsv(NewColor);
+	NewColor.X = NewColor.X + _Transformation.X;
+	if (NewColor.X < 0.) NewColor.X += 1.;
+	if (NewColor.X > 1.) NewColor.X -= 1.;
+	NewColor.Y = ML::Clamp(NewColor.Y + _Transformation.Y, 0., 1.);
+	NewColor.Z = ML::Clamp(NewColor.Z + _Transformation.Z, 0., 1.);
+
+	return CL::HsvToRgb(NewColor);
+}
+
+Vec3 GetColorOne(Vec3 _Color) {
+	return TransformColor(_Color, C_Vec3_Color1);
+}
+
+Vec3 GetColorThree(Vec3 _Color) {
+	return TransformColor(_Color, C_Vec3_Color3);
+}
+
+Vec3 GetColorFour(Vec3 _Color) {
+	return TransformColor(_Color, C_Vec3_Color4);
+}
+
+Vec3 GetColorFive(Vec3 _Color) {
+	return TransformColor(_Color, C_Vec3_Color5);
+}

@@ -1,0 +1,32 @@
+/** 
+ *	Component: WarmupHelpers
+ */
+#Const Version		"2020-02-03"
+#Const ScriptName	"ManiaApps/Nadeo/TMxSM/Race/UIModules/WarmupHelpers_Server.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Set the warmup status
+ *
+ *	@param	_IsActive				The warmup status
+ */
+Void SetWarmupActive(Boolean _IsActive) {
+	declare netwrite Boolean Net_Race_WarmupHelpers_IsWarmupActive for Teams[0];
+	Net_Race_WarmupHelpers_IsWarmupActive = _IsActive;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Set the current warmup end time
+ *
+ *	@param	_EndTime				The current warmup end time
+ */
+Void SetCurrentWarmupEndTime(Integer _EndTime) {
+	declare netwrite Integer Net_Race_WarmupHelpers_CurrentWarmUpEndTime for Teams[0];
+	Net_Race_WarmupHelpers_CurrentWarmUpEndTime = _EndTime;
+}

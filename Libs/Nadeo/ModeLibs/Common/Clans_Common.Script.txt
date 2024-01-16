@@ -1,0 +1,303 @@
+/**
+ *	Clans management common
+ */		
+#Const Version		"2022-09-30"
+#Const ScriptName	"Libs/Nadeo/ModeLibs/Common/Clans_Common.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "MathLib" as ML
+#Include "ColorLib" as CL
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_Team {
+	Text Name;
+	Vec3 Color;
+	Vec3 ForegroundColor;
+	Text Logo;
+	Text Skin;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constantes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+//L16N [Clans] Name of a team. %1 will be replaced by the name of the team. e.g. "Team #1", "Team Red", ...
+#Const C_Text_TeamName _("Team %1")
+
+#Const C_ClanStyle_Default 0
+#Const C_ClanStyle_Animals 1
+
+#Const C_Teams_Animals [
+	1 => K_Team {
+		Name = _("|Clan|Flamingo"),
+		Color = <1., 0.4, 1.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/ModeLibs/Clans/flamingo.dds",
+		Skin = "Skins/Models/CarSport/Stadium_Clan_flamingo.zip"
+	},
+	2 => K_Team {
+		Name = _("|Clan|Pig"),
+		Color = <1., 0.4, 0.6>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/ModeLibs/Clans/pig.dds",
+		Skin = "Skins/Models/CarSport/Stadium_Clan_pig.zip"
+	},
+	3 => K_Team {
+		Name = _("|Clan|Clown Fish"),
+		Color = <1., 0.4, 0.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/ModeLibs/Clans/clown_fish.dds",
+		Skin = "Skins/Models/CarSport/Stadium_Clan_clown_fish.zip"
+	},
+	4 => K_Team {
+		Name = _("|Clan|Fox"),
+		Color = <1., 0.6, 0.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/ModeLibs/Clans/fox.dds",
+		Skin = "Skins/Models/CarSport/Stadium_Clan_fox.zip"
+	},
+	5 => K_Team {
+		Name = _("|Clan|Octopus"),
+		Color = <0.8, 0.2, 0.6>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/ModeLibs/Clans/octopus.dds",
+		Skin = "Skins/Models/CarSport/Stadium_Clan_octopus.zip"
+	},
+	6 => K_Team {
+		Name = _("|Clan|Butterfly"),
+		Color = <0.4, 0., 0.4>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/ModeLibs/Clans/butterfly.dds",
+		Skin = "Skins/Models/CarSport/Stadium_Clan_butterfly.zip"
+	},
+	7 => K_Team {
+		Name = _("|Clan|Crocodile"),
+		Color = <0.2, 0.6, 0.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/ModeLibs/Clans/crocodile.dds",
+		Skin = "Skins/Models/CarSport/Stadium_Clan_crocodile.zip"
+	},
+	8 => K_Team {
+		Name = _("|Clan|Grasshopper"),
+		Color = <0., 0.8, 0.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/ModeLibs/Clans/grasshopper.dds",
+		Skin = "Skins/Models/CarSport/Stadium_Clan_grasshopper.zip"
+	},
+	9 => K_Team {
+		Name = _("|Clan|Ladybug"),
+		Color = <0.6, 0., 0.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/ModeLibs/Clans/ladybug.dds",
+		Skin = "Skins/Models/CarSport/Stadium_Clan_ladybug.zip"
+	},
+	10 => K_Team {
+		Name = _("|Clan|Macaw Parrot"),
+		Color = <1., 0., 0.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/ModeLibs/Clans/macaw_parrot.dds",
+		Skin = "Skins/Models/CarSport/Stadium_Clan_macaw_parrot.zip"
+	},
+	11 => K_Team {
+		Name = _("|Clan|Giraffe"),
+		Color = <0.95, 0.75, 0.3>,
+		ForegroundColor = <0., 0., 0.>,
+		Logo = "file://Media/Manialinks/Nadeo/ModeLibs/Clans/giraffe.dds",
+		Skin = "Skins/Models/CarSport/Stadium_Clan_giraffe.zip"
+	},
+	12 => K_Team {
+		Name = _("|Clan|Bee"),
+		Color = <1., 1., 0.>,
+		ForegroundColor = <0., 0., 0.>,
+		Logo = "file://Media/Manialinks/Nadeo/ModeLibs/Clans/bee.dds",
+		Skin = "Skins/Models/CarSport/Stadium_Clan_bee.zip"
+	},
+	13 => K_Team {
+		Name = _("|Clan|Dolphin"),
+		Color = <0.2, 0.6, 1.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/ModeLibs/Clans/dolphin.dds",
+		Skin = "Skins/Models/CarSport/Stadium_Clan_dolphin.zip"
+	},
+	14 => K_Team {
+		Name = _("|Clan|Peafowl"),
+		Color = <0., 0., 1.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/ModeLibs/Clans/peafowl.dds",
+		Skin = "Skins/Models/CarSport/Stadium_Clan_peafowl.zip"
+	},
+	15 => K_Team {
+		Name = _("|Clan|Kangaroo"),
+		Color = <0.65, 0.29, 0.08>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/ModeLibs/Clans/kangaroo.dds",
+		Skin = "Skins/Models/CarSport/Stadium_Clan_kangaroo.zip"
+	},
+	16 => K_Team {
+		Name = _("|Clan|Monkey"),
+		Color = <0.4, 0.2, 0.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/ModeLibs/Clans/monkey.dds",
+		Skin = "Skins/Models/CarSport/Stadium_Clan_monkey.zip"
+	},
+	17 => K_Team {
+		Name = _("|Clan|Panda"),
+		Color = <0., 0., 0.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/ModeLibs/Clans/panda.dds",
+		Skin = "Skins/Models/CarSport/Stadium_Clan_panda.zip"
+	},
+	18 => K_Team {
+		Name = _("|Clan|Zebra"),
+		Color = <0., 0., 0.>,
+		ForegroundColor = <1., 1., 1.>,
+		Logo = "file://Media/Manialinks/Nadeo/ModeLibs/Clans/zebra.dds",
+		Skin = "Skins/Models/CarSport/Stadium_Clan_zebra.zip"
+	},
+	19 => K_Team {
+		Name = _("|Clan|Rabbit"),
+		Color = <0.8, 0.8, 0.8>,
+		ForegroundColor = <0., 0., 0.>,
+		Logo = "file://Media/Manialinks/Nadeo/ModeLibs/Clans/rabbit.dds",
+		Skin = "Skins/Models/CarSport/Stadium_Clan_rabbit.zip"
+	},
+	20 => K_Team {
+		Name = _("|Clan|Polar Bear"),
+		Color = <1., 1., 1.>,
+		ForegroundColor = <0., 0., 0.>,
+		Logo = "file://Media/Manialinks/Nadeo/ModeLibs/Clans/polar_bear.dds",
+		Skin = "Skins/Models/CarSport/Stadium_Clan_polar_bear.zip"
+	}
+]
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the team associated to a clan number
+CTeam GetTeam(CNod _Context, Integer _ClanNb) {
+	switchtype (_Context) {
+		case CMode: {
+			declare CMode Mode = (_Context as CMode);
+			if (Mode.Teams.existskey(_ClanNb - 1)) {
+				return Mode.Teams[_ClanNb - 1];
+			}
+		}
+		case CMlScriptIngame: {
+			declare CMlScriptIngame MlScriptIngame = (_Context as CMlScriptIngame);
+			if (MlScriptIngame.Teams.existskey(_ClanNb - 1)) {
+				return MlScriptIngame.Teams[_ClanNb - 1];
+			}
+		}
+		case CManiaAppPlaygroundCommon: {
+			declare CManiaAppPlaygroundCommon ManiaAppPlaygroundCommon = (_Context as CManiaAppPlaygroundCommon);
+			if (ManiaAppPlaygroundCommon.Playground.Teams.existskey(_ClanNb - 1)) {
+				return ManiaAppPlaygroundCommon.Playground.Teams[_ClanNb - 1];
+			}
+		}
+		case CServerPlugin: {
+			declare CServerPlugin ServerPlugin = (_Context as CServerPlugin);
+			if (ServerPlugin.Teams.existskey(_ClanNb - 1)) {
+				return ServerPlugin.Teams[_ClanNb - 1];
+			}
+		}
+		default: {
+			assert(False, "Unsuported context: "^_Context);
+		}
+	}
+
+	return Null;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+///	Get the color of the given clan
+Vec3 GetClanColor(Integer _ClanStyle, Integer _Clan) {
+	if (
+		_ClanStyle == C_ClanStyle_Animals &&
+		C_Teams_Animals.existskey(_Clan)
+	) {
+		return C_Teams_Animals[_Clan].Color;
+	}
+	
+	declare CTeam Team <=> GetTeam(This, _Clan);
+	if (Team != Null) {
+		return Team.ColorPrimary;
+	}
+	
+	declare Real Seed = 0.; // Between 0. and 1.
+	declare Real G = 1.22074408460575947536;
+	declare Real A1 = 1. / ML::Pow(G, 1.);
+	declare Real A2 = 1. / ML::Pow(G, 2.);
+	declare Real A3 = 1. / ML::Pow(G, 3.);
+	declare Real Hue = ML::Mod(Seed + (A1 * _Clan), 0., 1.);  // Hue between 0. and 1.
+	declare Real Saturation = 0.6 + (ML::Mod(Seed + (A2 * _Clan), 0., 1.) * 0.4); // Saturation between 0.6 and 1.
+	declare Real Value = 0.6 + (ML::Mod(Seed + (A3 * _Clan), 0., 1.) * 0.4); // Value between 0.6 and 1.
+	return CL::HsvToRgb(<Hue, Saturation, Value>);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the foreground color of the given clan
+Vec3 GetClanForegroundColor(Integer _ClanStyle, Integer _Clan) {
+	if (
+		_ClanStyle == C_ClanStyle_Animals &&
+		C_Teams_Animals.existskey(_Clan)
+	) {
+		return C_Teams_Animals[_Clan].ForegroundColor;
+	}
+	
+	return <1., 1., 1.>;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+///	Get the name of the given clan
+Text GetClanName(Integer _ClanStyle, Integer _Clan, Boolean _UseColor) {
+	if (
+		_ClanStyle == C_ClanStyle_Animals &&
+		C_Teams_Animals.existskey(_Clan)
+	) {
+		if (_UseColor) return TL::Compose("$<$"^CL::RgbToHex3(GetClanColor(_ClanStyle, _Clan))^"%1$>", C_Teams_Animals[_Clan].Name);
+		else return C_Teams_Animals[_Clan].Name;
+	}
+	
+	declare CTeam Team <=> GetTeam(This, _Clan);
+	if (Team != Null) {
+		if (_UseColor) return Team.ColorizedName;
+		else return Team.Name;
+	}
+	
+	if (_UseColor) return TL::Compose(C_Text_TeamName, "$<$"^CL::RgbToHex3(GetClanColor(_ClanStyle, _Clan))^"#"^_Clan^"$>");
+	return TL::Compose(C_Text_TeamName, "#"^_Clan);
+}
+Text GetClanName(Integer _ClanStyle, Integer _Clan) {
+	return GetClanName(_ClanStyle, _Clan, False);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+///	Get the logo of the given clan
+Text GetClanLogo(Integer _ClanStyle, Integer _Clan) {
+	if (
+		_ClanStyle == C_ClanStyle_Animals &&
+		C_Teams_Animals.existskey(_Clan)
+	) {
+		return C_Teams_Animals[_Clan].Logo;
+	}
+	
+	return "";
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+///	Get the skin of the given clan
+Text GetClanSkin(Integer _ClanStyle, Integer _Clan) {
+	if (
+		_ClanStyle == C_ClanStyle_Animals &&
+		C_Teams_Animals.existskey(_Clan)
+	) {
+		return C_Teams_Animals[_Clan].Skin;
+	}
+	
+	return "";
+}

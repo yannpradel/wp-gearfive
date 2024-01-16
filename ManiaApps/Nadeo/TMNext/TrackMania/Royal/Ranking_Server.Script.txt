@@ -1,0 +1,75 @@
+/**
+ *	Royal ranking server side
+ */
+#Const Version		"2021-06-14"
+#Const ScriptName	"ManiaApps/Nadeo/TMNext/TrackMania/Royal/Ranking_Server.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Create a rank for the ranking array
+Integer[] CreateRank(Integer _TeamId, Integer[] _SegmentTimes, Integer _TimeDiff, Boolean _Eliminated) {
+	declare Integer LastSegmentTime = -1;
+	if (_SegmentTimes.count > 0) {
+		LastSegmentTime = _SegmentTimes[_SegmentTimes.count - 1];
+	}
+	declare Integer Eliminated = 0;
+	if (_Eliminated) Eliminated = 1;
+	return [_TeamId, _SegmentTimes.count, LastSegmentTime, _TimeDiff, Eliminated]; //< Order is important, do not change
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Send the ranking to the client
+Void UpdateRanking(Integer[][] _TeamsRanking) {
+	declare netwrite Integer[][] Net_Royal_Ranking_TeamsRanking for Teams[0];
+	declare netwrite Integer Net_Royal_Ranking_TeamsRankingUpdate for Teams[0];
+	Net_Royal_Ranking_TeamsRanking = _TeamsRanking;
+	Net_Royal_Ranking_TeamsRankingUpdate += 1;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the ranking sent to the client
+Integer[][] GetTeamsRanking() {
+	declare netwrite Integer[][] Net_Royal_Ranking_TeamsRanking for Teams[0];
+	return Net_Royal_Ranking_TeamsRanking;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Set the last known clan of a score
+Void SetScoreClan(CSmScore _Score, Integer _Clan) {
+	declare netwrite Integer Net_Royal_Ranking_Clan for _Score;
+	Net_Royal_Ranking_Clan = _Clan;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// The player activated a new segment
+Void AddPlayerSegment(CSmScore _Score, Integer _Time) {
+	declare netwrite Integer Net_Royal_Ranking_SegmentsNb for _Score;
+	declare Integer Net_Royal_Ranking_LastSegmentTime for _Score;
+	Net_Royal_Ranking_SegmentsNb += 1;
+	Net_Royal_Ranking_LastSegmentTime = _Time;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Reset the segments activated by the player
+Void ResetPlayerSegment(CSmScore _Score) {
+	declare netwrite Integer Net_Royal_Ranking_SegmentsNb for _Score;
+	declare Integer Net_Royal_Ranking_LastSegmentTime for _Score;
+	Net_Royal_Ranking_SegmentsNb = 0;
+	Net_Royal_Ranking_LastSegmentTime = 0;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the number of segments completed by a player
+Integer GetPlayerSegmentsNb(CSmScore _Score) {
+	declare netwrite Integer Net_Royal_Ranking_SegmentsNb for _Score;
+	return Net_Royal_Ranking_SegmentsNb;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the last time a player completed a segment
+Integer GetPlayerLastSegmentTime(CSmScore _Score) {
+	declare Integer Net_Royal_Ranking_LastSegmentTime for _Score;
+	return Net_Royal_Ranking_LastSegmentTime;
+}

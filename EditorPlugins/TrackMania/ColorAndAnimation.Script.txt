@@ -1,0 +1,978 @@
+#RequireContext CMapEditorPlugin
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Common Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+#Const Version "2021-06-07"
+#Const ScriptName "ColorAndAnimation.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Phase Offset Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+//L16N Map Editor UI plugin title/label. An animated item can cycle (for example, it can turn or push in/out). This is the offset of where the animation starts.
+#Const C_Phase_DefaultTitle _("Item anim. offset")
+
+//L16N Map Editor UI plugin title/label. An animated item can cycle (for example, it can turn or push in/out). This is the offset of where the animation starts.This applies to a whole selection rather than just an item.
+#Const C_Phase_ApplyToSelectionTitle _("Selection anim. offset")
+
+//L16N Map Editor UI plugin title/label. An animated item can cycle (for example, it can turn or push in/out). This is the offset of where the animation starts. This applies to a macroblock with items rather than just one item.
+#Const C_Phase_MacroblockTitle _("Macroblock anim. offset")
+
+//L16N Map Editor UI plugin tooltip label. An animated item can cycle (for example, it can turn or push in/out). This is the offset of where the animation starts. Here, we change the offset of all animated items in a selection. J is the keyboard shortcut to do this, no need to translate it.
+#Const C_Phase_SelectionDecreaseText _("Decrease anim. offset [J]")
+
+//L16N Map Editor UI plugin tooltip label. An animated item can cycle (for example, it can turn or push in/out). This is the offset of where the animation starts. Here, we change the offset of all animated items in a selection. K is the keyboard shortcut to do this, no need to translate it.
+#Const C_Phase_SelectionIncreaseText _("Increase anim. offset [K]")
+
+//L16N Map Editor UI plugin tooltip label. An animated item can cycle (for example, it can turn or push in/out). This is the offset of where the animation starts. Here, we change the offset of all animated items in a selection.
+#Const C_Phase_SelectionResetText _("Reset anim. offset")
+
+//L16N Map Editor UI plugin tooltip label. Helper text to show that you can press J or K to increase/decrease the slider value.
+#Const C_Phase_SliderText _("[J]/[K] to decrease/increase")
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Color Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+//L16N Map Editor UI plugin title/label, in plugin for Block color selection.
+#Const C_Color_DefaultTitle _("Next block color")
+
+//L16N Map Editor UI plugin title/label, in plugin for Block color selection, but we're placing items
+#Const C_Color_DefaultTitle_Item _("Next item color")
+
+//L16N Map Editor UI plugin title/label, in plugin for Block color selection. Indicates that in this mode, clicking buttons will apply that color to all blocks in the selection.
+#Const C_Color_ApplyToSelectionTitle _("Apply to selection")
+
+//L16N Map Editor UI plugin title/label, in plugin for Block color selection. Indicates that in this mode, clicking buttons will force your next placed macroblock to use certain colors
+#Const C_Color_MacroblockTitle _("Force macroblock colors")
+
+//L16N Map editor Block colors tooltip: Use the default block colors 
+#Const C_Color_DefaultColorText _("|BlockColors|Default")
+//L16N Map editor Block colors tooltip: Use the original MB colors 
+#Const C_Color_ResetColorText _("|BlockColors|Use base macroblock colors")
+#Const C_Color_WhiteColorText _("|BlockColors|White")
+#Const C_Color_GreenColorText _("|BlockColors|Green")
+#Const C_Color_BlueColorText _("|BlockColors|Blue")
+#Const C_Color_RedColorText _("|BlockColors|Red")
+#Const C_Color_BlackColorText _("|BlockColors|Black")
+
+Text CreateManialink() {
+	declare MLText =
+	"""
+		<script><!--
+		
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+		// Phase Offset Globals 
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+		// These values save the state of the plugin, to know at any point if we need to adapt to an API change. 
+		declare CMapEditorPlugin::PhaseOffset G_LocalPhaseOffset;	
+		declare CMapEditorPlugin::PhaseOffset	G_LocalMacroblockPhaseOffset;
+		
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+		// Color Globals 
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+		// These values save the state of the plugin, to know at any point if we need to adapt to an API change. 
+		declare CMapEditorPlugin::MapElemColor G_LocalColor;
+		declare Boolean G_LocalForceMacroblockColor;
+		
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+		// Phase Offset Functions 
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+		
+		CMapEditorPlugin::PhaseOffset GetOffsetFromSliderValue(Real _Value) {
+			if (_Value < 1./8.) {
+				return CMapEditorPlugin::PhaseOffset::None;
+			} else if (_Value < 2./8.) {
+				return CMapEditorPlugin::PhaseOffset::One8th;
+			} else if (_Value < 3./8.) {
+				return CMapEditorPlugin::PhaseOffset::Two8th;
+			} else if (_Value < 4./8.) {
+				return CMapEditorPlugin::PhaseOffset::Three8th;
+			} else if (_Value < 5./8.) {
+				return CMapEditorPlugin::PhaseOffset::Four8th;
+			} else if (_Value < 6./8.) {
+				return CMapEditorPlugin::PhaseOffset::Five8th;
+			} else if (_Value < 7./8.) {
+				return CMapEditorPlugin::PhaseOffset::Six8th;
+			} else if (_Value < 1.) {
+				return CMapEditorPlugin::PhaseOffset::Seven8th;
+			}  else if (_Value >= 1.) {
+				return CMapEditorPlugin::PhaseOffset::None;
+			} 
+			
+			return CMapEditorPlugin::PhaseOffset::None;
+		}
+		
+		Real GetSliderValueFromOffset(CMapEditorPlugin::PhaseOffset _Offset) {
+			declare Real Value = 0.;
+			switch (_Offset) {
+				case CMapEditorPlugin::PhaseOffset::None: Value = 0.;
+				case CMapEditorPlugin::PhaseOffset::One8th: Value	= 2./16.;
+				case CMapEditorPlugin::PhaseOffset::Two8th: Value = 4./16.;
+				case CMapEditorPlugin::PhaseOffset::Three8th: Value = 6./16.;
+				case CMapEditorPlugin::PhaseOffset::Four8th: Value = 8./16.;
+				case CMapEditorPlugin::PhaseOffset::Five8th: Value = 10./16.;
+				case CMapEditorPlugin::PhaseOffset::Six8th: Value = 12./16.;
+				case CMapEditorPlugin::PhaseOffset::Seven8th: Value = 14./16.; // can't set 16/16
+			}
+			return Value;
+		}
+		
+		Void SetOffset(Real _SliderValue) {
+			
+			declare PhaseOffset = GetOffsetFromSliderValue(_SliderValue);
+			
+			declare L_PhaseOffset for Page = CMapEditorPlugin::PhaseOffset::None;
+			L_PhaseOffset = PhaseOffset;
+			G_LocalPhaseOffset = PhaseOffset;
+			
+			declare Slider_Phase <=> (Page.GetFirstChild("slider-phase-classicmode") as CMlSlider);
+			declare Label_Phase <=> (Page.GetFirstChild("label-phase-classicmode-8ths") as CMlLabel);
+			
+			declare CMapEditorPlugin::PhaseOffset CurrentSliderPhaseOffset = GetOffsetFromSliderValue(Slider_Phase.Value);
+			if (CurrentSliderPhaseOffset != L_PhaseOffset) { // it has been set by something external: force slider to correct position
+				Slider_Phase.Value = GetSliderValueFromOffset(L_PhaseOffset);
+			}
+			
+			switch (L_PhaseOffset) {
+				case CMapEditorPlugin::PhaseOffset::None: {
+					if (_SliderValue < 1./8.) {
+						Label_Phase.Value = "0/8"; // "0°";
+					} else if (_SliderValue > 7./8.) { 
+						Label_Phase.Value = "8/8"; // "360°";
+					}
+				}
+				case CMapEditorPlugin::PhaseOffset::One8th: Label_Phase.Value = "1/8"; // "45°";
+				case CMapEditorPlugin::PhaseOffset::Two8th: Label_Phase.Value = "2/8"; // "90°";
+				case CMapEditorPlugin::PhaseOffset::Three8th: Label_Phase.Value = "3/8"; // "135°";
+				case CMapEditorPlugin::PhaseOffset::Four8th: Label_Phase.Value = "4/8"; // "180°";
+				case CMapEditorPlugin::PhaseOffset::Five8th: Label_Phase.Value = "5/8"; // "225°";
+				case CMapEditorPlugin::PhaseOffset::Six8th: Label_Phase.Value = "6/8"; // "270°";
+				case CMapEditorPlugin::PhaseOffset::Seven8th: Label_Phase.Value = "7/8"; // "315°";
+			}
+		}
+		
+		Void SetMacroblockOffset(Real _SliderValue) {
+			
+			declare PhaseOffset = GetOffsetFromSliderValue(_SliderValue);
+			
+			declare L_MacroblockPhaseOffset for Page = CMapEditorPlugin::PhaseOffset::None;
+			L_MacroblockPhaseOffset = PhaseOffset;
+			G_LocalMacroblockPhaseOffset = PhaseOffset;
+			
+			declare Slider_Phase <=> (Page.GetFirstChild("slider-phase-macroblockmode") as CMlSlider);
+			declare Label_Phase <=> (Page.GetFirstChild("label-phase-macroblockmode-8ths") as CMlLabel);
+			
+			declare CMapEditorPlugin::PhaseOffset CurrentSliderPhaseOffset = GetOffsetFromSliderValue(Slider_Phase.Value);
+			
+			if (CurrentSliderPhaseOffset != L_MacroblockPhaseOffset) { // it has been set by something external: force slider to correct position
+				Slider_Phase.Value = GetSliderValueFromOffset(L_MacroblockPhaseOffset);
+			}
+			
+			switch (L_MacroblockPhaseOffset) {
+				case CMapEditorPlugin::PhaseOffset::None: Label_Phase.Value = "+-/-"; // "0°";
+				case CMapEditorPlugin::PhaseOffset::One8th: Label_Phase.Value = "+1/8"; // "45°";
+				case CMapEditorPlugin::PhaseOffset::Two8th: Label_Phase.Value = "+2/8"; // "90°";
+				case CMapEditorPlugin::PhaseOffset::Three8th: Label_Phase.Value = "+3/8"; // "135°";
+				case CMapEditorPlugin::PhaseOffset::Four8th: Label_Phase.Value = "+4/8"; // "180°";
+				case CMapEditorPlugin::PhaseOffset::Five8th: Label_Phase.Value = "+5/8"; // "225°";
+				case CMapEditorPlugin::PhaseOffset::Six8th: Label_Phase.Value = "+6/8"; // "270°";
+				case CMapEditorPlugin::PhaseOffset::Seven8th: Label_Phase.Value = "+7/8"; // "315°";
+			}
+		}
+		
+		CMapEditorPlugin::PhaseOffset GetNextOffset(CMapEditorPlugin::PhaseOffset _PhaseOffset) {
+			declare CMapEditorPlugin::PhaseOffset NewOffset;
+			switch (_PhaseOffset) {
+				case CMapEditorPlugin::PhaseOffset::None: NewOffset = CMapEditorPlugin::PhaseOffset::One8th;
+				case CMapEditorPlugin::PhaseOffset::One8th: NewOffset	= CMapEditorPlugin::PhaseOffset::Two8th;
+				case CMapEditorPlugin::PhaseOffset::Two8th: NewOffset = CMapEditorPlugin::PhaseOffset::Three8th;
+				case CMapEditorPlugin::PhaseOffset::Three8th: NewOffset = CMapEditorPlugin::PhaseOffset::Four8th;
+				case CMapEditorPlugin::PhaseOffset::Four8th: NewOffset = CMapEditorPlugin::PhaseOffset::Five8th;
+				case CMapEditorPlugin::PhaseOffset::Five8th: NewOffset = CMapEditorPlugin::PhaseOffset::Six8th;
+				case CMapEditorPlugin::PhaseOffset::Six8th: NewOffset = CMapEditorPlugin::PhaseOffset::Seven8th;
+				case CMapEditorPlugin::PhaseOffset::Seven8th: NewOffset = CMapEditorPlugin::PhaseOffset::None;
+			}
+			
+			return NewOffset;
+		}
+		
+		CMapEditorPlugin::PhaseOffset GetPrevOffset(CMapEditorPlugin::PhaseOffset _PhaseOffset) {
+			declare CMapEditorPlugin::PhaseOffset NewOffset;
+			switch (_PhaseOffset) {
+				case CMapEditorPlugin::PhaseOffset::None: NewOffset = CMapEditorPlugin::PhaseOffset::Seven8th;
+				case CMapEditorPlugin::PhaseOffset::One8th: NewOffset	= CMapEditorPlugin::PhaseOffset::None;
+				case CMapEditorPlugin::PhaseOffset::Two8th: NewOffset = CMapEditorPlugin::PhaseOffset::One8th;
+				case CMapEditorPlugin::PhaseOffset::Three8th: NewOffset = CMapEditorPlugin::PhaseOffset::Two8th;
+				case CMapEditorPlugin::PhaseOffset::Four8th: NewOffset = CMapEditorPlugin::PhaseOffset::Three8th;
+				case CMapEditorPlugin::PhaseOffset::Five8th: NewOffset = CMapEditorPlugin::PhaseOffset::Four8th;
+				case CMapEditorPlugin::PhaseOffset::Six8th: NewOffset = CMapEditorPlugin::PhaseOffset::Five8th;
+				case CMapEditorPlugin::PhaseOffset::Seven8th: NewOffset = CMapEditorPlugin::PhaseOffset::Six8th;
+			}
+			
+			return NewOffset;
+		}
+		
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+		// Color Functions 
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+		
+		Void PaintSelection(CMapEditorPlugin::MapElemColor _Color) {
+			declare L_SelectionColor for Page = CMapEditorPlugin::MapElemColor::Default;
+			declare Boolean L_RequestSelectionColor for Page = False;
+			
+			L_SelectionColor = _Color;
+			L_RequestSelectionColor = True;
+		}
+		
+		Void UseBaseMacroblockColors() {
+			declare Quad_DefaultColorBtn <=> (Page.GetFirstChild("quad-color-macroblockmode-defaultcolor-button") as CMlQuad);
+			Quad_DefaultColorBtn.Visible = True;
+			
+			declare Quad_ResetColorBtn <=> (Page.GetFirstChild("quad-color-macroblockmode-resetbutton") as CMlQuad);
+			Quad_ResetColorBtn.Visible = False;
+			
+			declare Quad_WhiteColorBtn <=> (Page.GetFirstChild("quad-color-macroblockmode-whitebutton") as CMlQuad);
+			declare Quad_GreenColorBtn <=> (Page.GetFirstChild("quad-color-macroblockmode-greenbutton") as CMlQuad);
+			declare Quad_BlueColorBtn <=> (Page.GetFirstChild("quad-color-macroblockmode-bluebutton") as CMlQuad);
+			declare Quad_RedColorBtn <=> (Page.GetFirstChild("quad-color-macroblockmode-redbutton") as CMlQuad);
+			declare Quad_BlackColorBtn <=> (Page.GetFirstChild("quad-color-macroblockmode-blackbutton") as CMlQuad);
+			
+			Quad_WhiteColorBtn.StyleSelected = False;
+			Quad_GreenColorBtn.StyleSelected = False;
+			Quad_BlueColorBtn.StyleSelected = False;
+			Quad_RedColorBtn.StyleSelected = False;
+			Quad_BlackColorBtn.StyleSelected = False;
+			
+			declare L_ForceMacroblockColor for Page = False;
+			L_ForceMacroblockColor = False;
+			G_LocalForceMacroblockColor = False;
+		}
+		
+		Void SetColor(CMapEditorPlugin::MapElemColor _Color) {
+			declare Quad_DefaultColorBtn <=> (Page.GetFirstChild("frame-color-classicmode-defaultcolorbutton") as CMlQuad);
+			declare Quad_WhiteColorBtn <=> (Page.GetFirstChild("quad-color-classicmode-whitebutton") as CMlQuad);
+			declare Quad_GreenColorBtn <=> (Page.GetFirstChild("quad-color-classicmode-greenbutton") as CMlQuad);
+			declare Quad_BlueColorBtn <=> (Page.GetFirstChild("quad-color-classicmode-bluebutton") as CMlQuad);
+			declare Quad_RedColorBtn <=> (Page.GetFirstChild("quad-color-classicmode-redbutton") as CMlQuad);
+			declare Quad_BlackColorBtn <=> (Page.GetFirstChild("quad-color-classicmode-blackbutton") as CMlQuad);
+			
+			declare L_Color for Page = CMapEditorPlugin::MapElemColor::Default;
+			L_Color = _Color;
+			G_LocalColor = _Color;
+			
+			Quad_DefaultColorBtn.StyleSelected = False;
+			Quad_WhiteColorBtn.StyleSelected = False;
+			Quad_GreenColorBtn.StyleSelected = False;
+			Quad_BlueColorBtn.StyleSelected = False;
+			Quad_RedColorBtn.StyleSelected = False;
+			Quad_BlackColorBtn.StyleSelected = False;
+			
+			switch (_Color) {
+				case CMapEditorPlugin::MapElemColor::Default: Quad_DefaultColorBtn.StyleSelected = True;
+				case CMapEditorPlugin::MapElemColor::White: Quad_WhiteColorBtn.StyleSelected = True;
+				case CMapEditorPlugin::MapElemColor::Green: Quad_GreenColorBtn.StyleSelected = True;
+				case CMapEditorPlugin::MapElemColor::Blue: Quad_BlueColorBtn.StyleSelected = True;
+				case CMapEditorPlugin::MapElemColor::Red: Quad_RedColorBtn.StyleSelected = True;
+				case CMapEditorPlugin::MapElemColor::Black: Quad_BlackColorBtn.StyleSelected = True;
+			}
+		}
+		
+		Void ForceMacroblockColors(CMapEditorPlugin::MapElemColor _Color) {
+			declare Quad_DefaultColorBtn <=> (Page.GetFirstChild("quad-color-macroblockmode-defaultcolor-button") as CMlQuad);
+			Quad_DefaultColorBtn.Visible = False;
+			
+			declare Quad_ResetColorBtn <=> (Page.GetFirstChild("quad-color-macroblockmode-resetbutton") as CMlQuad);
+			Quad_ResetColorBtn.Visible = True;
+			
+			declare Quad_WhiteColorBtn <=> (Page.GetFirstChild("quad-color-macroblockmode-whitebutton") as CMlQuad);
+			declare Quad_GreenColorBtn <=> (Page.GetFirstChild("quad-color-macroblockmode-greenbutton") as CMlQuad);
+			declare Quad_BlueColorBtn <=> (Page.GetFirstChild("quad-color-macroblockmode-bluebutton") as CMlQuad);
+			declare Quad_RedColorBtn <=> (Page.GetFirstChild("quad-color-macroblockmode-redbutton") as CMlQuad);
+			declare Quad_BlackColorBtn <=> (Page.GetFirstChild("quad-color-macroblockmode-blackbutton") as CMlQuad);
+			
+			Quad_WhiteColorBtn.StyleSelected = False;
+			Quad_GreenColorBtn.StyleSelected = False;
+			Quad_BlueColorBtn.StyleSelected = False;
+			Quad_RedColorBtn.StyleSelected = False;
+			Quad_BlackColorBtn.StyleSelected = False;
+			
+			switch (_Color) {
+				case CMapEditorPlugin::MapElemColor::White: Quad_WhiteColorBtn.StyleSelected = True;
+				case CMapEditorPlugin::MapElemColor::Green: Quad_GreenColorBtn.StyleSelected = True;
+				case CMapEditorPlugin::MapElemColor::Blue: Quad_BlueColorBtn.StyleSelected = True;
+				case CMapEditorPlugin::MapElemColor::Red: Quad_RedColorBtn.StyleSelected = True;
+				case CMapEditorPlugin::MapElemColor::Black: Quad_BlackColorBtn.StyleSelected = True;
+			}
+			
+			declare L_ForceMacroblockColor for Page = False;
+			L_ForceMacroblockColor = True;
+			G_LocalForceMacroblockColor = True;
+			SetColor(_Color);
+		}
+		
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+		// Common Functions 
+		// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+		
+		Void Init() {
+			/** Phase Offset Init **/
+			declare Frame_Phase_ClassicMode <=> (Page.GetFirstChild("frame-phase-classicmode") as CMlFrame);
+			declare Frame_Phase_SelectionMode <=> (Page.GetFirstChild("frame-phase-selectionmode") as CMlFrame);
+			declare Frame_Phase_MacroblockMode <=> (Page.GetFirstChild("frame-phase-macroblockmode") as CMlFrame);
+			
+			declare L_Phase_ClassicMode for Page = False;
+			declare L_Phase_SelectionMode for Page = False;
+			declare L_Phase_MacroblockMode for Page = False;
+			Frame_Phase_ClassicMode.Visible = L_Phase_ClassicMode;
+			Frame_Phase_SelectionMode.Visible = L_Phase_SelectionMode;
+			Frame_Phase_MacroblockMode.Visible = L_Phase_MacroblockMode;
+			
+			declare L_PhaseOffset for Page = CMapEditorPlugin::PhaseOffset::None;
+			SetOffset(GetSliderValueFromOffset(L_PhaseOffset));
+			
+			declare L_MacroblockPhaseOffset for Page = CMapEditorPlugin::PhaseOffset::None;
+			SetMacroblockOffset(GetSliderValueFromOffset(L_MacroblockPhaseOffset));
+			
+			/** Color Init **/
+			
+			declare Frame_Color_ClassicMode <=> (Page.GetFirstChild("frame-color-classicmode") as CMlFrame);
+			declare Frame_Color_SelectionMode <=> (Page.GetFirstChild("frame-color-selectionmode") as CMlFrame);
+			declare Frame_Color_MacroblockMode <=> (Page.GetFirstChild("Frame_Color_MacroblockMode") as CMlFrame);
+			
+			declare Quad_DefaultColorBtn <=> (Page.GetFirstChild("quad-color-macroblockmode-defaultcolor-button") as CMlQuad);
+			Quad_DefaultColorBtn.Visible = True;
+			
+			declare Quad_ResetColorBtn <=> (Page.GetFirstChild("quad-color-macroblockmode-resetbutton") as CMlQuad);
+			Quad_ResetColorBtn.Visible = False;
+			
+			declare L_Color_ClassicMode for Page = False;
+			declare L_Color_SelectionMode for Page = False;
+			declare L_Color_MacroblockMode for Page = False;
+			Frame_Color_ClassicMode.Visible = L_Color_ClassicMode;
+			Frame_Color_SelectionMode.Visible = L_Color_SelectionMode;
+			Frame_Color_MacroblockMode.Visible = L_Color_MacroblockMode;
+			
+			declare L_Color for Page = CMapEditorPlugin::MapElemColor::Default;
+			SetColor(L_Color);
+			
+			/** Common Init **/
+			
+			declare L_GlobalFrame_Pos for Page = <-153.2, -31.5>;
+			declare Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+			Frame_Global.RelativePosition_V3 = L_GlobalFrame_Pos;
+		}
+		
+		main() {
+			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+			// Phase Offset Variables
+			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+			
+			/** Read from main plugin **/	
+			declare L_Phase_ClassicMode for Page = False;
+			declare L_Phase_SelectionMode for Page = False;
+			declare L_Phase_MacroblockMode for Page = False;
+			
+			/** Read from main plugin & Write for main plugin **/
+			declare L_PhaseOffset for Page = CMapEditorPlugin::PhaseOffset::None; // Can be changed by our ML, but it could be changed externally by ctrl Z or another plugin.
+			declare L_MacroblockPhaseOffset for Page = CMapEditorPlugin::PhaseOffset::None; // Can be changed by our ML, but it could be changed externally by ctrl Z or another plugin.
+
+			/** Write for main plugin **/
+			declare Boolean L_RequestIncreaseSelectionOffset for Page = False;
+			declare Boolean L_RequestDecreaseSelectionOffset for Page = False;
+			declare Boolean L_RequestResetSelectionOffset for Page = False;
+			
+			/** Backups, only local read/write **/	
+			declare Boolean Phase_WasClassicModeLastFrame = False;	
+			declare Boolean Phase_WasSelectionModeLastFrame = False;
+			declare Boolean Phase_WasMacroblockModeLastFrame = False;
+			
+			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+			// Color Variables
+			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+			
+			/** Read from main plugin **/
+			declare L_Color_ClassicMode for Page = False;
+			declare L_Color_SelectionMode for Page = False;
+			declare L_Color_MacroblockMode for Page = False;
+			
+			/** Read from main plugin & Write for main plugin **/
+			declare L_Color for Page = CMapEditorPlugin::MapElemColor::Default; // Can be changed by our ML, but it could be changed externally by ctrl Z or another plugin.
+			declare L_ForceMacroblockColor for Page = False; // Can be changed by our ML, but it could be changed externally by ctrl Z or another plugin.
+
+			/** Backups, only local read/write **/		
+			declare Boolean Color_WasClassicModeLastFrame = False;
+			declare Boolean Color_WasSelectionModeLastFrame = False;
+			declare Boolean Color_WasMacroblockModeLastFrame = False;
+			
+			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+			// Common Variables
+			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+			
+			/** Read from main plugin **/
+			declare L_GlobalFrame_Pos for Page = <-153.2, -31.5>;
+			declare L_GlobalFrame_Visible for Page = True;
+			declare Boolean L_UseItemTitle for Page = False;
+			
+			/** Backups, only local read/write **/
+			declare Vec2 GlobalFrame_PosLastFrame = L_GlobalFrame_Pos;
+			declare Boolean GlobalFrame_WasVisibleLastFrame = True;
+			declare Boolean LastFrameL_UseItemTitle = L_UseItemTitle;
+			
+			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+			// Phase Offset CMlControls
+			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+			declare Frame_Phase_Main <=> (Page.GetFirstChild("frame-phase-main") as CMlFrame);
+			declare Frame_Phase_ClassicMode <=> (Page.GetFirstChild("frame-phase-classicmode") as CMlFrame);
+			declare Frame_Phase_SelectionMode <=> (Page.GetFirstChild("frame-phase-selectionmode") as CMlFrame);
+			declare Frame_Phase_MacroblockMode <=> (Page.GetFirstChild("frame-phase-macroblockmode") as CMlFrame);
+			
+			declare Slider_Phase <=> (Page.GetFirstChild("slider-phase-classicmode") as CMlSlider);
+			declare Slider_Phase_Macroblock <=> (Page.GetFirstChild("slider-phase-macroblockmode") as CMlSlider);
+			
+			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+			// Color CMlControls
+			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+			
+			declare Frame_Color_Main <=> (Page.GetFirstChild("frame-color-main") as CMlFrame);
+			declare Frame_Color_ClassicMode <=> (Page.GetFirstChild("frame-color-classicmode") as CMlFrame);
+			declare Frame_Color_SelectionMode <=> (Page.GetFirstChild("frame-color-selectionmode") as CMlFrame);
+			declare Frame_Color_MacroblockMode <=> (Page.GetFirstChild("Frame_Color_MacroblockMode") as CMlFrame);
+			
+			declare Label_Color_ClassicTitle <=> (Page.GetFirstChild("label-color-classicmode-title") as CMlLabel);
+			
+			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+			// Common CMlControls
+			// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+			
+			declare Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+			
+			Init();
+			
+			while (True) {
+				/** Phase Offset frames update **/
+				if (Phase_WasClassicModeLastFrame 	!= L_Phase_ClassicMode
+				|| Phase_WasSelectionModeLastFrame 	!= L_Phase_SelectionMode 
+				|| Phase_WasMacroblockModeLastFrame != L_Phase_MacroblockMode)
+				{
+					Frame_Phase_ClassicMode.Visible = L_Phase_ClassicMode;
+					Frame_Phase_SelectionMode.Visible = L_Phase_SelectionMode;
+					Frame_Phase_MacroblockMode.Visible = L_Phase_MacroblockMode;
+				}
+				
+				/** Color frames update **/
+				
+				if (Color_WasClassicModeLastFrame 	!= L_Color_ClassicMode
+				|| Color_WasSelectionModeLastFrame 	!= L_Color_SelectionMode 
+				|| Color_WasMacroblockModeLastFrame != L_Color_MacroblockMode)
+				{
+					Frame_Color_ClassicMode.Visible = L_Color_ClassicMode;
+					Frame_Color_SelectionMode.Visible = L_Color_SelectionMode;
+					Frame_Color_MacroblockMode.Visible = L_Color_MacroblockMode;
+				}
+				
+				/** Common frames update **/
+				if (L_GlobalFrame_Pos != GlobalFrame_PosLastFrame) {
+					Frame_Global.RelativePosition_V3 = L_GlobalFrame_Pos;
+				}
+				
+				if (GlobalFrame_WasVisibleLastFrame != L_GlobalFrame_Visible) {
+					Frame_Global.Visible = L_GlobalFrame_Visible;
+				}
+				
+				if (LastFrameL_UseItemTitle != L_UseItemTitle) {
+					if (L_UseItemTitle) {
+						Label_Color_ClassicTitle.Value = "{{{C_Color_DefaultTitle_Item}}}";
+					} else {
+						Label_Color_ClassicTitle.Value = "{{{C_Color_DefaultTitle}}}";					
+					}
+				}
+				
+				/** Events **/
+				foreach(Event in PendingEvents) {
+					if (Event.Type == CMlScriptEvent::Type::MouseClick) {
+						switch (Event.ControlId) {
+							/** Phase Offset mouse inputs **/
+							case "slider-phase-classicmode": SetOffset(Slider_Phase.Value);
+							case "quad-phase-selectiondecrease-button": L_RequestDecreaseSelectionOffset = True;
+							case "quad-phase-selectionincrease-button": L_RequestIncreaseSelectionOffset = True;
+							case "quad-phase-selectionreset-button": L_RequestResetSelectionOffset = True;
+							case "slider-phase-macroblockmode": SetMacroblockOffset(Slider_Phase_Macroblock.Value);
+							
+							/** Color mouse inputs **/
+							case "frame-color-classicmode-defaultcolorbutton": SetColor(CMapEditorPlugin::MapElemColor::Default);
+							case "quad-color-classicmode-whitebutton": SetColor(CMapEditorPlugin::MapElemColor::White);
+							case "quad-color-classicmode-greenbutton": SetColor(CMapEditorPlugin::MapElemColor::Green);
+							case "quad-color-classicmode-bluebutton": SetColor(CMapEditorPlugin::MapElemColor::Blue);
+							case "quad-color-classicmode-redbutton": SetColor(CMapEditorPlugin::MapElemColor::Red);
+							case "quad-color-classicmode-blackbutton": SetColor(CMapEditorPlugin::MapElemColor::Black);
+							
+							case "quad-color-selectionmode-resetbutton": PaintSelection(CMapEditorPlugin::MapElemColor::Default);
+							case "quad-color-selectionmode-whitebutton": PaintSelection(CMapEditorPlugin::MapElemColor::White);
+							case "quad-color-selectionmode-greenbutton": PaintSelection(CMapEditorPlugin::MapElemColor::Green);
+							case "quad-color-selectionmode-bluebutton": PaintSelection(CMapEditorPlugin::MapElemColor::Blue);
+							case "quad-color-selectionmode-redbutton": PaintSelection(CMapEditorPlugin::MapElemColor::Red);
+							case "quad-color-selectionmode-blackbutton": PaintSelection(CMapEditorPlugin::MapElemColor::Black); 
+							
+							case "quad-color-macroblockmode-resetbutton": UseBaseMacroblockColors();
+							case "quad-color-macroblockmode-defaultcolor-button": ForceMacroblockColors(CMapEditorPlugin::MapElemColor::Default);
+							case "quad-color-macroblockmode-whitebutton": ForceMacroblockColors(CMapEditorPlugin::MapElemColor::White);
+							case "quad-color-macroblockmode-greenbutton": ForceMacroblockColors(CMapEditorPlugin::MapElemColor::Green);
+							case "quad-color-macroblockmode-bluebutton": ForceMacroblockColors(CMapEditorPlugin::MapElemColor::Blue);
+							case "quad-color-macroblockmode-redbutton": ForceMacroblockColors(CMapEditorPlugin::MapElemColor::Red);
+							case "quad-color-macroblockmode-blackbutton": ForceMacroblockColors(CMapEditorPlugin::MapElemColor::Black);
+						}
+					}
+					else if (Event.Type == CMlScriptEvent::Type::KeyPress) {
+						/** Phase Offset keyboard inputs **/
+						if (Event.KeyName == "J") {
+							if (L_Phase_ClassicMode) {
+								SetOffset(GetSliderValueFromOffset(GetPrevOffset(L_PhaseOffset)));
+							} else if (L_Phase_SelectionMode) {
+								L_RequestDecreaseSelectionOffset = True;
+							} else if (L_Phase_MacroblockMode) {
+								SetMacroblockOffset(GetSliderValueFromOffset(GetPrevOffset(L_MacroblockPhaseOffset)));				
+							}
+						} else if (Event.KeyName == "K") {
+							if (L_Phase_ClassicMode) {
+								SetOffset(GetSliderValueFromOffset(GetNextOffset(L_PhaseOffset)));
+							} else if (L_Phase_SelectionMode) {
+								L_RequestIncreaseSelectionOffset = True;
+							} else if (L_Phase_MacroblockMode) {
+								SetMacroblockOffset(GetSliderValueFromOffset(GetNextOffset(L_MacroblockPhaseOffset)));	
+							}
+						}
+					}
+				}
+				
+				/** Phase Offset API variable checks **/
+				if (G_LocalPhaseOffset != L_PhaseOffset) { // something changed it from outside, other than this script. Adapt UI to reflect the change.
+					SetOffset(GetSliderValueFromOffset(L_PhaseOffset));
+				}
+				
+				if (G_LocalMacroblockPhaseOffset != L_MacroblockPhaseOffset) { // something changed it from outside, other than this script. Adapt UI to reflect the change.
+					SetMacroblockOffset(GetSliderValueFromOffset(L_MacroblockPhaseOffset));
+				}
+				
+				/** Color API variable checks **/
+				
+				if (G_LocalColor != L_Color) { // something changed it from outside, other than this script. Adapt UI to reflect the change.
+					SetColor(L_Color);
+				}
+				
+				if (G_LocalForceMacroblockColor != L_ForceMacroblockColor) { // something changed it from outside, other than this script. Adapt UI to reflect the change.
+					if (L_ForceMacroblockColor) {
+						ForceMacroblockColors(L_Color);
+					}else{
+						UseBaseMacroblockColors();
+					}
+				}
+				
+				if(!Color_WasMacroblockModeLastFrame && L_Color_MacroblockMode && L_ForceMacroblockColor) {
+					ForceMacroblockColors(L_Color);
+				}
+				
+				/** Phase Offset variable backups **/
+				Phase_WasClassicModeLastFrame = L_Phase_ClassicMode;
+				Phase_WasSelectionModeLastFrame = L_Phase_SelectionMode;
+				Phase_WasMacroblockModeLastFrame = L_Phase_MacroblockMode;
+				
+				/** Color variable backups **/
+				
+				Color_WasClassicModeLastFrame = L_Color_ClassicMode;
+				Color_WasSelectionModeLastFrame = L_Color_SelectionMode;
+				Color_WasMacroblockModeLastFrame = L_Color_MacroblockMode;
+				
+				/** Common variable backups **/
+				GlobalFrame_PosLastFrame = L_GlobalFrame_Pos;
+				GlobalFrame_WasVisibleLastFrame = L_GlobalFrame_Visible;
+				LastFrameL_UseItemTitle = L_UseItemTitle;
+				
+				yield;
+			}
+		}
+		
+		--></script>		
+		<frame pos="-153.2 -31.5 0" id="frame-global">
+			<frame pos="0 0" id="frame-phase-main">
+				<frame id="frame-phase-classicmode">
+					<quad id="quad-phase-classicmode-bg" z-index="-1" size="42 10" style="UICommon128_1" substyle="BgFrame1" modulatecolor="444" pos="0.3 2.9" opacity="0.9"/>
+					<label pos="41.5 1.8" size="39.5 2.67" id="label-phase-classicmode-title" z-index="0" text="{{{C_Phase_DefaultTitle}}}" halign="right" style="TextCardSmallScores2" textcolor="fff" textsize="1"/>
+					
+					<slider size="26 3" pos="16 -4" range="0 1"scriptevents="1" id="slider-phase-classicmode" iconidbar="Slider_light" iconidcursor="SliderCursor_light" tooltip="{{{C_Phase_SliderText}}}" />
+					<label id="label-phase-classicmode-8ths" pos="35.2 -3.5" z-index="0" size="14 5.36" text="1/8" halign="center" valign="center" style="TextButtonNavBack" textsize="2"/>
+				</frame>
+				
+				<frame id="frame-phase-selectionmode">
+					<quad id="quad-phase-selectionmode-bg" z-index="-1" size="42 10" style="UICommon128_1" substyle="BgFrame1" modulatecolor="449" pos="0.3 2.9" opacity="0.9"/>
+					<label pos="41.5 1.8" size="39.5 2.67" id="label-phase-selectionmode-title" z-index="0" text="{{{C_Phase_ApplyToSelectionTitle}}}" halign="right" style="TextCardSmallScores2" textcolor="fff" textsize="1"/>
+					<quad pos="8.5 -1.4" id="quad-phase-selectiondecrease-button" z-index="0" size="5 5" style="UICommon64_2" substyle="DoubleArrowLeftSlim_light" scriptevents="1" tooltip="{{{C_Phase_SelectionDecreaseText}}}"/>
+					<quad pos="18.5 -1.4" id="quad-phase-selectionincrease-button" z-index="0" size="5 5" style="UICommon64_2" substyle="DoubleArrowRightSlim_light" scriptevents="1" tooltip="{{{C_Phase_SelectionIncreaseText}}}"/>
+					<quad pos="28.5 -0.9" id="quad-phase-selectionreset-button" z-index="0" size="6 6" style="UICommon64_2" substyle="Refresh_light" tooltip="{{{C_Phase_SelectionResetText}}}" scriptevents="1"/>
+				</frame>
+				
+				<frame id="frame-phase-macroblockmode">
+					<quad id="quad-phase-macroblockmode-bg" z-index="-1" size="42 10" style="UICommon128_1" substyle="BgFrame1" modulatecolor="384" pos="0.3 2.9" opacity="0.9"/>
+					<label pos="41.5 1.8" size="39.5 2.67" id="label-phase-macroblockmode-title" z-index="0"text="{{{C_Phase_MacroblockTitle}}}" halign="right" style="TextCardSmallScores2" textcolor="fff" textsize="1"/>
+					
+					<slider size="26 3" pos="16 -4" range="0 1" scriptevents="1" id="slider-phase-macroblockmode" iconidbar="Slider_light" iconidcursor="SliderCursor_light" tooltip="{{{C_Phase_SliderText}}}" />
+					<label id="label-phase-macroblockmode-8ths" pos="35.2 -3.5" z-index="0" size="14 5.36"text="1/8" halign="center" valign="center" style="TextButtonNavBack" textsize="2"/>
+				</frame>
+			</frame>
+			
+			<frame pos="0 -10.5" id="frame-color-main">
+				<frame id="frame-color-classicmode">
+					<quad id="quad-color-classicmode-bg" z-index="-1" size="42 11" style="UICommon128_1" substyle="BgFrame1" modulatecolor="444" pos="0.3 2.9" opacity="0.9"/>
+					<label pos="41.5 1.8" size="39.5 2.67" id="label-color-classicmode-title" z-index="0" text="{{{C_Color_DefaultTitle}}}" halign="right" style="TextCardSmallScores2" textcolor="fff" textsize="1"/>
+					
+					<frame pos="1 -0.25" id="frame-color-classicmode-resetbutton">
+						<quad id="frame-color-classicmode-defaultcolorbutton" z-index="1" size="7 7" style="UICommon64_1" substyle="Error_light" ScriptEvents="1" halign="center" pos="4 -4" valign="center" tooltip="{{{C_Color_DefaultColorText}}}" />
+					</frame>
+					
+					<frame pos="7.5 -0.25" id="frame-color-classicmode-white">
+						<quad id="quad-color-classicmode-white1" z-index="0" size="6.5 6.5" style="UICommon64_1" substyle="PlusCircle_light" modulatecolor="d2d2d2" halign="center" pos="4 -4" valign="center"/>
+						<quad id="quad-color-classicmode-white2" z-index="0" size="7 7" style="UICommon64_1" substyle="Plus_light" modulatecolor="d2d2d2" halign="center" pos="4 -4" valign="center"/>
+						<quad id="quad-color-classicmode-whitebutton" z-index="1" size="7 7" style="UICommon64_1" substyle="CheckboxCircle_light" ScriptEvents="1" halign="center" pos="4 -4" valign="center" tooltip="{{{C_Color_WhiteColorText}}}" />
+					</frame>
+					
+					<frame pos="14 -0.25" id="frame-color-classicmode-green">
+						<quad id="quad-color-classicmode-green1" z-index="0" size="6.5 6.5" style="UICommon64_1" substyle="PlusCircle_light" modulatecolor="1b2" halign="center" pos="4 -4" valign="center"/>
+						<quad id="quad-color-classicmode-green2" z-index="0" size="6.5 6.5" style="UICommon64_1" substyle="Plus_light" modulatecolor="1b2" halign="center" pos="4 -4" valign="center"/>
+						<quad id="quad-color-classicmode-greenbutton" z-index="1" size="7 7" style="UICommon64_1" substyle="CheckboxCircle_light" ScriptEvents="1" halign="center" pos="4 -4" valign="center" tooltip="{{{C_Color_GreenColorText}}}" />
+					</frame>
+					
+					<frame pos="20.5 -0.25" id="frame-color-classicmode-blue" >
+						<quad id="quad-color-classicmode-blue1" z-index="0" size="6.5 6.5" style="UICommon64_1" substyle="PlusCircle_light" modulatecolor="24c" halign="center" pos="4 -4" valign="center"/>
+						<quad id="quad-color-classicmode-blue2" z-index="0" size="6.5 6.5" style="UICommon64_1" substyle="Plus_light" modulatecolor="24c" halign="center" pos="4 -4" valign="center"/>
+						<quad id="quad-color-classicmode-bluebutton" z-index="1" size="7 7" style="UICommon64_1" substyle="CheckboxCircle_light" ScriptEvents="1" halign="center" pos="4 -4" valign="center" tooltip="{{{C_Color_BlueColorText}}}" />
+					</frame>
+					
+					<frame pos="27 -0.25" id="frame-color-classicmode-red">
+						<quad id="quad-color-classicmode-red1" z-index="0" size="6.5 6.5" style="UICommon64_1" substyle="PlusCircle_light" modulatecolor="c33" halign="center" pos="4 -4" valign="center"/>
+						<quad id="quad-color-classicmode-red2" z-index="0" size="6.5 6.5" style="UICommon64_1" substyle="Plus_light" modulatecolor="c33" halign="center" pos="4 -4" valign="center"/>
+						<quad id="quad-color-classicmode-redbutton"	z-index="1" size="7 7" style="UICommon64_1" substyle="CheckboxCircle_light" ScriptEvents="1" halign="center" pos="4 -4" valign="center" tooltip="{{{C_Color_RedColorText}}}" />
+					</frame>
+					
+					<frame pos="33.5 -0.25" id="frame-color-classicmode-black">
+						<quad id="quad-color-classicmode-black1" z-index="0" size="6.5 6.5" style="UICommon64_1" substyle="PlusCircle_light" modulatecolor="333" halign="center" pos="4 -4" valign="center"/>
+						<quad id="quad-color-classicmode-black2" z-index="0" size="6.5 6.5" style="UICommon64_1" substyle="Plus_light" modulatecolor="333" halign="center" pos="4 -4" valign="center"/>
+						<quad id="quad-color-classicmode-blackbutton" z-index="1" size="7 7" style="UICommon64_1" substyle="CheckboxCircle_light" ScriptEvents="1" halign="center" pos="4 -4" valign="center" tooltip="{{{C_Color_BlackColorText}}}" />
+					</frame>
+				</frame>
+				
+				<frame id="frame-color-selectionmode">
+					<quad id="quad-color-selectionmode-bg" z-index="-1" size="42 11" style="UICommon128_1" substyle="BgFrame1" modulatecolor="449" pos="0.3 2.9" opacity="0.9"/>
+					<label pos="41.5 1.8" size="39.5 2.67" id="label-color-selectionmode-title" z-index="0"text="{{{C_Color_ApplyToSelectionTitle}}}" halign="right" style="TextCardSmallScores2" textcolor="fff" textsize="1"/>
+					
+					<frame pos="1 -0.25" id="frame-color-selectionmode-reset">
+						<quad id="quad-color-selectionmode-resetbutton" z-index="1" size="7 7" style="UICommon64_1" substyle="Error_light" ScriptEvents="1" halign="center" pos="4 -4" valign="center" tooltip="{{{C_Color_DefaultColorText}}}" />
+					</frame>
+					
+					<frame pos="7.5 -0.25" id="frame-color-selectionmode-white">
+						<quad id="quad-color-selectionmode-whitebutton" z-index="1" size="7 7" style="UICommon64_1" substyle="Paint_light" ScriptEvents="1" halign="center" pos="4 -4" valign="center" tooltip="{{{C_Color_WhiteColorText}}}" modulatecolor="eee" />
+					</frame>
+					
+					<frame pos="14 -0.25" id="frame-color-selectionmode-green">
+						<quad id="quad-color-selectionmode-greenbutton" z-index="1" size="7 7" style="UICommon64_1" substyle="Paint_light" ScriptEvents="1" halign="center" pos="4 -4" valign="center" tooltip="{{{C_Color_GreenColorText}}}" modulatecolor="1d2"/>
+					</frame>
+					
+					<frame pos="20.5 -0.25" id="frame-color-selectionmode-blue">
+						<quad id="quad-color-selectionmode-bluebutton" z-index="1" size="7 7" style="UICommon64_1" substyle="Paint_light" ScriptEvents="1" halign="center" pos="4 -4" valign="center" tooltip="{{{C_Color_BlueColorText}}}" modulatecolor="2cf"/>
+					</frame>
+					
+					<frame pos="27 -0.25" id="frame-color-selectionmode-red">
+						<quad id="quad-color-selectionmode-redbutton" z-index="1" size="7 7" style="UICommon64_1" substyle="Paint_light" ScriptEvents="1" halign="center" pos="4 -4" valign="center" tooltip="{{{C_Color_RedColorText}}}" modulatecolor="e33"/>
+					</frame>
+					
+					<frame pos="33.5 -0.25" id="frame-color-selectionmode-black">
+						<quad id="quad-color-selectionmode-blackbutton" z-index="1" size="7 7" style="UICommon64_1" substyle="Paint_light" ScriptEvents="1" halign="center" pos="4 -4" valign="center" tooltip="{{{C_Color_BlackColorText}}}" modulatecolor="000"/>
+					</frame>
+				</frame>
+				
+				<frame id="Frame_Color_MacroblockMode">	
+					<quad id="Color_MacroblockBgQuad" z-index="-1" size="42 11" style="UICommon128_1" substyle="BgFrame1" modulatecolor="384" pos="0.3 2.9" opacity="0.9"/>
+					<label pos="41.5 1.8" size="39.5 2.67" id="Color_MacroblockTitleLbl" z-index="0" text="{{{C_Color_MacroblockTitle}}}" halign="right" style="TextCardSmallScores2" textcolor="fff" textsize="1"/>
+					
+					<frame pos="1 -0.25" id="frame-color-macroblockmode-reset">
+						<quad id="quad-color-macroblockmode-defaultcolor-button" z-index="1" size="7 7" style="UICommon64_1" substyle="Error_light" ScriptEvents="1" halign="center" pos="4 -4" valign="center" tooltip="{{{C_Color_DefaultColorText}}}" />
+						<quad id="quad-color-macroblockmode-resetbutton" z-index="1" size="7 7" style="UICommon64_1" substyle="Reload_light" ScriptEvents="1" halign="center" pos="4 -4" valign="center" tooltip="{{{C_Color_ResetColorText}}}" />
+					</frame>
+					
+					<frame pos="7.5 -0.25" id="frame-color-macroblockmode-white">
+						<quad id="quad-color-macroblockmode-white1" z-index="0" size="6.5 6.5" style="UICommon64_1" substyle="PlusCircle_light" modulatecolor="d8d8d8" halign="center" pos="4 -4" valign="center"/>
+						<quad id="quad-color-macroblockmode-white2" z-index="0" size="7 7" style="UICommon64_1" substyle="Plus_light" modulatecolor="d8d8d8" halign="center" pos="4 -4" valign="center"/>
+						<quad id="quad-color-macroblockmode-whitebutton" z-index="1" size="7 7" style="UICommon64_1" substyle="CheckboxCircle_light" ScriptEvents="1" halign="center" pos="4 -4" valign="center" tooltip="{{{C_Color_WhiteColorText}}}" />
+					</frame>
+					
+					<frame pos="14 -0.25" id="frame-color-macroblockmode-green">
+						<quad id="quad-color-macroblockmode-green1" z-index="0" size="6.5 6.5" style="UICommon64_1" substyle="PlusCircle_light" modulatecolor="1e2" halign="center" pos="4 -4" valign="center"/>
+						<quad id="quad-color-macroblockmode-green2" z-index="0" size="6.5 6.5" style="UICommon64_1" substyle="Plus_light" modulatecolor="1e2" halign="center" pos="4 -4" valign="center"/>
+						<quad id="quad-color-macroblockmode-greenbutton" z-index="1" size="7 7" style="UICommon64_1" substyle="CheckboxCircle_light" ScriptEvents="1" halign="center" pos="4 -4" valign="center" tooltip="{{{C_Color_GreenColorText}}}" />
+					</frame>
+					
+					<frame pos="20.5 -0.25" id="frame-color-macroblockmode-blue">
+						<quad id="quad-color-macroblockmode-blue1" z-index="0" size="6.5 6.5" style="UICommon64_1" substyle="PlusCircle_light" modulatecolor="24c" halign="center" pos="4 -4" valign="center"/>
+						<quad id="quad-color-macroblockmode-blue2" z-index="0" size="6.5 6.5" style="UICommon64_1" substyle="Plus_light" modulatecolor="24c" halign="center" pos="4 -4" valign="center"/>
+						<quad id="quad-color-macroblockmode-bluebutton" z-index="1" size="7 7" style="UICommon64_1" substyle="CheckboxCircle_light" ScriptEvents="1" halign="center" pos="4 -4" valign="center" tooltip="{{{C_Color_BlueColorText}}}" />
+					</frame>
+					
+					<frame pos="27 -0.25" id="frame-color-macroblockmode-red">
+						<quad id="quad-color-macroblockmode-red1" z-index="0" size="6.5 6.5" style="UICommon64_1" substyle="PlusCircle_light" modulatecolor="c33" halign="center" pos="4 -4" valign="center"/>
+						<quad id="quad-color-macroblockmode-red2" z-index="0" size="6.5 6.5" style="UICommon64_1" substyle="Plus_light" modulatecolor="c33" halign="center" pos="4 -4" valign="center"/>
+						<quad id="quad-color-macroblockmode-redbutton" z-index="1" size="7 7" style="UICommon64_1" substyle="CheckboxCircle_light" ScriptEvents="1" halign="center" pos="4 -4" valign="center" tooltip="{{{C_Color_RedColorText}}}" />
+					</frame>
+					
+					<frame pos="33.5 -0.25" id="frame-color-macroblockmode-black">
+						<quad id="quad-color-macroblockmode-black1" z-index="0" size="6.5 6.5" style="UICommon64_1" substyle="PlusCircle_light" modulatecolor="333" halign="center" pos="4 -4" valign="center"/>
+						<quad id="quad-color-macroblockmode-black2" z-index="0" size="6.5 6.5" style="UICommon64_1" substyle="Plus_light" modulatecolor="333" halign="center" pos="4 -4" valign="center"/>
+						<quad id="quad-color-macroblockmode-blackbutton" z-index="1" size="7 7" style="UICommon64_1" substyle="CheckboxCircle_light" ScriptEvents="1" halign="center" pos="4 -4" valign="center" tooltip="{{{C_Color_BlackColorText}}}" />
+					</frame>
+				</frame>
+			</frame>
+		</frame>
+	""";
+	return MLText;
+}
+
+main() {
+	LayersDefaultManialinkVersion = 3;
+	ManialinkText = CreateManialink();
+	EnableCursorShowingWhenInterfaceIsFocused = True;
+			
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+	// Phase Offset Variables
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+	
+	/** Write for layer **/
+	declare L_Phase_ClassicMode for ManialinkPage = False; 
+	declare L_Phase_SelectionMode for ManialinkPage = False;
+	declare L_Phase_MacroblockMode for ManialinkPage = False;
+	
+	/** Read from layer & Write for layer **/
+	declare L_PhaseOffset for ManialinkPage = NextItemPhaseOffset; // read, write only if NextItemPhaseOffset has changed
+	declare L_MacroblockPhaseOffset for ManialinkPage = NextMbAdditionalPhaseOffset; // read, write only if NextMbAdditionalPhaseOffset has changed
+	
+	/** Read from layer **/
+	declare Boolean L_RequestIncreaseSelectionOffset for ManialinkPage = False;
+	declare Boolean L_RequestDecreaseSelectionOffset for ManialinkPage = False;
+	declare Boolean L_RequestResetSelectionOffset for ManialinkPage = False;
+	
+	/** Backups, only local read/write **/
+	declare CMapEditorPlugin::PhaseOffset LastFrameL_PhaseOffset = L_PhaseOffset;
+	declare CMapEditorPlugin::PhaseOffset LastFrameNextPhaseOffset = NextItemPhaseOffset;
+	
+	declare CMapEditorPlugin::PhaseOffset LastFrameL_MacroblockPhaseOffset = L_MacroblockPhaseOffset;
+	declare CMapEditorPlugin::PhaseOffset LastFrameNextMacroblockPhaseOffset = NextMbAdditionalPhaseOffset;
+	
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+	// Color Variables
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+	
+	/** Write for layer **/
+	declare L_Color_ClassicMode for ManialinkPage = False;
+	declare L_Color_SelectionMode for ManialinkPage = False;
+	declare L_Color_MacroblockMode for ManialinkPage = False;
+	
+	/** Read from layer & Write for layer **/
+	declare CMapEditorPlugin::MapElemColor L_Color for ManialinkPage = NextMapElemColor; // read, write only if NextMapElemColor has changed
+	declare Boolean L_ForceMacroblockColor for ManialinkPage = ForceMacroblockColor; // read, write only if ForceMacroblockColor has changed
+	
+	/** Read from layer **/
+	declare L_SelectionColor for ManialinkPage = CMapEditorPlugin::MapElemColor::Default;
+	declare Boolean L_RequestSelectionColor for ManialinkPage = False;
+	
+	/** Backups, only local read/write **/
+	declare CMapEditorPlugin::MapElemColor LastFrameL_Color = L_Color;
+	declare CMapEditorPlugin::MapElemColor LastFrameNextMapElemColor = NextMapElemColor;
+	
+	declare Boolean LastFrameL_ForceMacroblockColor = L_ForceMacroblockColor;
+	declare Boolean LastFrameForceMacroblockColor = ForceMacroblockColor;
+			
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+	// Common Variables
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+	
+	/** Write for layer **/
+	declare L_GlobalFrame_Pos for ManialinkPage = <-153.2, -31.5>;
+	declare L_GlobalFrame_Visible for ManialinkPage = True;
+	
+	declare Boolean L_UseItemTitle for ManialinkPage = (PlaceMode == CMapEditorPlugin::PlaceMode::Item);
+	
+	/** Only local read/write **/
+	declare Boolean IsCorrectPlaceModeForLocalMode; // Temp boolean used to make the code look clearer, instead of having huge multiline bools
+	declare Boolean IsCorrectEditModeForLocalMode; // Temp boolean used to make the code look clearer, instead of having huge multiline bools
+	
+	while (True) {
+		/** Phase Offset Modes update **/
+		L_Phase_ClassicMode = (PlaceMode == CMapEditorPlugin::PlaceMode::Item) && Cursor.IsCurrentItemAnimated();
+		
+		/* EditMode condition check for Phase Selection mode.
+		 * Requires: Being in CopyPaste PlaceMode, and either :
+		 * - Being in Add or Remove edit mode (these always allow Phase to appear)
+		 * - Being in FreeLook or Pick mode, but only if we already were in L_Phase_SelectionMode last frame.
+		*/
+		IsCorrectPlaceModeForLocalMode = (PlaceMode == CMapEditorPlugin::PlaceMode::CopyPaste);
+		IsCorrectEditModeForLocalMode =
+			IsCorrectPlaceModeForLocalMode
+			&& (EditMode == CMapEditorPlugin::EditMode::SelectionAdd
+				|| EditMode == CMapEditorPlugin::EditMode::SelectionRemove
+				|| (EditMode == CMapEditorPlugin::EditMode::FreeLook && L_Phase_SelectionMode)
+				|| (EditMode == CMapEditorPlugin::EditMode::Pick && L_Phase_SelectionMode));
+		
+		L_Phase_SelectionMode =	
+			!L_Phase_ClassicMode
+			&& IsCorrectEditModeForLocalMode
+			&& Cursor.CurrentSelectionHasAnimatedItem();
+		
+		/* EditMode condition check for Phase Macroblock mode.
+		 * Requires either : 
+		 * - Being in Macroblock or FreeMacroblock placemode (these always allow Phase to appear)
+		 * - Being in CopyPaste placemode + Place editmode (always allows phase to appear)
+		 * - Being in CopyPaste placemode + FreeLook or Pick editmode, but only if we already were in L_Phase_MacroblockMode last frame.
+		*/
+		IsCorrectPlaceModeForLocalMode = (PlaceMode == CMapEditorPlugin::PlaceMode::Macroblock || PlaceMode == CMapEditorPlugin::PlaceMode::FreeMacroblock);
+
+		IsCorrectEditModeForLocalMode =
+			IsCorrectPlaceModeForLocalMode
+			|| (PlaceMode == CMapEditorPlugin::PlaceMode::CopyPaste	
+				&& (EditMode == CMapEditorPlugin::EditMode::Place 
+					|| (EditMode == CMapEditorPlugin::EditMode::FreeLook && L_Phase_MacroblockMode)
+					|| (EditMode == CMapEditorPlugin::EditMode::Pick && L_Phase_MacroblockMode)));
+
+		L_Phase_MacroblockMode =
+			!L_Phase_ClassicMode 
+			&& !L_Phase_SelectionMode
+			&& IsCorrectEditModeForLocalMode
+			&& Cursor.CurrentMacroblockHasAnimatedItem(); // this is at the end of the condition on purpose. don't check if it has an animated item if we aren't in the right mode (can be heavy)
+
+		/** Color Modes update **/
+		
+		L_Color_ClassicMode = 
+			((PlaceMode == CMapEditorPlugin::PlaceMode::Block) 
+			|| (PlaceMode == CMapEditorPlugin::PlaceMode::GhostBlock)
+			|| (PlaceMode == CMapEditorPlugin::PlaceMode::FreeBlock)
+			|| (PlaceMode == CMapEditorPlugin::PlaceMode::Item)
+			);
+
+		/* EditMode condition check for Color Selection mode.
+		 * Requires: Being in CopyPaste PlaceMode, and either :
+		 * - Being in Add or Remove edit mode (these always allow Color to appear)
+		 * - Being in FreeLook or Pick mode, but only if we already were in L_Color_SelectionMode last frame.
+		*/
+		IsCorrectPlaceModeForLocalMode = (PlaceMode == CMapEditorPlugin::PlaceMode::CopyPaste);
+		IsCorrectEditModeForLocalMode =
+			IsCorrectPlaceModeForLocalMode
+			&& (EditMode == CMapEditorPlugin::EditMode::SelectionAdd
+				|| EditMode == CMapEditorPlugin::EditMode::SelectionRemove
+				|| (EditMode == CMapEditorPlugin::EditMode::FreeLook && L_Color_SelectionMode)
+				|| (EditMode == CMapEditorPlugin::EditMode::Pick && L_Color_SelectionMode));
+		
+		L_Color_SelectionMode = IsCorrectEditModeForLocalMode && CopyPaste_GetSelectedCoordsCount() != 0;
+			
+		/* EditMode condition check for Color Macroblock mode.
+		 * Requires either : 
+		 * - Being in Macroblock or FreeMacroblock placemode (these always allow Color to appear)
+		 * - Being in CopyPaste placemode + Place editmode (always allows Color to appear)
+		 * - Being in CopyPaste placemode + FreeLook or Pick editmode, but only if we already were in L_Color_MacroblockMode last frame.
+		*/
+		
+		IsCorrectPlaceModeForLocalMode = (PlaceMode == CMapEditorPlugin::PlaceMode::Macroblock || PlaceMode == CMapEditorPlugin::PlaceMode::FreeMacroblock);
+			
+		IsCorrectEditModeForLocalMode =
+			IsCorrectPlaceModeForLocalMode
+			|| (PlaceMode == CMapEditorPlugin::PlaceMode::CopyPaste	
+				&& (EditMode == CMapEditorPlugin::EditMode::Place 
+					|| (EditMode == CMapEditorPlugin::EditMode::FreeLook && L_Color_MacroblockMode)
+					|| (EditMode == CMapEditorPlugin::EditMode::Pick && L_Color_MacroblockMode)));
+					
+		L_Color_MacroblockMode = !L_Color_SelectionMode && IsCorrectEditModeForLocalMode;
+		
+		/** Common UI update **/
+		L_GlobalFrame_Visible = !HideInventory;
+		L_UseItemTitle = (PlaceMode == CMapEditorPlugin::PlaceMode::Item);
+		
+		if (PlaceMode != CMapEditorPlugin::PlaceMode::CopyPaste) {
+			L_GlobalFrame_Pos = <-153.2, -31.5>;
+		} else {
+			L_GlobalFrame_Pos = <-153.2, -56.5>;		
+		}
+
+		/** Phase Offset API Sync **/
+		if (LastFrameL_PhaseOffset != L_PhaseOffset) { // Manialink wants to change the Offset
+			NextItemPhaseOffset = L_PhaseOffset; // set the C++ Offset
+		} else if (LastFrameNextPhaseOffset != NextItemPhaseOffset) { // C++ has changed the Offset
+			L_PhaseOffset = NextItemPhaseOffset; // set the ML Offset
+		}
+		
+		if (LastFrameL_MacroblockPhaseOffset != L_MacroblockPhaseOffset) { // Manialink wants to change the Offset
+			NextMbAdditionalPhaseOffset = L_MacroblockPhaseOffset; // set the C++ Offset
+		} else if (LastFrameNextMacroblockPhaseOffset != NextItemPhaseOffset) { // C++ has changed the Offset
+			L_MacroblockPhaseOffset = NextMbAdditionalPhaseOffset; // set the ML Offset
+		}
+		
+		
+		/** Color API Sync **/
+		if (LastFrameL_Color != L_Color) { // Manialink wants to change the color
+			NextMapElemColor = L_Color; // set the C++ color
+		} else if (LastFrameNextMapElemColor != NextMapElemColor) { // C++ has changed the color
+			L_Color = NextMapElemColor; // set the ML color
+		}
+		
+		if (LastFrameL_ForceMacroblockColor != L_ForceMacroblockColor) { // Manialink wants to change the bool
+			ForceMacroblockColor = L_ForceMacroblockColor; // set the C++ bool
+		} else if (LastFrameForceMacroblockColor != ForceMacroblockColor) { // C++ has changed the bool
+			L_ForceMacroblockColor = ForceMacroblockColor; // set the ML bool
+		}
+		
+		/** Phase Offset API calls **/
+		if (L_RequestIncreaseSelectionOffset) {
+			if (CopyPaste_IncreaseSelectionPhaseOffset(CMapEditorPlugin::PhaseOffset::One8th)) {
+				AutoSave();
+			}
+			L_RequestIncreaseSelectionOffset = False;
+		}
+		
+		if (L_RequestDecreaseSelectionOffset) {
+			if (CopyPaste_DecreaseSelectionPhaseOffset(CMapEditorPlugin::PhaseOffset::One8th)) {
+				AutoSave();
+			}
+			L_RequestDecreaseSelectionOffset = False;
+		}
+		
+		if (L_RequestResetSelectionOffset) {
+			if (CopyPaste_SetSelectionPhaseOffset(CMapEditorPlugin::PhaseOffset::None)) {
+				AutoSave();
+			}
+			L_RequestResetSelectionOffset = False;
+		}
+		
+		/** Color API calls **/
+		if (L_RequestSelectionColor) {
+			if (CopyPaste_ApplyColorToSelection(L_SelectionColor)) {
+				AutoSave();
+			}
+			L_RequestSelectionColor = False;
+		}
+		
+		/** Phase Offset variable backups **/
+		LastFrameNextPhaseOffset = NextItemPhaseOffset;
+		LastFrameL_PhaseOffset = L_PhaseOffset;
+		
+		LastFrameNextMacroblockPhaseOffset = NextMbAdditionalPhaseOffset;
+		LastFrameL_MacroblockPhaseOffset = L_MacroblockPhaseOffset;
+		
+		/** Color variable backups **/
+		LastFrameNextMapElemColor = NextMapElemColor;
+		LastFrameL_Color = L_Color;
+		
+		LastFrameForceMacroblockColor = ForceMacroblockColor;
+		LastFrameL_ForceMacroblockColor = L_ForceMacroblockColor;
+		
+		yield;
+	}
+}

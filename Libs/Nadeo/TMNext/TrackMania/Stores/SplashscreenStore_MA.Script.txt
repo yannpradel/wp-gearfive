@@ -1,0 +1,373 @@
+/**
+ *	Store for Splashscreens
+ */
+#Const Version		"2022-11-04"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Stores/SplashscreenStore_MA.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "MathLib" as ML
+#Include "Libs/Nadeo/CommonLibs/Common/Store_MA.Script.txt" as Store
+#Include "Libs/Nadeo/CommonLibs/Common/Http.Script.txt" as Http
+#Include "Libs/Nadeo/TMNext/TrackMania/API/SplashscreenAPI.Script.txt" as SplashscreenAPI
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/SplashscreenStruct.Script.txt" as SplashscreenStruct
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/SplashscreenStore_ML.Script.txt" as SplashscreenStore
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct SplashscreenStore::K_SplashscreensPager as K_SplashscreensPager
+#Struct SplashscreenStore::K_State as K_State
+
+#Struct K_PagerRequest {
+	Http::K_Request Request;
+	Integer Offset;
+	Integer Length;
+	Integer Cursor;
+	Boolean IsPreload;
+	Text ThrottleLang;
+	Integer ThrottleCursor;
+	Integer ThrottleTime;
+	Boolean ThrottleActive;
+}
+#Struct K_MarkAsViewedRequest {
+	Http::K_Request Request;
+	Boolean Active;
+	Integer SplashscreenId;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const SplashscreenStore::C_State_Null as C_State_Null
+#Const SplashscreenStore::C_StoreId as C_StoreId
+
+#Const SplashscreenStore::C_Action_PreloadSplashscreens as C_Action_PreloadSplashscreens
+#Const SplashscreenStore::C_Action_ResetAutoDisplaySplashscreenId as C_Action_ResetAutoDisplaySplashscreenId
+#Const SplashscreenStore::C_Action_PagerSetCursor as C_Action_PagerSetCursor
+#Const SplashscreenStore::C_Action_MarkSplashscreenAsViewed as C_Action_MarkSplashscreenAsViewed
+
+#Const SplashscreenStore::C_Event_PreloadComplete as C_Event_PreloadComplete
+#Const SplashscreenStore::C_Event_AutoDisplaySplashscreen as C_Event_AutoDisplaySplashscreen
+#Const SplashscreenStore::C_Event_PagerError as C_Event_PagerError
+#Const SplashscreenStore::C_Event_PagerUpdate as C_Event_PagerUpdate
+#Const SplashscreenStore::C_Event_UnreadNbUpdate as C_Event_UnreadNbUpdate
+ 
+#Const C_PagerHalfLength 5
+#Const C_PagerBorder 3
+#Const C_PagerThrottleDuration 1000
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Globales
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+declare K_PagerRequest G_Request_LoadSplashscreens;
+declare K_MarkAsViewedRequest G_Request_MarkSplashscreenAsViewed;
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update the number of unread splashscreens
+Void Mutation_SetUnreadNb(Integer _UnreadNb) {
+	declare K_State TMNext_SplashscreenStore_State for System = C_State_Null;
+
+	if (TMNext_SplashscreenStore_State.UnreadNb != _UnreadNb) {
+		TMNext_SplashscreenStore_State.UnreadNb = ML::Max(0, _UnreadNb);
+		Store::SendEvent(C_StoreId, C_Event_UnreadNbUpdate, []);
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update splashcreens pager error message
+Void Mutation_SetPagerErrorMessage(Text _ErrorMessage) {
+	declare K_State TMNext_SplashscreenStore_State for System = C_State_Null;
+
+	TMNext_SplashscreenStore_State.Pager.ErrorMessage = _ErrorMessage;
+
+	Store::SendEvent(C_StoreId, C_Event_PagerError, []);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Select the splashscreen to display automatically
+Void Mutation_SetAutoDisplaySplashscreenId(Integer _SplashscreenId) {
+	declare K_State TMNext_SplashscreenStore_State for System = C_State_Null;
+
+	TMNext_SplashscreenStore_State.AutoDisplaySplashscreenId = _SplashscreenId;
+
+	Store::SendEvent(C_StoreId, C_Event_AutoDisplaySplashscreen, []);
+}
+Void Mutation_ResetAutoDisplaySplashscreenId() {
+	Mutation_SetAutoDisplaySplashscreenId(SplashscreenStruct::C_SplashscreenNullId);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update the splashcreens in the pager
+Void Mutation_SetPagerSplashscreens(
+	SplashscreenStruct::LibSplashscreenStruct_K_SplashscreenList _SplashscreenList,
+	Integer _Offset,
+	Integer _Cursor,
+	Boolean _IsPreload
+) {
+	declare K_State TMNext_SplashscreenStore_State for System = C_State_Null;
+
+	TMNext_SplashscreenStore_State.Pager.CursorMin = ML::Max(0, _Cursor - C_PagerHalfLength);
+	TMNext_SplashscreenStore_State.Pager.CursorMax = ML::Max(0, _Cursor + C_PagerHalfLength);
+	TMNext_SplashscreenStore_State.Pager.Total = _SplashscreenList.Total;
+	TMNext_SplashscreenStore_State.Pager.Splashscreens = [];
+	foreach (Key => Splashscreen in _SplashscreenList.Splashscreens) {
+		TMNext_SplashscreenStore_State.Pager.Splashscreens[_Offset + Key] = Splashscreen;
+	}
+	Mutation_SetUnreadNb(_SplashscreenList.UnreadNb);
+
+	Store::SendEvent(C_StoreId, C_Event_PagerUpdate, []);
+	
+	if (_IsPreload) {
+		// Autodisplay an unread splashscreen
+		foreach (Splashscreen in TMNext_SplashscreenStore_State.Pager.Splashscreens) {
+			if (!Splashscreen.Viewed) {
+				Mutation_SetAutoDisplaySplashscreenId(Splashscreen.Id);
+				break;
+			}
+		}
+
+		Store::SendEvent(C_StoreId, C_Event_PreloadComplete, []);
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Validate that a splashscreen has been marked as viewed
+Void Private_Mutation_ValidateMarkSplashscreenAsViewed(Integer _SplashscreenId) {
+	declare K_State TMNext_SplashscreenStore_State for System = C_State_Null;
+
+	declare Boolean DecrementCounter = True; //< True by default because we want to decrement the counter event if the splashscreen is not in the pager
+	declare SplashscreenStruct::LibSplashscreenStruct_K_Splashscreen[Integer] TmpSplashscreens = TMNext_SplashscreenStore_State.Pager.Splashscreens;
+	foreach (Key => Splashscreen in TmpSplashscreens) {
+		if (Splashscreen.Id == _SplashscreenId) {
+			if (Splashscreen.Viewed) {
+				DecrementCounter = False;
+			} else {
+				TMNext_SplashscreenStore_State.Pager.Splashscreens[Key].Viewed = True;
+				Store::SendEvent(C_StoreId, C_Event_PagerUpdate, []);
+			}
+			break;
+		}
+	}
+
+	if (DecrementCounter) {
+		Mutation_SetUnreadNb(TMNext_SplashscreenStore_State.UnreadNb - 1);
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Process the MarkSplashscreenAsViewedQueue queue
+Void Private_Mutation_ProcessMarkSplashscreenAsViewedQueue() {
+	declare K_State TMNext_SplashscreenStore_State for System = C_State_Null;
+	if (TMNext_SplashscreenStore_State.MarkSplashscreenAsViewedQueue.count <= 0) return;
+
+	if (Http::IsInitialized(G_Request_MarkSplashscreenAsViewed.Request)) {
+		G_Request_MarkSplashscreenAsViewed.Request = Http::Destroy(G_Request_MarkSplashscreenAsViewed.Request);
+		G_Request_MarkSplashscreenAsViewed.SplashscreenId = SplashscreenStruct::C_SplashscreenNullId;
+	}
+
+	declare Integer SplashscreenId = TMNext_SplashscreenStore_State.MarkSplashscreenAsViewedQueue[0];
+	G_Request_MarkSplashscreenAsViewed.Request = SplashscreenAPI::PostSplashscreenView(SplashscreenId);
+	G_Request_MarkSplashscreenAsViewed.SplashscreenId = SplashscreenId;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Mark a splashscreen as viewed
+Void Action_MarkSplashscreenAsViewed(SplashscreenStruct::LibSplashscreenStruct_K_Splashscreen _Splashscreen) {
+	declare K_State TMNext_SplashscreenStore_State for System = C_State_Null;
+
+	// Skip if the splashscreen is invalid, already marked as viewed or already in the queue
+	if (
+		SplashscreenStruct::IsEmptySplashscreen(_Splashscreen) ||
+		_Splashscreen.Viewed ||
+		TMNext_SplashscreenStore_State.MarkSplashscreenAsViewedQueue.exists(_Splashscreen.Id)
+	) return;
+
+	TMNext_SplashscreenStore_State.MarkSplashscreenAsViewedQueue.add(_Splashscreen.Id);
+	G_Request_MarkSplashscreenAsViewed.Active = True;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Load splashscreens
+Void Action_PagerSetCursor(Text _Lang, Integer _Cursor, Boolean _IsPreload) {
+	declare K_State TMNext_SplashscreenStore_State for System = C_State_Null;
+
+	if (!_IsPreload) {
+		// Ignore attempt to go outside of the pager
+		if (_Cursor < 0 || _Cursor > TMNext_SplashscreenStore_State.Pager.Total) return;
+		// Only request if we reached the limit of the pager
+		if (_Cursor >= TMNext_SplashscreenStore_State.Pager.CursorMin && _Cursor <= TMNext_SplashscreenStore_State.Pager.CursorMax) return;
+	}
+
+	// Throttle request
+	if (!_IsPreload && G_Request_LoadSplashscreens.ThrottleTime > 0 && Now < G_Request_LoadSplashscreens.ThrottleTime) {
+		G_Request_LoadSplashscreens.ThrottleLang = _Lang;
+		G_Request_LoadSplashscreens.ThrottleCursor = _Cursor;
+		G_Request_LoadSplashscreens.ThrottleTime = Now + C_PagerThrottleDuration;
+		G_Request_LoadSplashscreens.ThrottleActive = True;
+	} else {
+		G_Request_LoadSplashscreens.ThrottleTime = Now + C_PagerThrottleDuration;
+
+		if (Http::IsInitialized(G_Request_LoadSplashscreens.Request)) {
+			G_Request_LoadSplashscreens.Request = Http::Destroy(G_Request_LoadSplashscreens.Request);
+		}
+
+		G_Request_LoadSplashscreens.Offset = ML::Max(0, _Cursor - C_PagerHalfLength - C_PagerBorder);
+		G_Request_LoadSplashscreens.Length = (C_PagerBorder * 2) + (C_PagerHalfLength * 2);
+		G_Request_LoadSplashscreens.Cursor = _Cursor;
+		G_Request_LoadSplashscreens.IsPreload = _IsPreload;
+		G_Request_LoadSplashscreens.Request = SplashscreenAPI::GetSplashscreenList(
+			_Lang,
+			G_Request_LoadSplashscreens.Offset,
+			G_Request_LoadSplashscreens.Length
+		);
+	}
+}
+Void Action_PagerSetCursor(Text _Lang, Integer _Cursor) {
+	Action_PagerSetCursor(_Lang, _Cursor, False);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Preload the splashscreens
+Void Action_PreloadSplashscreens(Text _Lang) {
+	Action_PagerSetCursor(_Lang, 0, True);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Initialize the Splashscreen store
+Void Initialize(Boolean _ResetData) {
+	declare K_State TMNext_SplashscreenStore_State for System = C_State_Null;
+	
+	// Initialize local data
+	if (Http::IsInitialized(G_Request_LoadSplashscreens.Request)) {
+		G_Request_LoadSplashscreens.Request = Http::Destroy(G_Request_LoadSplashscreens.Request);
+	}
+	if (Http::IsInitialized(G_Request_MarkSplashscreenAsViewed.Request)) {
+		G_Request_MarkSplashscreenAsViewed.Request = Http::Destroy(G_Request_MarkSplashscreenAsViewed.Request);
+	}
+	G_Request_MarkSplashscreenAsViewed.SplashscreenId = SplashscreenStruct::C_SplashscreenNullId;
+	
+	// Initialize state
+	if (_ResetData) {
+		TMNext_SplashscreenStore_State = K_State {
+			AutoDisplaySplashscreenId = SplashscreenStruct::C_SplashscreenNullId
+		};
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Process event
+Void ProcessEvent(CManiaAppEvent _Event) {
+	switch (_Event.Type) {
+		case CManiaAppEvent::EType::LayerCustomEvent: {
+			switch (_Event.CustomEventType) {
+				case C_Action_PreloadSplashscreens: {
+					if (_Event.CustomEventData.count >= 1) {
+						Action_PreloadSplashscreens(_Event.CustomEventData[0]);
+					}
+				}
+				case C_Action_ResetAutoDisplaySplashscreenId: {
+					Mutation_ResetAutoDisplaySplashscreenId();
+				}
+				case C_Action_PagerSetCursor: {
+					if (_Event.CustomEventData.count >= 2) {
+						Action_PagerSetCursor(
+							_Event.CustomEventData[0],
+							TL::ToInteger(_Event.CustomEventData[1])
+						);
+					}
+				}
+				case C_Action_MarkSplashscreenAsViewed: {
+					if (_Event.CustomEventData.count >= 1) {
+						declare SplashscreenStruct::LibSplashscreenStruct_K_Splashscreen Splashscreen;
+						Splashscreen.fromjson(_Event.CustomEventData[0]);
+						Action_MarkSplashscreenAsViewed(Splashscreen);
+					}
+				}
+			}
+		}
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Process events
+Void ProcessEvents(CNod _Context) {
+	switchtype (_Context as Context) {
+		case CManiaAppTitle: {
+			foreach (Event in Context.PendingEvents) {
+				ProcessEvent(Event);
+			}
+		}
+		case CManiaAppPlayground: {
+			foreach (Event in Context.PendingEvents) {
+				ProcessEvent(Event);
+			}
+		}
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update the Event store
+Void Yield() {
+	// Load splashscreens
+	if (
+		G_Request_LoadSplashscreens.ThrottleActive &&
+		Now >= G_Request_LoadSplashscreens.ThrottleTime
+	) {
+		G_Request_LoadSplashscreens.ThrottleActive = False;
+		Action_PagerSetCursor(G_Request_LoadSplashscreens.ThrottleLang, G_Request_LoadSplashscreens.ThrottleCursor);
+	}
+	if (Http::IsInitialized(G_Request_LoadSplashscreens.Request)) {
+		G_Request_LoadSplashscreens.Request = Http::Update(G_Request_LoadSplashscreens.Request);
+		if (!Http::IsRunning(G_Request_LoadSplashscreens.Request)) {
+			if (Http::IsSuccess(G_Request_LoadSplashscreens.Request)) {
+				Mutation_SetPagerSplashscreens(
+					SplashscreenAPI::GetResponseFromGetSplashscreenList(G_Request_LoadSplashscreens.Request),
+					G_Request_LoadSplashscreens.Offset,
+					G_Request_LoadSplashscreens.Cursor,
+					G_Request_LoadSplashscreens.IsPreload
+				);
+			} else {
+				Mutation_SetPagerErrorMessage(
+					TL::Compose(
+						//L16N [News] An error occurred when trying to retrieve the announcements.
+						_("Error while retrieving the announcements. (Error code: %1)"),
+						""^Http::GetStatusCode(G_Request_LoadSplashscreens.Request)
+					)
+				);
+			}
+			G_Request_LoadSplashscreens.Request = Http::Destroy(G_Request_LoadSplashscreens.Request);
+		}
+	}
+
+	// Mark splashscreen as viewed
+	if (
+		G_Request_MarkSplashscreenAsViewed.Active &&
+		!Http::IsInitialized(G_Request_MarkSplashscreenAsViewed.Request)
+	) {
+		declare K_State TMNext_SplashscreenStore_State for System = C_State_Null;
+		if (TMNext_SplashscreenStore_State.MarkSplashscreenAsViewedQueue.count > 0) {
+			Private_Mutation_ProcessMarkSplashscreenAsViewedQueue();
+		} else {
+			G_Request_MarkSplashscreenAsViewed.Active = False;
+		}
+	}
+	if (Http::IsInitialized(G_Request_MarkSplashscreenAsViewed.Request)) {
+		G_Request_MarkSplashscreenAsViewed.Request = Http::Update(G_Request_MarkSplashscreenAsViewed.Request);
+		if (!Http::IsRunning(G_Request_MarkSplashscreenAsViewed.Request)) {
+			declare K_State TMNext_SplashscreenStore_State for System = C_State_Null;
+			TMNext_SplashscreenStore_State.MarkSplashscreenAsViewedQueue.remove(G_Request_MarkSplashscreenAsViewed.SplashscreenId);
+			if (Http::IsSuccess(G_Request_MarkSplashscreenAsViewed.Request)) {
+				Private_Mutation_ValidateMarkSplashscreenAsViewed(G_Request_MarkSplashscreenAsViewed.SplashscreenId);
+			}
+			G_Request_MarkSplashscreenAsViewed.Request = Http::Destroy(G_Request_MarkSplashscreenAsViewed.Request);
+		}
+	}
+
+	ProcessEvents(This);
+}

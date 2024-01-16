@@ -1,0 +1,98 @@
+/**
+ *  Common ManiaApp for TMNext
+ */
+#Extends "ManiaApps/Nadeo/TMxSM/Race/RaceBase.Script.txt"
+
+#Const C_TMNextBase_Version    "2022-12-20"
+#Const C_TMNextBase_ScriptName "ManiaApps/Nadeo/TMNext/TrackMania/TMNextBase.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/MedalStack.Script.txt" as MedalStack
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as MenuConst
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/UserStore_MA.Script.txt" as UserStore
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/MapStore_MA.Script.txt" as MapStore
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/OnlineServicesStatusStore_MA.Script.txt" as OnlineServicesStatusStore
+#Include "ManiaApps/Nadeo/TMNext/TrackMania/UIModules/ConnectionError_Client.Script.txt" as UIModules_ConnectionError
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Pages/ConnectionError.Script.txt" as ConnectionError
+#Include "Libs/Nadeo/CommonLibs/Common/Store_MA.Script.txt" as Store
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/CampaignStore_MA.Script.txt" as CampaignStore
+#Include "Libs/Nadeo/CommonLibs/Common/ReportContext.Script.txt" as ReportContext
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Overlays/PluginEvents.Script.txt" as PluginEvents
+#Include "Libs/Nadeo/CommonLibs/Common/Tracking.Script.txt" as Tracking
+#Include "Libs/Nadeo/CommonLibs/Common/Platform.Script.txt" as Platform
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Layer_ReportContext "TMxSMRaceTMNext_ReportContext"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Extends
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+***LoadLibraries***
+***
+Store::Load();
+CampaignStore::Initialize(False);
+UserStore::Initialize(False);
+MapStore::Initialize(False);
+OnlineServicesStatusStore::Initialize(False);
+MedalStack::Load(
+	[MenuConst::C_ImageUrl_Medal_Bronze, MenuConst::C_ImageUrl_Medal_Silver, MenuConst::C_ImageUrl_Medal_Gold, MenuConst::C_ImageUrl_Medal_Nadeo],
+	[MenuConst::C_ImageUrl_Medal_Bronze_Small, MenuConst::C_ImageUrl_Medal_Silver_Small, MenuConst::C_ImageUrl_Medal_Gold_Small, MenuConst::C_ImageUrl_Medal_Nadeo_Small],
+	[MenuConst::C_ImageUrl_Medal_Bronze_VerySmall, MenuConst::C_ImageUrl_Medal_Silver_VerySmall, MenuConst::C_ImageUrl_Medal_Gold_VerySmall, MenuConst::C_ImageUrl_Medal_Nadeo_VerySmall],
+	MenuConst::C_ImageUrl_Medal_Shadow
+);
+// @Todo
+// Do not enable ingame reconnection
+// It has issues at the moment
+// Check /trackmania-next/tmnext/-/issues/1865
+//ConnectionError::Load();
+***
+
+***InitApp***
+***
+declare Text CurrentMapUid;
+***
+
+***StartApp***
+***
+Layers::Create(C_Layer_ReportContext, ReportContext::GetIngameML());
+ReportContext::SetContext(System, ReportContext::C_Context_Mode);
+UIModules::CreateModule(UIModules_ConnectionError::C_Id, UIModules_ConnectionError::GetML(), UIModules_ConnectionError::C_Type, SplitScreenEnable, UIModules::C_SplitScreen_Everyone);
+
+// On Sony consoles the chat must be in the safe area
+// see: /trackmania-next/tmnext/-/issues/4839
+if (Platform::IsSony(System)) {
+	ClientUI.OverlayChatOffset = <-0.15, 0.02>;
+	ClientUI.OverlayChatWidthCoef = 0.83;
+}
+***
+
+***AppLoop***
+***
+Store::Yield(This);
+CampaignStore::Yield();
+UserStore::Yield();
+MapStore::Yield();
+OnlineServicesStatusStore::Yield();
+PluginEvents::Yield();
+// @Todo
+// Do not enable ingame reconnection
+// It has issues at the moment
+// Check /trackmania-next/tmnext/-/issues/1865
+//ConnectionError::Yield();
+
+ReportContext::ProcessReportContextUpdateRequests(System, This);
+***
+
+***Yield***
+***
+Tracking::Yield(System, This);
+***
+
+***EndApp***
+***
+Layers::Destroy(C_Layer_ReportContext);
+***

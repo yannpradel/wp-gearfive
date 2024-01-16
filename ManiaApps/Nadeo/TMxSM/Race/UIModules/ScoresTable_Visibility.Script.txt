@@ -1,0 +1,65 @@
+/**
+ *	ScoreTable visibility layer
+ */		
+#Const Version		"2021-09-27"
+#Const ScriptName	"ManiaApps/Nadeo/TMxSM/Race/UIModules/ScoresTable_Visibility.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "ManiaApps/Nadeo/CommonLibs/Common/Layers.Script.txt" as Layers
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/ScoresTable_Visibility_Component.Script.txt" as ScoresTableVisibility
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+#Const C_Layer_ScoresTable "UIModule_Race_ScoresTable_Visibility"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Globales
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the module manialink of the ScoresTable 
+ *
+ *  @return				The the ScoresTable module manialink
+ */
+Text GetScoreTableML() {
+
+	return MV::Create(
+	C_Layer_ScoresTable, 3,
+"""
+
+""",
+"""
+
+""",
+"""
+***MainLoop***
+***
+if ({{{ScoresTableVisibility::P}}}LayerIsVisible() != PageIsVisible) {
+	{{{ScoresTableVisibility::P}}}SetLayerIsVisible(PageIsVisible);
+}
+***
+""",
+[ScoresTableVisibility::Component()],
+[]
+	);
+}
+
+Void Start(Boolean _IsSplitscreen) {
+	if (_IsSplitscreen) {
+		for (I, 1, SplitScreenCount) {
+			Layers::Create(C_Layer_ScoresTable^I, GetScoreTableML());
+			Layers::SetType(C_Layer_ScoresTable^I, CUILayer::EUILayerType::ScoresTable);
+			SplitScreenAssignLayer(Layers::Get(C_Layer_ScoresTable^I), I);
+		}
+	} else {
+		Layers::Create(C_Layer_ScoresTable, GetScoreTableML());
+		Layers::SetType(C_Layer_ScoresTable, CUILayer::EUILayerType::ScoresTable);
+	}
+}

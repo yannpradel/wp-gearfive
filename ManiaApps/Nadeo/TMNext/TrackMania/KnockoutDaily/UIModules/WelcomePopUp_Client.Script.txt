@@ -1,0 +1,409 @@
+/**
+ *	UI module: WelcomePopUp client side
+ */
+#Const Version		"2023-03-13"
+#Const ScriptName	"ManiaApps/Nadeo/TMNext/TrackMania/KnockoutDaily/UIModules/WelcomePopUp_Client.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Client.Script.txt" as UIModules
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Navigation.Script.txt" as Navigation
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/MenuSounds.Script.txt" as MenuSounds
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/Button.Script.txt" as Button
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/PopUpBackground.Script.txt" as PopUpBackground
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as Constants
+#Include "Libs/Nadeo/TMNext/TrackMania/ColorPalette.Script.txt" as ColorPalette
+#Include "ManiaApps/Nadeo/TMNext/TrackMania/KnockoutDaily/UIModules/WelcomePopUp_Common.Script.txt" as UIModules_WelcomePopUp_Common
+
+#Const C_PopUpName "WelcomePopUp"
+#Const C_NavGroupName "navgroup-knockoutdaily-welcomepopup"
+
+#Const C_Img_PopUpHeader "file://Media/Manialinks/Nadeo/TMNext/Modes/Race/HUD_scorestable_header.dds"
+#Const C_Img_PopUpBg "file://Media/Manialinks/Nadeo/TMNext/Modes/Race/HUD_scorestable_body.dds"
+
+#Const C_Division1 "1"
+#Const C_Division2 "2"
+#Const C_Division3 "3"
+#Const C_Division4 "4"
+#Const C_Division5 "5"
+
+#Const C_InputPriority_WelcomePopUp 1
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the id of the UI module
+Text GetId() {
+	return UIModules_WelcomePopUp_Common::C_Id;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the type of layer of the UI module
+CUILayer::EUILayerType GetLayerType() {
+	return UIModules_WelcomePopUp_Common::C_LayerType;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the module manialink
+ *
+ *  @return                           The module manialink
+ */
+Text GetML() {
+	//L16N [Knockout Daily] Title of a window detailing the Cup of the Day.
+	declare Text Text_Title = _("Cup of the Day");
+	//L16N [Knockout Daily] Message displayed to welcome a player in the Cup of the Day.
+	declare Text Text_Header = _("Welcome to the $<$7FACup of the Day$> !");
+	//L16N [Knockout Daily] Message displayed in the body of the popup to inform the player about the Cup of the Day.
+	declare Text Text_Infos = _("You're about to compete on the Track Of The Day\nYou've been placed with players of the same level\n\nEvery round, the last players to finish will be eliminated\nDo your best to finish among the first !");
+	//L16N [Knockout Daily] %1 is the number of trophies. %2 will be replaced with the name of the trophy (e.g. "The winner earns 2 Trophy 7").
+	declare Text Text_Reward = _("The winner earns $<$7FA%1 Trophy %2$>");
+
+	declare Vec2 Size_Background = <260., 260.>;
+
+	return MV::Create(
+GetId(), 3,
+"""
+<stylesheet>
+	<style class="text-title" textfont="{{{FontManager::C_GameFontExtraBold}}}" halign="center" valign="center" textsize="8" textprefix="$t$i" />
+	<style class="text-subtitle" textfont="{{{FontManager::C_GameFontSemiBold}}}" halign="center" valign="center" textsize="6" textprefix="$t$i" />
+	<style class="text-header" textfont="{{{FontManager::C_GameFontSemiBold}}}" halign="center" valign="center" textsize="5" textprefix="$t$i" />
+	<style class="text-infos" textfont="{{{FontManager::C_GameFontSemiBold}}}" halign="center" valign="center" textsize="3.5" textprefix="$t$i" />
+	<style class="quad-default" halign="center" valign="center" />
+</stylesheet>
+
+<frame z-index="5" hidden="1" id="frame-global">
+	<frame {{{UIModules::CustomizableUIModule(UIModules_WelcomePopUp_Common::C_UIModuleConfig)}}}>
+		<frame id="frame-pop-up">
+			<frameinstance
+				modelid="{{{PopUpBackground::C_Name}}}"
+				z-index="1"
+				data-pop-up-name="{{{C_PopUpName}}}"
+				data-background-url="{{{C_Img_PopUpBg}}}"
+				data-background-position="0 8.5"
+				data-background-size="{{{Size_Background.X}}} {{{Size_Background.Y}}}"
+				data-header-background-url="{{{C_Img_PopUpHeader}}}"
+				data-header-background-position="0 8.5"
+				data-header-background-size="{{{Size_Background.X}}} {{{Size_Background.Y}}}"
+				data-button-close-position="{{{(Size_Background.X * 0.5) - 12.5}}} 81"
+				data-button-close-size="11 11"
+				data-button-close-opacity="0.7"
+			/>
+			<frame z-index="3">
+				<frame id="frame-popup-header" pos="7 78">
+					<label id="label-title" class="text-title" size="{{{Size_Background.X - 70}}} 10" text="{{{Text_Title}}}" />
+					<label id="label-subtitle" class="text-subtitle" pos="-1.1 -10" size="{{{Size_Background.X - 70}}} 10" />
+					</frame>
+				<frame id="frame-popup-body" >
+					<label id="label-header" class="text-header" pos="6 46" size="{{{Size_Background.X - 40}}} 10" text="{{{Text_Header}}}" />
+					<label id="label-infos" class="text-infos" pos="1 17" size="{{{Size_Background.X - 44}}} 100" text="{{{Text_Infos}}}" autonewline="1" maxline="8"/>
+					<label id="label-reward" class="text-infos" pos="-4 -10" size="{{{Size_Background.X - 40}}} 10" />
+					<quad id="quad-trophy" pos="-9 -35" size="38 38" class="quad-default" autoscale="0"/>
+				</frame>
+				<frameinstance
+					modelid="{{{Button::C_Name}}}" id="button-ok"
+					pos="-14 -70" z-inde="10"
+					class="{{{Navigation::C_Class}}}"
+					data-text="{{{_("OK")}}}"
+					data-size="60 12"
+					data-labelsize="40 12"
+					data-opacityunfocus=".5"
+					data-image="{{{Constants::C_ImageUrl_ButtonBG_LocalMulti_Play}}}"
+					data-imagefocus="{{{Constants::C_ImageUrl_ButtonBG_LocalMulti_Play}}}"
+					data-bgcolor="{{{ColorPalette::C_Color_GreenFour}}}"
+					data-focuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
+					data-textcolor="{{{ColorPalette::C_Color_White}}}"
+					data-textfocuscolor="{{{ColorPalette::C_Color_White}}}"
+					data-textsize="5"
+					data-textopacityunfocus=".5"
+					data-iconopacityunfocus=".5"
+					data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+					data-textitalicslope=".2"
+					data-halign="center"
+					data-valign="bottom"
+					data-nav-inputs="select;cancel"
+					data-nav-targets="_;_"
+					data-nav-group="{{{C_NavGroupName}}}"
+					data-nav-zone="{{{Button::C_NavZone}}}"
+				/>
+			</frame>
+		</frame>
+	</frame>
+</frame>
+""",
+"""
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/ModeLibs/TrackMania/MV_Utils.Script.txt" as MV_Utils
+#Include "Libs/Nadeo/TMNext/TrackMania/Modes/COTDQualifications/Constants.Script.txt" as COTDConst
+
+#Const C_DivisionToImages_Official [
+	"1" => "{{{Constants::C_ImageUrl_Trophy_512_Gold1}}}",
+	"2" => "{{{Constants::C_ImageUrl_Trophy_512_Silver3}}}",
+	"3" => "{{{Constants::C_ImageUrl_Trophy_512_Silver3}}}",
+	"4" => "{{{Constants::C_ImageUrl_Trophy_512_Silver2}}}",
+	"5" => "{{{Constants::C_ImageUrl_Trophy_512_Silver2}}}"
+]
+
+#Const C_DivisionToTrophyType_Official [
+	"1" => 7,
+	"2" => 6,
+	"3" => 6,
+	"4" => 5,
+	"5" => 5
+]
+
+#Const C_DivisionToTrophyNumber_Official [
+	"1" => 1,
+	"2" => 6,
+	"3" => 3,
+	"4" => 7,
+	"5" => 4
+]
+
+#Const C_DivisionToImages_OfficialCrossplayOff [
+	"1" => "{{{Constants::C_ImageUrl_Trophy_512_Silver3}}}",
+	"2" => "{{{Constants::C_ImageUrl_Trophy_512_Silver3}}}",
+	"3" => "{{{Constants::C_ImageUrl_Trophy_512_Silver2}}}",
+	"4" => "{{{Constants::C_ImageUrl_Trophy_512_Silver2}}}",
+	"5" => "{{{Constants::C_ImageUrl_Trophy_512_Silver2}}}"
+]
+
+#Const C_DivisionToTrophyType_OfficialCrossplayOff [
+	"1" => 6,
+	"2" => 6,
+	"3" => 5,
+	"4" => 5,
+	"5" => 5
+]
+
+#Const C_DivisionToTrophyNumber_OfficialCrossplayOff [
+	"1" => 5,
+	"2" => 3,
+	"3" => 6,
+	"4" => 3,
+	"5" => 2
+]
+
+#Const C_DivisionToImages_Rerun [
+	"1" => "{{{Constants::C_ImageUrl_Trophy_512_Silver3}}}",
+	"2" => "{{{Constants::C_ImageUrl_Trophy_512_Silver3}}}",
+	"3" => "{{{Constants::C_ImageUrl_Trophy_512_Silver2}}}",
+	"4" => "{{{Constants::C_ImageUrl_Trophy_512_Silver2}}}",
+	"5" => "{{{Constants::C_ImageUrl_Trophy_512_Silver2}}}"
+]
+
+#Const C_DivisionToTrophyType_Rerun [
+	"1" => 6,
+	"2" => 6,
+	"3" => 5,
+	"4" => 5,
+	"5" => 5
+]
+
+#Const C_DivisionToTrophyNumber_Rerun [
+	"1" => 5,
+	"2" => 3,
+	"3" => 6,
+	"4" => 3,
+	"5" => 2
+]
+
+#Const C_DivisionToImages_RerunCrossplayOff [
+	"1" => "{{{Constants::C_ImageUrl_Trophy_512_Silver2}}}",
+	"2" => "{{{Constants::C_ImageUrl_Trophy_512_Silver2}}}",
+	"3" => "{{{Constants::C_ImageUrl_Trophy_512_Silver1}}}",
+	"4" => "{{{Constants::C_ImageUrl_Trophy_512_Silver1}}}",
+	"5" => "{{{Constants::C_ImageUrl_Trophy_512_Silver1}}}"
+]
+
+#Const C_DivisionToTrophyType_RerunCrossplayOff [
+	"1" => 5,
+	"2" => 5,
+	"3" => 4,
+	"4" => 4,
+	"5" => 4
+]
+
+#Const C_DivisionToTrophyNumber_RerunCrossplayOff [
+	"1" => 5,
+	"2" => 3,
+	"3" => 6,
+	"4" => 3,
+	"5" => 2
+]
+""",
+"""
+Void SetTrophyImage(CMlQuad _Quad_Trophy, CMlLabel _Label_Reward, Text _Division, Text _CompetitionType) {
+	if (_Quad_Trophy == Null) return;
+
+	declare Text ImgUrl;
+	declare Integer TrophyType;
+	declare Integer TrophyNb;
+	declare Text DefaultDivision = "5";
+
+	if (_CompetitionType == COTDConst::C_CompetitionType_RerunCrossplayOff) {
+		ImgUrl = C_DivisionToImages_RerunCrossplayOff.get(_Division, C_DivisionToImages_RerunCrossplayOff[DefaultDivision]);
+		TrophyType = C_DivisionToTrophyType_RerunCrossplayOff.get(_Division, C_DivisionToTrophyType_RerunCrossplayOff[DefaultDivision]);
+		TrophyNb = C_DivisionToTrophyNumber_RerunCrossplayOff.get(_Division, C_DivisionToTrophyNumber_RerunCrossplayOff[DefaultDivision]);
+	} else if (_CompetitionType == COTDConst::C_CompetitionType_Rerun) {
+		ImgUrl = C_DivisionToImages_Rerun.get(_Division, C_DivisionToImages_Rerun[DefaultDivision]);
+		TrophyType = C_DivisionToTrophyType_Rerun.get(_Division, C_DivisionToTrophyType_Rerun[DefaultDivision]);
+		TrophyNb = C_DivisionToTrophyNumber_Rerun.get(_Division, C_DivisionToTrophyNumber_Rerun[DefaultDivision]);
+	} else if (_CompetitionType == COTDConst::C_CompetitionType_MainCrossplayOff) {
+		ImgUrl = C_DivisionToImages_OfficialCrossplayOff.get(_Division, C_DivisionToImages_OfficialCrossplayOff[DefaultDivision]);
+		TrophyType = C_DivisionToTrophyType_OfficialCrossplayOff.get(_Division, C_DivisionToTrophyType_OfficialCrossplayOff[DefaultDivision]);
+		TrophyNb = C_DivisionToTrophyNumber_OfficialCrossplayOff.get(_Division, C_DivisionToTrophyNumber_OfficialCrossplayOff[DefaultDivision]);
+	} else {
+		ImgUrl = C_DivisionToImages_Official.get(_Division, C_DivisionToImages_Official[DefaultDivision]);
+		TrophyType = C_DivisionToTrophyType_Official.get(_Division, C_DivisionToTrophyType_Official[DefaultDivision]);
+		TrophyNb = C_DivisionToTrophyNumber_Official.get(_Division, C_DivisionToTrophyNumber_Official[DefaultDivision]);
+	}
+
+	_Quad_Trophy.ChangeImageUrl(ImgUrl);
+	_Label_Reward.Value = TL::Compose("{{{Text_Reward}}}", ""^TrophyNb, ""^TrophyType);
+}
+
+Void Focus(CMlControl _From, CMlControl _To) {
+	if (_From != Null) {
+		{{{Navigation::P}}}Unfocus(This, _From);
+		if ({{{Button::P}}}IsButton(_From)) {
+			{{{Button::P}}}Unfocus(This, (_From as CMlFrame));
+		}
+	}
+	
+	if (_To != Null) {
+		{{{Navigation::P}}}Focus(This, _To);
+		if ({{{Button::P}}}IsButton(_To)) {
+			{{{Button::P}}}Focus(This, (_To as CMlFrame));
+		}
+	}
+}
+
+Void Toggle(CMlFrame _Frame_PopUp, Boolean _Enabled) {
+	_Frame_PopUp.Visible = _Enabled;
+}
+
+Void Select(CMlFrame _Frame_PopUp, CMlControl _Control) {
+	if (_Control == Null) return;
+
+	switch (_Control.ControlId) {
+		case "button-ok": Toggle(_Frame_PopUp, False);
+	}
+}
+
+***MainInit***
+***
+declare CMlFrame Frame_Global;
+declare CMlFrame Frame_PopUp;
+declare CMlFrame Button_Ok;
+declare CMlQuad Quad_Trophy;
+declare CMlLabel Label_Subtitle;
+declare CMlLabel Label_Reward;
+
+declare netread Text Net_KnockoutDaily_WelcomePopUp_Division for Teams[0];
+declare netread Text Net_KnockoutDaily_WelcomePopUp_CompetitionType for Teams[0];
+
+declare Boolean DisplayModule;
+declare Text CurrentDivison;
+declare Text CurrentCompetitionType;
+***
+
+***MainStart***
+***
+Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+Frame_PopUp <=> (Frame_Global.GetFirstChild("frame-pop-up") as CMlFrame);
+Button_Ok <=> (Frame_Global.GetFirstChild("button-ok") as CMlFrame);
+Quad_Trophy <=> (Frame_PopUp.GetFirstChild("quad-trophy") as CMlQuad);
+Label_Subtitle <=> (Frame_PopUp.GetFirstChild("label-subtitle") as CMlLabel);
+Label_Reward <=> (Frame_PopUp.GetFirstChild("label-reward") as CMlLabel);
+
+DisplayModule = Frame_Global.Visible;
+{{{Navigation::P}}}UseLocalEvents(This, True);
+Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), Button_Ok);
+***
+
+***MainLoop***
+***
+if (Frame_PopUp.Visible && !EnableMenuNavigationInputs) {
+	EnableMenuNavigation(True, False, False, Null, {{{C_InputPriority_WelcomePopUp}}});
+} else if (!Frame_PopUp.Visible && EnableMenuNavigationInputs) {
+	EnableMenuNavigation(False, False, False, Null, {{{C_InputPriority_WelcomePopUp}}});
+}
+
+if (PageIsVisible) {
+	declare Owner <=> MV_Utils::GetOwner(This);
+	if (Owner != Null) {
+		declare netread Boolean Net_KnockoutDaily_WelcomePopUp_IsVisible for Owner;
+		if (DisplayModule != Net_KnockoutDaily_WelcomePopUp_IsVisible) {
+			DisplayModule = Net_KnockoutDaily_WelcomePopUp_IsVisible;
+			Frame_Global.Visible = Net_KnockoutDaily_WelcomePopUp_IsVisible;
+		}
+	}
+
+	if (Owner == Null && DisplayModule) {
+		DisplayModule = False;
+		Frame_Global.Visible = DisplayModule;
+	}
+
+	if (Frame_PopUp.Visible) {
+		if (CurrentDivison != Net_KnockoutDaily_WelcomePopUp_Division || CurrentCompetitionType != Net_KnockoutDaily_WelcomePopUp_CompetitionType) {
+			CurrentDivison = Net_KnockoutDaily_WelcomePopUp_Division;
+			CurrentCompetitionType = Net_KnockoutDaily_WelcomePopUp_CompetitionType;
+			SetTrophyImage(Quad_Trophy, Label_Reward, CurrentDivison, CurrentCompetitionType);
+			if (Map != Null) Label_Subtitle.Value = Map.MapInfo.Name;
+		}
+
+		foreach (Event in {{{PopUpBackground::P}}}GetPendingEvents(This)) {
+			if (
+				Event.Type == {{{PopUpBackground::P}}}C_Event_LeavePopUp &&
+				Event.PopUpName == "{{{C_PopUpName}}}" &&
+				Event.FromCloseButton
+			) {
+				Toggle(Frame_PopUp, False);
+			}
+		}
+
+		foreach (Event in {{{Navigation::P}}}GetPendingEvents(This)) {
+			switch (Event.Type) {
+				case {{{Navigation::P}}}C_EventType_NavigateInput: {
+					if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName}}}")) {
+						if (Event.Input == CMlScriptEvent::EMenuNavAction::Select) {
+							Select(Frame_PopUp, Event.To);
+						} else if (Event.Input == CMlScriptEvent::EMenuNavAction::Cancel) {
+							Toggle(Frame_PopUp, False);
+						} else {
+							Focus(Event.From, Event.To);
+						}
+					}
+				}
+				case {{{Navigation::P}}}C_EventType_NavigateMouse: {
+					if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName}}}")) {
+						if (Event.Mouse == CMlScriptEvent::Type::MouseClick) {
+							Select(Frame_PopUp, Event.To);
+						} else if (Event.Mouse == CMlScriptEvent::Type::MouseOver) {
+							Focus(Event.From, Event.To);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+***
+""",
+[
+	UIModules::Component(),
+	Navigation::ComponentV2(),
+	PopUpBackground::ComponentV2(),
+	MenuSounds::ComponentV2(),
+	Button::ComponentV2()
+],
+[]
+	);
+}

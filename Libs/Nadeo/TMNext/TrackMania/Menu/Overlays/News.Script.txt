@@ -1,0 +1,829 @@
+/** 
+ *	Overlay: News
+ */
+#Const Version		"2021-07-07"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Menu/Overlays/News.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Transition.Script.txt" as Transition
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Navigation.Script.txt" as Navigation
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/MenuSounds.Script.txt" as MenuSounds
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/LoadingSpinner.Script.txt" as LoadingSpinner
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Router_ML.Script.txt" as Router
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Scroll.Script.txt" as Scroll
+#Include "Libs/Nadeo/TMNext/TrackMania/ColorPalette.Script.txt" as ColorPalette
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as Const
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/RoutePaths.Script.txt" as RoutePaths
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/PopUpBackground.Script.txt" as PopUpBackground
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/Button.Script.txt" as Button
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/SplashscreenStore_MA.Script.txt" as SplashscreenStore
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/SplashscreenStruct.Script.txt" as SplashscreenStruct
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "Overlay_News"
+#Const C_NavGroup_General "navgroup-overlay-news-general"
+#Const C_NavGroup_MouseOnly "navgroup-overlay-news-mouse-only"
+
+#Const C_Event_Open "Overlay_News_Open"
+#Const C_Event_Close "Overlay_News_Close"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the overlay manialink
+ *
+ *	@return														The overlay manialink
+ */
+Text GetManialink() {
+	//L16N Text displayed while retrieving an announcement
+	declare Text Text_RetrievingAnnouncement = _("Retrieving announcement");
+	//L16N Text displayed when there are no announcements to display
+	declare Text Text_NoAnnouncements = _("No announcements");
+	//L16N Go to the next page
+	declare Text Text_Next = _("|NextPage|Next");
+	//L16N Go to the previous page
+	declare Text Text_Previous = _("|PreviousPage|Previous");
+	//L16N Close the window
+	declare Text Text_Close = _("Close");
+	//L16N Select an option
+	declare Text Text_Select = _("Select");
+	//L16N [News] Action of scrolling with the mouse wheel
+	declare Text Text_Scroll = _("|Mouse|Scroll");
+	//L16N [News] Pressing this button will open the link into a web browser
+	declare Text Text_OpenLink = _("Open link");
+
+	declare Vec2 Size_BodySmall = <135., 87.>;
+	declare Vec2 Size_BodyBig = <223., 87.>;
+	declare Vec2 Size_ScrollLine = <10., 5.>;
+	declare Vec2 Size_TextPadding = <2., 2.>;
+	declare Integer BodySmallLinesNb = Scroll::GetRequiredElementsNb(Size_BodySmall, Size_ScrollLine, <0., 0.>, 1);
+	declare Integer BodyBigLinesNb = Scroll::GetRequiredElementsNb(Size_BodyBig, Size_ScrollLine, <0., 0.>, 1);
+
+	declare Text ML_BodySmall = "";
+	for (I, 1, BodySmallLinesNb) {
+		ML_BodySmall ^= """<frame class="{{{Scroll::C_Class_Element}}}"></frame>""";
+	}
+	declare Text ML_BodyBig = "";
+	for (I, 1, BodyBigLinesNb) {
+		ML_BodyBig ^= """<frame class="{{{Scroll::C_Class_Element}}}"></frame>""";
+	}
+
+	return MV::Create(
+C_Name, 3,
+"""
+<stylesheet>
+	<style class="text-headline" textfont="{{{FontManager::C_GameFontExtraBold}}}" textcolor="{{{ColorPalette::C_Color_White}}}" textsize="8" textprefix="$t$i" />
+	<style class="text-link" textfont="{{{FontManager::C_GameFontSemiBold}}}" textcolor="{{{ColorPalette::C_Color_White}}}" textsize="6" textprefix="$i" />
+	<style class="text-body" textfont="{{{FontManager::C_GameFontRegular}}}" textcolor="{{{ColorPalette::C_Color_White}}}" textsize="3" />
+	<style class="text-error" textfont="{{{FontManager::C_GameFontSemiBold}}}" textcolor="{{{ColorPalette::C_Color_Red}}}" textsize="3" textprefix="$i" />
+	<style class="text-pager" textfont="{{{FontManager::C_GameFontSemiBold}}}" textcolor="{{{ColorPalette::C_Color_White}}}" textsize="3" textprefix="$i" />
+</stylesheet>
+<frame id="frame-global" z-index="{{{Const::C_ZIndex_News}}}" hidden="1">
+	<frameinstance
+		modelid="{{{PopUpBackground::C_Name}}}"
+		z-index="-1"
+		data-pop-up-name="{{{C_Name}}}" 
+		data-background-size="{{{PopUpBackground::C_PopUp_BigSizeX+3.}}} {{{PopUpBackground::C_PopUp_BigSizeY+3.}}}" 
+		data-background-opacity="0.95" 
+		data-background-url="{{{Const::C_ImageUrl_PopUp_Activity_Background_Body}}}"
+		data-use-hitbox="1"
+	/>
+	<frame z-index="1">
+		<frame id="frame-content" pos="-108 60" z-index="1">
+			<label id="label-headline" class="text-headline" pos="1 5" z-index="3" size="240 10" />
+			<frame
+				id="button-link"
+				class="{{{Navigation::C_Class}}} {{{MenuSounds::C_Class}}}"
+				pos="-0.6 -5" z-index="3"
+				data-nav-group="{{{C_NavGroup_MouseOnly}}}"
+				data-nav-inputs="select"
+				data-nav-targets="_"
+				data-nav-zone="quad-activation"
+				data-menusounds-selectsound="ArrowSelect"
+			>
+				<label id="label-link" class="text-link" size="229 10" />
+				<quad id="quad-icon" pos="230 1" size="10 10" opacity="0.5" colorize="{{{ColorPalette::C_Color_White}}}" image="{{{Const::C_ImageUrl_Icon_Link}}}" />
+				<quad id="quad-activation" class="{{{Navigation::C_Class_ActivationZone}}}" z-index="-1" size="240 8" scriptevents="1" />
+			</frame>
+			<frame pos="0 -16">
+				<quad id="quad-media" pos="-21 0" z-index="1" size="98 93" keepratio="Clip" alphamask="{{{Const::C_ImageUrl_PopUp_Activity_Img_Mask}}}" />
+				<frame id="frame-body-small" pos="88 -3" z-index="2">
+					<frameinstance modelid="{{{Scroll::C_Name}}}" data-scroll-parent="scroll-body-small" z-index="1" />
+					<frame
+						id="scroll-body-small"
+						class="{{{Scroll::C_Class_Window}}}"
+						data-elements-per-line="1"
+						data-elements-per-page="{{{BodySmallLinesNb}}}"
+						data-element-size="{{{Size_ScrollLine.X}}} {{{Size_ScrollLine.Y}}}"
+						data-window-size="{{{Size_BodySmall.X}}} {{{Size_BodySmall.Y}}}"
+						data-header-height="{{{Size_TextPadding.Y}}}"
+						data-footer-height="{{{Size_TextPadding.Y}}}"
+						data-scroll-indicator="0"
+						data-scrollbar-visibility="{{{Scroll::C_ScrollBarVisibility_Always}}}"
+					>
+						<quad z-index="-1" scriptevents="1" class="{{{Scroll::C_Class_ScrollEvent}}}" />
+						<label id="label-body" class="text-body" pos="{{{Size_TextPadding.X}}} {{{-Size_TextPadding.Y}}}" z-index="1" size="{{{Size_BodySmall.X - (2 * Size_TextPadding.X)}}} 80" autonewline="1" />
+						{{{ML_BodySmall}}}
+					</frame>
+					<quad z-index="-1" size="{{{Size_BodySmall.X}}} {{{Size_BodySmall.Y}}}" bgcolor="{{{ColorPalette::C_Color_DarkBlue}}}" opacity="0.6" />
+				</frame>
+				<frame id="frame-body-big" pos="0 -3" z-index="2" hidden="1">
+					<frameinstance modelid="{{{Scroll::C_Name}}}" data-scroll-parent="scroll-body-big" z-index="1" />
+					<frame
+						id="scroll-body-big"
+						class="{{{Scroll::C_Class_Window}}}"
+						data-elements-per-line="1"
+						data-elements-per-page="{{{BodyBigLinesNb}}}"
+						data-element-size="{{{Size_ScrollLine.X}}} {{{Size_ScrollLine.Y}}}"
+						data-window-size="{{{Size_BodyBig.X}}} {{{Size_BodyBig.Y}}}"
+						data-header-height="{{{Size_TextPadding.Y}}}"
+						data-footer-height="{{{Size_TextPadding.Y}}}"
+						data-scroll-indicator="0"
+						data-scrollbar-visibility="{{{Scroll::C_ScrollBarVisibility_Always}}}"
+					>
+						<quad z-index="-1" scriptevents="1" class="{{{Scroll::C_Class_ScrollEvent}}}" />
+						<label id="label-body" class="text-body" pos="{{{Size_TextPadding.X}}} {{{-Size_TextPadding.Y}}}" z-index="1" size="{{{Size_BodyBig.X - (2 * Size_TextPadding.X)}}} 80" autonewline="1" />
+						{{{ML_BodyBig}}}
+					</frame>
+					<quad z-index="-1" size="{{{Size_BodyBig.X}}} {{{Size_BodyBig.Y}}}" bgcolor="{{{ColorPalette::C_Color_DarkBlue}}}" opacity="0.6" />
+				</frame>
+			</frame>
+		</frame>
+		
+		<frameinstance id="spinner-announcements" modelid="{{{LoadingSpinner::C_Name}}}" data-label="{{{Text_RetrievingAnnouncement}}}" />
+		<label id="label-no-announcements" class="text-body" pos="0 0" size="260 10" halign="center" valign="center2" text="{{{Text_NoAnnouncements}}}" hidden="1" />
+		<label id="label-error" class="text-error" pos="-10 -54" size="260 10" halign="center" valign="center2" hidden="1" />
+		<label id="label-pager" class="text-pager" pos="-10 -68" size="100 10" halign="center" valign="center2" hidden="1" />
+		
+		<frameinstance
+			modelid="{{{Button::C_Name}}}" id="button-close"
+			pos="80 -75"
+			z-index="2"
+			class="{{{Navigation::C_Class}}} {{{MenuSounds::C_Class}}}"
+			data-text="{{{Text_Close}}}"
+			data-size="60 12"
+			data-labelsize="40 12"
+			data-textxpos="0.45"
+			data-opacityunfocus=".5"
+			data-image="{{{Const::C_ImageUrl_ButtonBG_LocalMulti_Play}}}"
+			data-imagefocus="{{{Const::C_ImageUrl_ButtonBG_LocalMulti_Play}}}"
+			data-bgcolor="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-focuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-textcolor="{{{ColorPalette::C_Color_White}}}"
+			data-textfocuscolor="{{{ColorPalette::C_Color_White}}}"
+			data-iconcolortype="{{{Button::C_ColorType_Colorize}}}"
+			data-iconcolor="{{{ColorPalette::C_Color_White}}}"
+			data-iconfocuscolor="{{{ColorPalette::C_Color_White}}}"
+			data-icon="{{{Const::C_ImageUrl_Icon_Cross_Oblique_128}}}"
+			data-iconfocus="{{{Const::C_ImageUrl_Icon_Cross_Oblique_128}}}"
+			data-iconxpos="0.85"
+			data-iconypos="-.49"
+			data-textsize="5"
+			data-textopacityunfocus=".5"
+			data-iconopacityunfocus=".5"
+			data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+			data-textitalicslope=".2"
+			data-halign="center"
+			data-valign="bottom"
+			data-nav-inputs="select;cancel;left;up;down;scrollup;scrolldown;action1"
+			data-nav-targets="_;_;button-previous;_;_;_;_;_"
+			data-nav-group="{{{C_NavGroup_General}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+			data-menusounds-selectsound="ClosePopUpButtonSelect"
+		/>
+		<frameinstance
+			modelid="{{{Button::C_Name}}}" id="button-previous"
+			pos="-100 -75"
+			z-index="2"
+			class="{{{Navigation::C_Class}}} {{{MenuSounds::C_Class}}}"
+			data-text="{{{Text_Previous}}}"
+			data-size="60 12"
+			data-labelsize="40 12"
+			data-textxpos="0.55"
+			data-opacityunfocus=".5"
+			data-image="{{{Const::C_ImageUrl_ButtonBG_LocalMulti_Play}}}"
+			data-imagefocus="{{{Const::C_ImageUrl_ButtonBG_LocalMulti_Play}}}"
+			data-bgcolor="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-focuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-textcolor="{{{ColorPalette::C_Color_White}}}"
+			data-textfocuscolor="{{{ColorPalette::C_Color_White}}}"
+			data-iconcolortype="{{{Button::C_ColorType_Colorize}}}"
+			data-iconcolor="{{{ColorPalette::C_Color_White}}}"
+			data-iconfocuscolor="{{{ColorPalette::C_Color_White}}}"
+			data-icon="{{{Const::C_ImageUrl_Icon_Arrow_Left_Oblique}}}"
+			data-iconfocus="{{{Const::C_ImageUrl_Icon_Arrow_Left_Oblique}}}"
+			data-iconxpos=".15"
+			data-iconypos="-.49"
+			data-textsize="5"
+			data-textopacityunfocus=".5"
+			data-iconopacityunfocus=".5"
+			data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+			data-textitalicslope=".2"
+			data-halign="center"
+			data-valign="bottom"
+			data-nav-inputs="select;cancel;right;up;down;scrollup;scrolldown;action1"
+			data-nav-targets="_;_;button-next;_;_;_;_;_"
+			data-nav-group="{{{C_NavGroup_General}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+			data-menusounds-selectsound="ArrowSelect"
+		/>
+		<frameinstance
+			modelid="{{{Button::C_Name}}}" id="button-next"
+			pos="80 -75"
+			z-index="2"
+			class="{{{Navigation::C_Class}}} {{{MenuSounds::C_Class}}}"
+			data-text="{{{Text_Next}}}"
+			data-size="60 12"
+			data-labelsize="40 12"
+			data-textxpos="0.45"
+			data-opacityunfocus=".5"
+			data-image="{{{Const::C_ImageUrl_ButtonBG_LocalMulti_Play}}}"
+			data-imagefocus="{{{Const::C_ImageUrl_ButtonBG_LocalMulti_Play}}}"
+			data-bgcolor="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-focuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-textcolor="{{{ColorPalette::C_Color_White}}}"
+			data-textfocuscolor="{{{ColorPalette::C_Color_White}}}"
+			data-iconcolortype="{{{Button::C_ColorType_Colorize}}}"
+			data-iconcolor="{{{ColorPalette::C_Color_White}}}"
+			data-iconfocuscolor="{{{ColorPalette::C_Color_White}}}"
+			data-icon="{{{Const::C_ImageUrl_Icon_Arrow_Right_Oblique}}}"
+			data-iconfocus="{{{Const::C_ImageUrl_Icon_Arrow_Right_Oblique}}}"
+			data-iconxpos="0.85"
+			data-iconypos="-.49"
+			data-textsize="5"
+			data-textopacityunfocus=".5"
+			data-iconopacityunfocus=".5"
+			data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+			data-textitalicslope=".2"
+			data-halign="center"
+			data-valign="bottom"
+			data-nav-inputs="select;cancel;left;up;down;scrollup;scrolldown;action1"
+			data-nav-targets="_;_;button-previous;_;_;_;_;_"
+			data-nav-group="{{{C_NavGroup_General}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+			data-menusounds-selectsound="ArrowSelect"
+		/>
+	</frame>
+</frame>
+""",
+"""
+#Include "MathLib" as ML
+#Include "Libs/Nadeo/MenuLibs/Common/Components/Tools.Script.txt" as Tools
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Overlays/ControllerInfo_ML.Script.txt" as ControllerInfo
+
+#Struct K_State {
+	Boolean Visible;
+	Boolean CanScroll;
+	Integer CloseTime;
+	Text[Text] OldButtons;
+	Integer SplashscreensCursor;
+	{{{SplashscreenStruct::P}}}K_Splashscreen DisplayedSplashscreen;
+}
+
+#Struct K_Controls {
+	CMlFrame Frame_Global;
+	CMlFrame Frame_Content;
+	CMlLabel Label_Headline;
+	CMlFrame Button_Link;
+	CMlLabel Label_Link;
+	CMlQuad Quad_LinkIcon;
+	CMlQuad Quad_LinkActivation;
+	CMlFrame Frame_BodySmall;
+	CMlFrame Scroll_BodySmall;
+	CMlLabel Label_BodySmall;
+	CMlFrame Frame_BodyBig;
+	CMlFrame Scroll_BodyBig;
+	CMlLabel Label_BodyBig;
+	CMlQuad Quad_Media;
+	CMlLabel Label_NoAnnouncements;
+	CMlFrame Spinner_Announcements;
+	CMlLabel Label_Error;
+	CMlLabel Label_Pager;
+	CMlFrame Button_Close;
+	CMlFrame Button_Previous;
+	CMlFrame Button_Next;
+}
+
+#Const C_Event_Open {{{dump(C_Event_Open)}}}
+#Const C_Event_Close {{{dump(C_Event_Close)}}}
+""",
+"""
+Void UpdateLinkFocus(CMlFrame _Button_Link, Boolean _Focused) {
+	declare CMlQuad Quad_Icon <=> (_Button_Link.GetFirstChild("quad-icon") as CMlQuad);
+	if (_Focused) {
+		Quad_Icon.Opacity = 1.;
+	} else {
+		Quad_Icon.Opacity = 0.5;
+	}
+}
+
+Void Focus(CMlControl _From, CMlControl _To) {
+	if ({{{Transition::P}}}IsInTransition(This)) return;
+	
+	if (_From != Null) {
+		{{{Navigation::P}}}Unfocus(This, _From);
+
+		if ({{{Button::P}}}IsButton(_From)) {
+			{{{Button::P}}}Unfocus(This, (_From as CMlFrame));
+		} else if (_From.ControlId == "button-link") {
+			UpdateLinkFocus((_From as CMlFrame), False);
+		}
+	}
+	
+	if (_To != Null) {
+		{{{Navigation::P}}}Focus(This, _To);
+
+		if ({{{Button::P}}}IsButton(_To)) {
+			{{{Button::P}}}Focus(This, (_To as CMlFrame));
+		} else if (_To.ControlId == "button-link") {
+			UpdateLinkFocus((_To as CMlFrame), True);
+		}
+	}
+}
+
+Void UpdateControllerInfoButtons(K_State _State) {
+	if (_State.Visible) {
+		declare Text[Text] Buttons = ["select" => "{{{Text_Select}}}"];
+		if (_State.CanScroll) {
+			Buttons["up"] = ""; //< empty on purpose
+			Buttons["down"] = ""; //< empty on purpose
+			Buttons["scrollup"] = ""; //< empty on purpose
+			Buttons["scrolldown"] = "{{{Text_Scroll}}}";
+		}
+		if (_State.DisplayedSplashscreen.Link != "") {
+			Buttons["action1"] = "{{{Text_OpenLink}}}";
+		}
+		Buttons["cancel"] = "{{{Text_Close}}}";
+		ControllerInfo::SetButtons(Buttons);
+	}
+}
+
+K_State UpdateSplashscreen(K_State _State, K_Controls _Controls, {{{SplashscreenStruct::P}}}K_Splashscreen _Splashscreen) {
+	declare K_State State = _State;
+	
+	declare Boolean ScrollToTop = State.DisplayedSplashscreen.Id != _Splashscreen.Id;
+
+	State.DisplayedSplashscreen = _Splashscreen;
+	if (State.Visible && !{{{SplashscreenStruct::P}}}IsEmptySplashscreen(State.DisplayedSplashscreen)) {
+		{{{SplashscreenStore::P}}}Action_MarkSplashscreenAsViewed(This, State.DisplayedSplashscreen);
+	}
+
+	_Controls.Label_Headline.Value = State.DisplayedSplashscreen.Headline;
+	Tools::FitLabelValue(_Controls.Label_Headline, 8., 5., 0.5);
+
+	_Controls.Button_Link.Visible = State.DisplayedSplashscreen.Link != "";
+	if (_Controls.Button_Link.Visible) {
+		_Controls.Label_Link.Value = State.DisplayedSplashscreen.Link;
+		Tools::FitLabelValue(_Controls.Label_Link, 6., 2., 0.5);
+		_Controls.Quad_LinkIcon.RelativePosition_V3.X = ML::Min(_Controls.Label_Link.Size.X, _Controls.Label_Link.ComputeWidth(_Controls.Label_Link.Value)) + 1.;
+		_Controls.Quad_LinkActivation.Size.X = _Controls.Quad_LinkIcon.RelativePosition_V3.X + _Controls.Quad_LinkIcon.Size.X;
+	}
+	
+	_Controls.Quad_Media.Visible = State.DisplayedSplashscreen.MediaUrl != "";
+	_Controls.Frame_BodySmall.Visible = State.DisplayedSplashscreen.MediaUrl != "";
+	_Controls.Frame_BodyBig.Visible = State.DisplayedSplashscreen.MediaUrl == "";
+
+	declare CMlFrame Scroll_Text;
+	declare CMlLabel Label_Body;
+	if (State.DisplayedSplashscreen.MediaUrl != "") {
+		_Controls.Quad_Media.ImageUrl = State.DisplayedSplashscreen.MediaUrl;
+		Scroll_Text <=> _Controls.Scroll_BodySmall;
+		Label_Body <=> _Controls.Label_BodySmall;
+	} else {
+		Scroll_Text <=> _Controls.Scroll_BodyBig;
+		Label_Body <=> _Controls.Label_BodyBig;
+	}
+
+	Label_Body.Value = State.DisplayedSplashscreen.Body;
+	declare Integer LinesNb = ML::FloorInteger((Label_Body.ComputeHeight(Label_Body.Value) / {{{Size_ScrollLine.Y}}})) + 1;
+	{{{Scroll::P}}}SetElementsTotal(This, Scroll_Text, LinesNb);
+	if (State.CanScroll != {{{Scroll::P}}}CanScroll(Scroll_Text)) {
+		State.CanScroll = {{{Scroll::P}}}CanScroll(Scroll_Text);
+	}
+	if (ScrollToTop) {
+		{{{Scroll::P}}}ScrollToPosition(This, Scroll_Text, 0., False);
+	}
+
+	UpdateControllerInfoButtons(State);
+
+	return State;
+}
+
+K_State UpdateSplashscreens(
+	K_State _State,
+	K_Controls _Controls,
+	{{{SplashscreenStore::P}}}K_SplashscreensPager _SplashscreensPager,
+	Integer _CursorCurrent
+) {
+	declare K_State State = _State;
+
+	// Update cursor
+	declare Integer CursorMax = _SplashscreensPager.Total - 1;
+	declare Integer CursorMin = ML::Min(0, CursorMax);
+	State.SplashscreensCursor = ML::Clamp(_CursorCurrent, CursorMin, CursorMax);
+	_Controls.Label_Pager.Value = (State.SplashscreensCursor + 1) ^ "/" ^ (CursorMax + 1);
+
+	{{{SplashscreenStore::P}}}Action_PagerSetCursor(This, LocalUser.Language, State.SplashscreensCursor);
+
+	// Update buttons visibility
+	_Controls.Button_Close.Visible = State.SplashscreensCursor >= CursorMax;
+	_Controls.Button_Previous.Visible = State.SplashscreensCursor > CursorMin;
+	_Controls.Button_Next.Visible = State.SplashscreensCursor < CursorMax;
+
+	{{{Navigation::P}}}Lock(_Controls.Button_Close, !_Controls.Button_Close.Visible);
+	{{{Navigation::P}}}Lock(_Controls.Button_Previous, !_Controls.Button_Previous.Visible);
+	{{{Navigation::P}}}Lock(_Controls.Button_Next, !_Controls.Button_Next.Visible);
+
+	if ({{{Navigation::P}}}IsLocked(_Controls.Button_Close)) {
+		{{{Navigation::P}}}ChangeControlTarget(This, _Controls.Button_Previous, "right", _Controls.Button_Next.ControlId);
+	} else {
+		{{{Navigation::P}}}ChangeControlTarget(This, _Controls.Button_Previous, "right", _Controls.Button_Close.ControlId);
+	}
+
+	declare CMlControl CurrentFocus = {{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroup_General}}}");
+	if (
+		(CurrentFocus != Null && {{{Navigation::P}}}IsLocked(CurrentFocus)) ||
+		CurrentFocus == Null
+	) {
+		if (!{{{Navigation::P}}}IsLocked(_Controls.Button_Close)) {
+			Focus(CurrentFocus, _Controls.Button_Close);
+		} else if (!{{{Navigation::P}}}IsLocked(_Controls.Button_Next)) {
+			Focus(CurrentFocus, _Controls.Button_Next);
+		} else if (!{{{Navigation::P}}}IsLocked(_Controls.Button_Previous)) {
+			Focus(CurrentFocus, _Controls.Button_Previous);
+		}
+	}
+
+	// Error in the pager
+	_Controls.Label_Error.Value = _SplashscreensPager.ErrorMessage;
+	_Controls.Label_Error.Visible = (_Controls.Label_Error.Value != "");
+
+	// No splashscreens to display
+	if (_SplashscreensPager.Total <= 0) {
+		_Controls.Frame_Content.Visible = False;
+		_Controls.Label_Pager.Visible = False;
+		_Controls.Label_NoAnnouncements.Visible = True;
+	} else {
+		if (_SplashscreensPager.Splashscreens.existskey(State.SplashscreensCursor)) {
+			State = UpdateSplashscreen(State, _Controls, _SplashscreensPager.Splashscreens[State.SplashscreensCursor]);
+			_Controls.Frame_Content.Visible = True;
+			{{{LoadingSpinner::P}}}SetIsLoading(This, _Controls.Spinner_Announcements, False);
+		} else {
+			_Controls.Frame_Content.Visible = False;
+			{{{LoadingSpinner::P}}}SetIsLoading(This, _Controls.Spinner_Announcements, True);
+		}
+		
+		_Controls.Label_Pager.Visible = CursorMax >= 1;
+		_Controls.Label_NoAnnouncements.Visible = False;
+	}
+
+	return State;
+}
+
+K_State Toggle(K_State _State, K_Controls _Controls, Boolean _Display, Boolean _ForceUpdate) {
+	if (_State.Visible == _Display && !_ForceUpdate) return _State;
+
+	declare K_State State = _State;
+	
+	State.Visible = _Display;
+
+	if (State.Visible) {
+		{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroup_General}}}", True);
+		{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroup_MouseOnly}}}", True);
+		if (!{{{Navigation::P}}}IsInGlobalSoloGroups(This, "{{{C_NavGroup_General}}}")) {
+			{{{Navigation::P}}}AddToGlobalSoloGroups(This, "{{{C_NavGroup_General}}}");
+		}
+		if (!{{{Navigation::P}}}IsInGlobalSoloGroups(This, "{{{C_NavGroup_MouseOnly}}}")) {
+			{{{Navigation::P}}}AddToGlobalSoloGroups(This, "{{{C_NavGroup_MouseOnly}}}");
+		}
+		if (State.OldButtons.count <= 0) {
+			State.OldButtons = ControllerInfo::GetButtons();
+		}
+		UpdateControllerInfoButtons(State);
+		if (!{{{SplashscreenStruct::P}}}IsEmptySplashscreen(State.DisplayedSplashscreen)) {
+			{{{SplashscreenStore::P}}}Action_MarkSplashscreenAsViewed(This, State.DisplayedSplashscreen);
+		}
+		State.CloseTime = -1;
+	} else {
+		// We have to delay the removal of the navigation global solo group by one frame.
+		// Otherwise the last input done in the news pop-up will also be processed by the menu.
+		State.CloseTime = Now + 1;
+	}
+
+	_Controls.Frame_Global.Visible = State.Visible;
+
+	return State;
+}
+K_State InitializeVisibility(K_State _State, K_Controls _Controls, Boolean _Display) {
+	return Toggle(_State, _Controls, _Display, True);
+}
+K_State Toggle(K_State _State, K_Controls _Controls, Boolean _Display) {
+	return Toggle(_State, _Controls, _Display, False);
+}
+
+K_State AutoDisplaySplashscreenId(
+	K_State _State,
+	K_Controls _Controls,
+	{{{SplashscreenStore::P}}}K_SplashscreensPager _SplashscreensPager,
+	Integer _SplashscreenId
+) {
+	if (_SplashscreenId == {{{SplashscreenStruct::P}}}C_SplashscreenNullId) return _State;
+
+	declare K_State State = _State;
+
+	declare Integer Cursor = -1;
+	foreach (Key => Splashscreen in _SplashscreensPager.Splashscreens) {
+		if (Splashscreen.Id == _SplashscreenId) {
+			Cursor = Key;
+			break;
+		}
+	}
+	if (Cursor >= 0) {
+		State = UpdateSplashscreens(
+			State,
+			_Controls,
+			_SplashscreensPager,
+			Cursor
+		);
+	}
+
+	State = Toggle(State, _Controls, True);
+	{{{SplashscreenStore::P}}}Action_ResetAutoDisplaySplashscreenId(This);
+
+	return State;
+}
+
+Void Scroll(K_Controls _Controls, Boolean _Up) {
+	declare CMlFrame Scroll_Text = _Controls.Scroll_BodySmall;
+	if (_Controls.Frame_BodyBig.Visible) {
+		Scroll_Text = _Controls.Scroll_BodyBig;
+	}
+	
+	declare Real Delta = 10.;
+	if (_Up) {
+		Delta *= -1;
+	}
+
+	{{{Scroll::P}}}ScrollDelta(This, Scroll_Text, Delta, 250);
+}
+Void ScrollUp(K_Controls _Controls) {
+	Scroll(_Controls, True);
+}
+Void ScrollDown(K_Controls _Controls) {
+	Scroll(_Controls, False);
+}
+
+Void OpenSplashscreenLink(K_State _State) {
+	if (_State.DisplayedSplashscreen.Link != "") {
+		OpenLink(_State.DisplayedSplashscreen.Link, CMlScript::LinkType::ExternalBrowser);
+	}
+}
+
+K_State Select(K_State _State, K_Controls _Controls, CMlControl _Control) {
+	if (_Control == Null || {{{Transition::P}}}IsInTransition(This)) return _State;
+
+	declare K_State State = _State;
+
+	switch (_Control.ControlId) {
+		case "button-close": {
+			State = Toggle(State, _Controls, False);
+		}
+		case "button-previous": {
+			State = UpdateSplashscreens(
+				State,
+				_Controls,
+				{{{SplashscreenStore::P}}}GetSplashscreensPager(),
+				State.SplashscreensCursor - 1
+			);
+		}
+		case "button-next": {
+			State = UpdateSplashscreens(
+				State,
+				_Controls,
+				{{{SplashscreenStore::P}}}GetSplashscreensPager(),
+				State.SplashscreensCursor + 1
+			);
+		}
+		case "button-link": {
+			OpenSplashscreenLink(State);
+		}
+	}
+
+	return State;
+}
+
+***MainInit***
+***
+declare K_State State;
+declare K_Controls Controls;
+declare Boolean PageWasVisible;
+***
+
+***MainStart***
+***
+Controls = K_Controls {};
+Controls.Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+Controls.Frame_Content <=> (Controls.Frame_Global.GetFirstChild("frame-content") as CMlFrame);
+Controls.Frame_BodySmall <=> (Controls.Frame_Global.GetFirstChild("frame-body-small") as CMlFrame);
+Controls.Scroll_BodySmall <=> (Controls.Frame_Global.GetFirstChild("scroll-body-small") as CMlFrame);
+Controls.Label_BodySmall <=> (Controls.Frame_BodySmall.GetFirstChild("label-body") as CMlLabel);
+Controls.Frame_BodyBig <=> (Controls.Frame_Global.GetFirstChild("frame-body-big") as CMlFrame);
+Controls.Scroll_BodyBig <=> (Controls.Frame_Global.GetFirstChild("scroll-body-big") as CMlFrame);
+Controls.Label_BodyBig <=> (Controls.Frame_BodyBig.GetFirstChild("label-body") as CMlLabel);
+Controls.Label_Headline <=> (Controls.Frame_Content.GetFirstChild("label-headline") as CMlLabel);
+Controls.Button_Link <=> (Controls.Frame_Content.GetFirstChild("button-link") as CMlFrame);
+Controls.Label_Link <=> (Controls.Button_Link.GetFirstChild("label-link") as CMlLabel);
+Controls.Quad_LinkIcon <=> (Controls.Button_Link.GetFirstChild("quad-icon") as CMlQuad);
+Controls.Quad_LinkActivation <=> (Controls.Button_Link.GetFirstChild("quad-activation") as CMlQuad);
+Controls.Quad_Media <=> (Controls.Frame_Content.GetFirstChild("quad-media") as CMlQuad);
+Controls.Label_NoAnnouncements <=> (Controls.Frame_Global.GetFirstChild("label-no-announcements") as CMlLabel);
+Controls.Spinner_Announcements <=> (Controls.Frame_Global.GetFirstChild("spinner-announcements") as CMlFrame);
+Controls.Label_Error <=> (Controls.Frame_Global.GetFirstChild("label-error") as CMlLabel);
+Controls.Label_Pager <=> (Controls.Frame_Global.GetFirstChild("label-pager") as CMlLabel);
+Controls.Button_Close <=> (Controls.Frame_Global.GetFirstChild("button-close") as CMlFrame);
+Controls.Button_Previous <=> (Controls.Frame_Global.GetFirstChild("button-previous") as CMlFrame);
+Controls.Button_Next <=> (Controls.Frame_Global.GetFirstChild("button-next") as CMlFrame);
+
+State = K_State {
+	Visible = Controls.Frame_Global.Visible,
+	CanScroll = False,
+	CloseTime = -1,
+	OldButtons = [],
+	SplashscreensCursor = -1,
+	DisplayedSplashscreen = {{{SplashscreenStruct::P}}}GetEmptySplashscreen()
+};
+PageWasVisible = PageIsVisible;
+
+State = InitializeVisibility(State, Controls, Controls.Frame_Global.Visible);
+State = UpdateSplashscreens(
+	State,
+	Controls,
+	{{{SplashscreenStore::P}}}GetSplashscreensPager(),
+	State.SplashscreensCursor
+);
+***
+
+***MainLoop***
+***
+// Detect when the overlay is loaded/unloaded
+if (PageWasVisible != PageIsVisible) {
+	PageWasVisible = PageIsVisible;
+	
+	if (PageIsVisible) {
+		State = AutoDisplaySplashscreenId(
+			State,
+			Controls,
+			{{{SplashscreenStore::P}}}GetSplashscreensPager(),
+			{{{SplashscreenStore::P}}}GetAutoDisplaySplashscreenId()
+		);
+		State = UpdateSplashscreens(
+			State,
+			Controls,
+			{{{SplashscreenStore::P}}}GetSplashscreensPager(),
+			State.SplashscreensCursor
+		);
+	}
+}
+
+if (State.CloseTime >= 0 && Now >= State.CloseTime) {
+	{{{Navigation::P}}}RemoveFromGlobalSoloGroups(This, "{{{C_NavGroup_General}}}");
+	{{{Navigation::P}}}RemoveFromGlobalSoloGroups(This, "{{{C_NavGroup_MouseOnly}}}");
+	{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroup_General}}}", False);
+	{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroup_MouseOnly}}}", False);
+	ControllerInfo::SetButtons(State.OldButtons);
+	State.OldButtons = [];
+	State.CloseTime = -1;
+}
+
+if ({{{Router::P}}}PageIsRunning(This)) {
+	if (State.Visible) {
+		foreach (Event in {{{Navigation::P}}}GetPendingEvents(This)) {
+			switch (Event.Type) {
+				case {{{Navigation::P}}}C_EventType_NavigateInput: {
+					if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroup_General}}}")) {
+						if (Event.Input == CMlScriptEvent::EMenuNavAction::Select) {
+							State = Select(State, Controls, Event.To);
+						} else if (Event.Input == CMlScriptEvent::EMenuNavAction::Up || Event.Input == CMlScriptEvent::EMenuNavAction::ScrollUp) {
+							ScrollUp(Controls);
+						} else if (Event.Input == CMlScriptEvent::EMenuNavAction::Down || Event.Input == CMlScriptEvent::EMenuNavAction::ScrollDown) {
+							ScrollDown(Controls);
+						} else if (Event.Input == CMlScriptEvent::EMenuNavAction::Action1) {
+							OpenSplashscreenLink(State);
+						} else if (Event.Input == CMlScriptEvent::EMenuNavAction::Cancel) {
+							State = Toggle(State, Controls, False);
+						} else {
+							Focus(Event.From, Event.To);
+						}
+					}
+				}
+				case {{{Navigation::P}}}C_EventType_NavigateMouse: {
+					if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroup_General}}}")) {
+						if (Event.Mouse == CMlScriptEvent::Type::MouseClick) {
+							State = Select(State, Controls, Event.To);
+						} else if (Event.Mouse == CMlScriptEvent::Type::MouseOver) {
+							Focus(Event.From, Event.To);
+						}
+					} else if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroup_MouseOnly}}}")) {
+						if (Event.Mouse == CMlScriptEvent::Type::MouseClick) {
+							State = Select(State, Controls, Event.To);
+						} else if (
+							Event.Mouse == CMlScriptEvent::Type::MouseOver ||
+							Event.Mouse == CMlScriptEvent::Type::MouseOut
+						) {
+							Focus(Event.From, Event.To);
+						}
+					}
+				}
+			}
+		}
+
+		foreach (Event in {{{PopUpBackground::P}}}GetPendingEvents(This)) {
+			if (Event.Type == {{{PopUpBackground::P}}}C_Event_LeavePopUp && Event.PopUpName == "{{{C_Name}}}") {
+				State = Toggle(State, Controls, False);
+			}
+		}
+	}
+
+	foreach (Event in PendingEvents) {
+		switch (Event.Type) {
+			case CMlScriptEvent::Type::PluginCustomEvent: {
+				switch (Event.CustomEventType) {
+					case C_Event_Open: {
+						State = Toggle(State, Controls, True);
+					}
+					case C_Event_Close: {
+						State = Toggle(State, Controls, False);
+					}
+					case {{{SplashscreenStore::P}}}C_Event_PagerUpdate: {
+						State = UpdateSplashscreens(
+							State,
+							Controls,
+							{{{SplashscreenStore::P}}}GetSplashscreensPager(),
+							State.SplashscreensCursor
+						);
+					}
+					case {{{SplashscreenStore::P}}}C_Event_PagerError: {
+						State = UpdateSplashscreens(
+							State,
+							Controls,
+							{{{SplashscreenStore::P}}}GetSplashscreensPager(),
+							State.SplashscreensCursor
+						);
+					}
+					case {{{SplashscreenStore::P}}}C_Event_AutoDisplaySplashscreen: {
+						State = AutoDisplaySplashscreenId(
+							State,
+							Controls,
+							{{{SplashscreenStore::P}}}GetSplashscreensPager(),
+							{{{SplashscreenStore::P}}}GetAutoDisplaySplashscreenId()
+						);
+					}
+				}
+			}
+		}
+	}
+}
+***
+""",
+[
+	Transition::ComponentV2(),
+	Navigation::ComponentV2(),
+	MenuSounds::ComponentV2(),
+	Router::ComponentV2(),
+	PopUpBackground::ComponentV2(),
+	LoadingSpinner::ComponentV2(),
+	Button::ComponentV2(),
+	SplashscreenStore::ComponentV2(),
+	SplashscreenStruct::Component(),
+	Scroll::ComponentV2()
+],
+[]
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Open the news overlay
+Void Open() {
+	declare CUILayer Layer <=> Router::GetOverlayLayer(RoutePaths::C_Path_OverlayName_News);
+	LayerCustomEvent(Layer, C_Event_Open, []);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Close the news overlay
+Void Close() {
+	declare CUILayer Layer <=> Router::GetOverlayLayer(RoutePaths::C_Path_OverlayName_News);
+	LayerCustomEvent(Layer, C_Event_Close, []);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update from the ManiaApp
+Void Yield() {
+	
+}

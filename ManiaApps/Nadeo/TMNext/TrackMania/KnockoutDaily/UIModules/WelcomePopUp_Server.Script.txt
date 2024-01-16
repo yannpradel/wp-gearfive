@@ -1,0 +1,84 @@
+/**
+ *	UI module: WelcomePopUp server side
+ */
+#Const Version		"2021-08-09"
+#Const ScriptName	"ManiaApps/Nadeo/TMNext/TrackMania/KnockoutDaily/UIModules/WelcomePopUp_Server.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Common.Script.txt" as UIModules_Common
+#Include "ManiaApps/Nadeo/TMNext/TrackMania/KnockoutDaily/UIModules/WelcomePopUp_Common.Script.txt" as UIModules_WelcomePopUp_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the id of the UI module
+Text GetId() {
+	return UIModules_WelcomePopUp_Common::C_Id;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the configuration of the UI module
+UIModules_Common::ComponentModeLibsUIModules_K_ModuleConfig GetConfig() {
+	return UIModules_WelcomePopUp_Common::C_UIModuleConfig;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Send the division of the server
+Void SetDivision(Text _Division) {
+	declare netwrite Text Net_KnockoutDaily_WelcomePopUp_Division for Teams[0];
+	Net_KnockoutDaily_WelcomePopUp_Division = _Division;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Send the competition type of the server (official or rerun)
+Void SetCompetitionType(Text _CompetitionType) {
+	declare netwrite Text Net_KnockoutDaily_WelcomePopUp_CompetitionType for Teams[0];
+	Net_KnockoutDaily_WelcomePopUp_CompetitionType = _CompetitionType;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Show or hide the UI
+ *
+ *	@param	_Player										The player to update
+ *	@param	_Display									True to show
+ *																		False to hide
+ */
+Void SetVisibility(CPlayer _Player, Boolean _Display) {
+	if (_Player == Null) return;
+	
+	declare netwrite Boolean Net_KnockoutDaily_WelcomePopUp_IsVisible for _Player;
+	Net_KnockoutDaily_WelcomePopUp_IsVisible = _Display;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Initialize a player
+ *
+ *	@param	_Player										The player to initialize
+ */
+Void InitializePlayer(CPlayer _Player) {
+	if (_Player == Null) return;
+	
+	SetVisibility(_Player, False);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Unload the library
+Void Unload() {
+	SetDivision("");
+	SetCompetitionType("");
+	foreach (Player in AllPlayers) {
+		InitializePlayer(Player);
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Load the library
+Void Load() {
+	Unload();
+}

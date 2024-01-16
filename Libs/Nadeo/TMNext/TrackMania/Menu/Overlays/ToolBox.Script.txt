@@ -1,0 +1,671 @@
+/** 
+ *	Overlay: Club widget
+ */
+#Const Version		"2023-06-12"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Menu/Overlays/ToolBox.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/Helpers.Script.txt" as MLHelpers
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Navigation.Script.txt" as Navigation
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Slider.Script.txt" as Slider
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Router_ML.Script.txt" as Router
+#Include "Libs/Nadeo/TMNext/TrackMania/ColorPalette.Script.txt" as ColorPalette
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/Button.Script.txt" as Button
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/Checkbox.Script.txt" as Checkbox
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/PopUpBackground2.Script.txt" as PopUpBackground
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/TextField.Script.txt" as TextField
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as Const
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "Overlay_ToolBox"
+#Const C_NavGroupName "navgroup-overlay-toolbox"
+#Const P "OverlayToolBox_" //< Prefix used to differentiate functions/variables in the script
+
+#Const C_Path_Guide "file://Media/.debug/UI_Grid.png"
+#Const C_Opacity_Default 1.
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the page manialink
+ *
+ *	@return														The page manialink
+ */
+Text GetManialink() {
+	declare Text Text_DescriptionMoveable = "Maintain 'Right Click' to move control\nAdd 'Y' key to move the control's parent";
+	declare Text Text_DescriptionMousePos = "Display the current mouse position.\n'Right Click' to draw a line & 'TAB' for 10° steps";
+	declare Text Text_DescriptionHitboxesVisibility = "Show Navigation class or Scroll class hitboxes\n(May create strange behaviors when activated)";
+	declare Text Text_DescriptionSafeArea = "Show an overlay to see the 90% safe area on screen";
+	declare Text Text_DescriptionFastBoot = "Load the game with the minimum required pages\n<- Push parent";
+
+	return MV::Create(
+C_Name, 3,
+"""
+<stylesheet>
+	<style class="{{{P}}}text-semibold" halign="center" valign="center2" textfont="{{{FontManager::C_GameFontSemiBold}}}" textprefix="$i$t" textcolor="FFFFFF"/>
+	<style class="{{{P}}}text-extrabold" halign="center" valign="center2" textfont="{{{FontManager::C_GameFontExtraBold}}}" textprefix="$i$t" textcolor="FFFFFF"/>
+</stylesheet>
+
+<!-- Guide -->
+<quad id="{{{P}}}quad-guide" size="320 180" pos="0 0" image="{{{C_Path_Guide}}}" halign="center" valign="center" z-index="10" opacity="{{{C_Opacity_Default}}}" hidden="1"/>
+
+<!-- Mouse Pos & Ruler-->
+<frame id="{{{P}}}frame-mouse-pos-display" z-index="11" hidden="1">
+	<quad id="{{{P}}}quad-mouse-pos" size="15 3" bgcolor="000514" opacity="0.6" halign="left" valign="bottom"/>
+	<label id="{{{P}}}label-mouse-pos" size="15 3" class="{{{P}}}text-semibold" textsize="1" halign="left" valign="bottom"/>
+</frame>
+<frame id="{{{P}}}frame-mouse-ruler-display" z-index="11" hidden="1">
+	<quad id="{{{P}}}quad-mouse-ruler" size="0 0.5" halign="left" valign="bottom" bgcolor="F00"/>
+	<frame id="frame-mouse-ruler-hint">
+		<quad id="{{{P}}}quad-hint-bg" size="15 3" bgcolor="000514" opacity="0.6" halign="center" valign="bottom"/>
+		<label id="{{{P}}}label-mouse-ruler" size="15 3" class="{{{P}}}text-semibold" textsize="1" halign="center" valign="bottom"/>
+	</frame>
+</frame>
+
+<!-- Safe area -->
+<quad id="{{{P}}}quad-safe-area" size="288 162" halign="center" valign="center" opacity="0.3" bgcolor="F00" fullscreen="1" z-index="9" hidden="1"/>
+
+<!-- Frame global  -->
+<frame id="{{{P}}}frame-global" z-index="20" hidden="1">
+	<frameinstance id="{{{P}}}frame-background" modelid="{{{PopUpBackground::C_Name}}}" data-styles="{{{PopUpBackground::C_Style_SecondaryPopUp_WithHeader}}}" z-index="-1"/>
+	<label id="label-title" pos="{{{MLHelpers::Skew(0., 30., 10.)}}}" size="150 10" text="Super Secret ToolBox" class="{{{P}}}text-extrabold" textsize="8"/>
+
+	<!-- Moveable -->
+	<frame id="{{{P}}}frame-moveable" pos="{{{MLHelpers::Skew(0., 16., 10.)}}}">
+		<label id="{{{P}}}label-moveable-info" pos="-5 0" size="80 10" class="{{{P}}}text-semibold" text="{{{Text_DescriptionMoveable}}}" textsize="1" halign="left" opacity="0.6" autonewline="1" maxline="2"/>
+		<frameinstance
+			id="{{{P}}}checkbox-moveable" pos="-60 0"
+			modelid="{{{Checkbox::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-labelsize="35 10"
+			data-text="Moveable"
+			data-iconsize="10 10"
+			data-iconxpos="0."
+			data-textxpos="0.2"
+			data-texthalign="left"
+			data-textitalicslope=".2"
+			data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+			data-iconcolor="{{{ColorPalette::C_Color_White}}}"
+			data-opacityunfocus="0.5"
+			data-iconchecked="{{{Const::C_ImageUrl_Icon_Checkbox_Active_Square}}}"
+			data-iconunchecked="{{{Const::C_ImageUrl_Icon_Checkbox_Inactive_Square}}}"
+			data-halign="left" data-valign="center"
+			data-nav-inputs="select"
+			data-nav-targets="_"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Checkbox::C_NavZone}}}"
+		/>
+	</frame>
+
+	<!-- Mouse Pos -->
+	<frame id="{{{P}}}frame-mouse-pos" pos="{{{MLHelpers::Skew(0., 7., 10.)}}}">
+		<label id="{{{P}}}label-mouse-pos-info" pos="-5 0" size="80 10" class="{{{P}}}text-semibold" text="{{{Text_DescriptionMousePos}}}" textsize="1" halign="left" opacity="0.6" autonewline="1" maxline="2"/>
+		<frameinstance
+			id="{{{P}}}checkbox-mouse-pos" pos="-60 0"
+			modelid="{{{Checkbox::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-labelsize="35 10"
+			data-text="Mouse pos"
+			data-iconsize="10 10"
+			data-iconxpos="0."
+			data-textxpos="0.2"
+			data-texthalign="left"
+			data-textitalicslope=".2"
+			data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+			data-iconcolor="{{{ColorPalette::C_Color_White}}}"
+			data-opacityunfocus="0.5"
+			data-iconchecked="{{{Const::C_ImageUrl_Icon_Checkbox_Active_Square}}}"
+			data-iconunchecked="{{{Const::C_ImageUrl_Icon_Checkbox_Inactive_Square}}}"
+			data-halign="left" data-valign="center"
+			data-nav-inputs="select"
+			data-nav-targets="_"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Checkbox::C_NavZone}}}"
+		/>
+	</frame>
+
+	<!-- Hitboxes visibility -->
+	<frame id="{{{P}}}frame-hitboxes-visibility" pos="{{{MLHelpers::Skew(0., -2., 10.)}}}">
+		<label id="{{{P}}}label-hitboxes-visibility-info" pos="-5 0" size="80 10" class="{{{P}}}text-semibold" text="{{{Text_DescriptionHitboxesVisibility}}}" textsize="1" halign="left" opacity="0.6" autonewline="1" maxline="2"/>
+		<frameinstance
+			id="{{{P}}}checkbox-hitboxes-visibility" pos="-60 0"
+			modelid="{{{Checkbox::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-labelsize="35 10"
+			data-text="Show hitboxes"
+			data-iconsize="10 10"
+			data-iconxpos="0."
+			data-textxpos="0.2"
+			data-texthalign="left"
+			data-textitalicslope=".2"
+			data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+			data-iconcolor="{{{ColorPalette::C_Color_White}}}"
+			data-opacityunfocus="0.5"
+			data-iconchecked="{{{Const::C_ImageUrl_Icon_Checkbox_Active_Square}}}"
+			data-iconunchecked="{{{Const::C_ImageUrl_Icon_Checkbox_Inactive_Square}}}"
+			data-halign="left" data-valign="center"
+			data-nav-inputs="select"
+			data-nav-targets="_"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Checkbox::C_NavZone}}}"
+		/>
+	</frame>
+
+	<!-- Guide  -->
+	<frame id="{{{P}}}frame-guide" pos="{{{MLHelpers::Skew(0., -11., 10.)}}}">
+		<frameinstance
+			id="{{{P}}}checkbox-guide" pos="-60 0"
+			modelid="{{{Checkbox::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-iconsize="10 10"
+			data-iconxpos="0."
+			data-iconcolor="{{{ColorPalette::C_Color_White}}}"
+			data-opacityunfocus="0.5"
+			data-iconchecked="{{{Const::C_ImageUrl_Icon_Checkbox_Active_Square}}}"
+			data-iconunchecked="{{{Const::C_ImageUrl_Icon_Checkbox_Inactive_Square}}}"
+			data-halign="left" data-valign="center"
+			data-nav-inputs="select"
+			data-nav-targets="_"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Checkbox::C_NavZone}}}"
+		/>
+		<frameinstance 
+			id="{{{P}}}textfield-guide" pos="-20 0"
+			modelid="{{{TextField::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-size="60 6.5"
+			data-textvalue="{{{C_Path_Guide}}}"
+			data-bgopacityunfocus="0.4"
+			data-bgcolorfocus="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-bgcolorunfocus="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-contourcolorfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+			data-contouropacityunfocus=".0"
+			data-contouropacityfocus="1."
+			data-textsize="1."
+			data-textcolorunfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+			data-nav-inputs="select"
+			data-nav-targets="_"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{TextField::C_NavZone}}}"
+		/>
+		<frameinstance
+			id="{{{P}}}button-reset" pos="14 0"
+			modelid="{{{Button::C_Name}}}" 
+			class="{{{Navigation::C_Class}}}"
+			data-size="8 8"
+			data-opacityunfocus="0.6"
+			data-image="{{{Const::C_ImageUrl_Icon_Refresh}}}"
+			data-imagefocus="{{{Const::C_ImageUrl_Icon_Refresh}}}"
+			data-focuscolor="{{{ColorPalette::C_Color_White}}}"
+			data-bgcolor="{{{ColorPalette::C_Color_White}}}"
+			data-halign="center" data-valign="center"
+			data-nav-inputs="select"
+			data-nav-targets="_"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+		<frameinstance 
+			id="{{{P}}}textfield-opacity" pos="35 0"
+			modelid="{{{TextField::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-size="14 6.5"
+			data-textsize="1.5"
+			data-textvalue="{{{C_Opacity_Default}}}"
+			data-bgopacityunfocus="0.4"
+			data-bgcolorfocus="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-bgcolorunfocus="{{{ColorPalette::C_Color_GreenFour}}}"
+			data-contourcolorfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+			data-contouropacityunfocus=".0"
+			data-contouropacityfocus="1."
+			data-textcolorunfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+			data-halign="right" data-valign="center"
+			data-nav-inputs="select"
+			data-nav-targets="_"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{TextField::C_NavZone}}}"
+		/>
+		<frameinstance
+			id="{{{P}}}slider-opacity" pos="37 0"
+			modelid="{{{Slider::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-opacity="0.6"
+			data-bar-size="20 1.8"
+			data-steps="0.1"
+			data-halign="left" data-valign="center"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Slider::C_NavZone}}}"
+		/>
+	</frame>
+
+	<!-- Safe area guide -->
+	<frame id="{{{P}}}frame-safe-area" pos="{{{MLHelpers::Skew(0., -20., 10.)}}}">
+		<label id="{{{P}}}label-safe-area-info" pos="-5 0" size="80 10" class="{{{P}}}text-semibold" text="{{{Text_DescriptionSafeArea}}}" textsize="1" halign="left" opacity="0.6" autonewline="1" maxline="2"/>
+		<frameinstance
+			id="{{{P}}}checkbox-safe-area" pos="-60 0"
+			modelid="{{{Checkbox::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-labelsize="35 10"
+			data-text="Show safe area"
+			data-iconsize="10 10"
+			data-iconxpos="0."
+			data-textxpos="0.2"
+			data-texthalign="left"
+			data-textitalicslope=".2"
+			data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+			data-iconcolor="{{{ColorPalette::C_Color_White}}}"
+			data-opacityunfocus="0.5"
+			data-iconchecked="{{{Const::C_ImageUrl_Icon_Checkbox_Active_Square}}}"
+			data-iconunchecked="{{{Const::C_ImageUrl_Icon_Checkbox_Inactive_Square}}}"
+			data-halign="left" data-valign="center"
+			data-nav-inputs="select"
+			data-nav-targets="_"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Checkbox::C_NavZone}}}"
+		/>
+	</frame>
+
+	<!-- Fast load -->
+	<frame id="{{{P}}}frame-fast-load" pos="{{{MLHelpers::Skew(0., -29., 10.)}}}">
+		<label id="{{{P}}}label-fast-load-info" pos="-5 0" size="80 10" class="{{{P}}}text-semibold" text="{{{Text_DescriptionFastBoot}}}" textsize="1" halign="left" opacity="0.6" autonewline="1" maxline="2"/>
+		<frameinstance
+			id="{{{P}}}checkbox-fast-load" pos="-60 0"
+			modelid="{{{Checkbox::C_Name}}}"
+			class="{{{Navigation::C_Class}}}"
+			data-labelsize="35 10"
+			data-text="Fast load"
+			data-iconsize="10 10"
+			data-iconxpos="0."
+			data-textxpos="0.2"
+			data-texthalign="left"
+			data-textitalicslope=".2"
+			data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+			data-iconcolor="{{{ColorPalette::C_Color_White}}}"
+			data-opacityunfocus="0.5"
+			data-iconchecked="{{{Const::C_ImageUrl_Icon_Checkbox_Active_Square}}}"
+			data-iconunchecked="{{{Const::C_ImageUrl_Icon_Checkbox_Inactive_Square}}}"
+			data-halign="left" data-valign="center"
+			data-nav-inputs="select"
+			data-nav-targets="_"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Checkbox::C_NavZone}}}"
+		/>
+		<frameinstance
+			id="{{{P}}}button-return" pos="-8 -1.3"
+			modelid="{{{Button::C_Name}}}" 
+			class="{{{Navigation::C_Class}}}"
+			data-size="5 5"
+			data-opacityunfocus="0.6"
+			data-image="{{{Const::C_ImageUrl_Icon_Arrow_Left_Encircled}}}"
+			data-imagefocus="{{{Const::C_ImageUrl_Icon_Arrow_Left_Encircled}}}"
+			data-focuscolor="{{{ColorPalette::C_Color_White}}}"
+			data-bgcolor="{{{ColorPalette::C_Color_White}}}"
+			data-halign="center" data-valign="center"
+			data-nav-inputs="select"
+			data-nav-targets="_"
+			data-nav-group="{{{C_NavGroupName}}}"
+			data-nav-zone="{{{Button::C_NavZone}}}"
+		/>
+	</frame>
+</frame>
+""",
+"""
+#Include "TextLib" as {{{P}}}TL
+#Include "MathLib" as {{{P}}}ML
+#Include "Libs/Nadeo/TMNext/TrackMania/Config.Script.txt" as {{{P}}}Config
+
+#Struct {{{P}}}K_Controls {
+	CMlFrame Checkbox_HitboxesVisibility;
+	CMlFrame Checkbox_MousePos;
+	CMlFrame Checkbox_Moveable;
+	CMlFrame Frame_Background;
+	CMlFrame Frame_MousePosDisplay;
+	CMlFrame Frame_MouseRulerDisplay;
+	CMlFrame Slider_Opacity;
+	CMlFrame TextField_Guide;
+	CMlFrame TextField_Opacity;
+	CMlLabel Label_MousePos;
+	CMlLabel Label_MouseRuler;
+	CMlQuad Quad_Guide;
+	CMlQuad Quad_MouseRuler;
+	CMlQuad Quad_SafeArea;
+}
+
+""",
+"""
+Void UpdateHitboxQuadStyle(CMlQuad _Quad_Hitbox, Boolean _IsVisible) {
+	if (_IsVisible) {
+		_Quad_Hitbox.Opacity = 0.4;
+		_Quad_Hitbox.BgColor = <1., 0., 0.>;
+	} else {
+		_Quad_Hitbox.Opacity = 0.;
+		_Quad_Hitbox.BgColor = <-1., -1., -1.>;
+	}
+}
+
+Void ShowHitboxes(CMlPage _Page, Boolean _IsVisible) {
+	if (_Page == Null) return;
+
+	// Get CMlQuad with an activation zone of the Navigation component
+	_Page.GetClassChildren("component-navigation-item-zone", _Page.MainFrame, True);
+	foreach (Control in _Page.GetClassChildren_Result) {
+		if (Control is CMlQuad) UpdateHitboxQuadStyle(Control as CMlQuad, _IsVisible);
+	}
+
+	// Get CMlQuad with an activation zone of the Scroll component
+	_Page.GetClassChildren("menu-libs-scroll-activation-zone", _Page.MainFrame, True);
+	foreach (Control in _Page.GetClassChildren_Result) {
+		if (Control is CMlQuad) UpdateHitboxQuadStyle(Control as CMlQuad, _IsVisible);
+	}
+}
+
+Void Focus(CMlControl _From, CMlControl _To) {
+	if (_From != Null) {
+		{{{Navigation::P}}}Unfocus(This, _From);
+		if ({{{Button::P}}}IsButton(_From)) {
+			{{{Button::P}}}Unfocus(This, (_From as CMlFrame));
+		} else if ({{{Checkbox::P}}}IsCheckbox(_From)) {
+			{{{Checkbox::P}}}Unfocus(This, (_From as CMlFrame));
+		} else if ({{{TextField::P}}}IsTextField(_From)) {
+			{{{TextField::P}}}Unfocus(This, (_From as CMlFrame));
+		} else if ({{{Slider::P}}}IsSlider(_From)) {
+			{{{Slider::P}}}SetOpacity((_From as CMlFrame), 0.6);
+		}
+	}
+	
+	if (_To != Null) {
+		{{{Navigation::P}}}Focus(This, _To);
+		if ({{{Button::P}}}IsButton(_To)) {
+			{{{Button::P}}}Focus(This, (_To as CMlFrame));
+		} else if ({{{Checkbox::P}}}IsCheckbox(_To)) {
+			{{{Checkbox::P}}}Focus(This, (_To as CMlFrame));
+		} else if ({{{TextField::P}}}IsTextField(_To)) {
+			{{{TextField::P}}}Focus(This, (_To as CMlFrame));
+		} else if ({{{Slider::P}}}IsSlider(_To)) {
+			{{{Slider::P}}}SetOpacity((_To as CMlFrame), 1.);
+		}
+	}
+}
+
+Void Select({{{P}}}K_Controls _Controls, CMlControl _Control, CMlPage _Page_CurrentRoute) {
+	if (_Control == Null) return;
+
+	switch (_Control.ControlId) {
+		case "{{{P}}}checkbox-moveable": {{{Checkbox::P}}}Toggle(This, _Control as CMlFrame);
+		case "{{{P}}}checkbox-mouse-pos": _Controls.Frame_MousePosDisplay.Visible = {{{Checkbox::P}}}Toggle(This, _Control as CMlFrame);
+		case "{{{P}}}checkbox-hitboxes-visibility": ShowHitboxes(_Page_CurrentRoute, {{{Checkbox::P}}}Toggle(This, _Control as CMlFrame));
+		case "{{{P}}}checkbox-guide": {
+			declare Text ImageUrl = {{{TextField::P}}}GetValue(_Controls.TextField_Guide);
+			_Controls.Quad_Guide.Visible = {{{Checkbox::P}}}Toggle(This, _Control as CMlFrame);
+			if (Http.IsValidUrl(ImageUrl)) _Controls.Quad_Guide.ChangeImageUrl(ImageUrl);
+		}
+		case "{{{P}}}checkbox-safe-area": _Controls.Quad_SafeArea.Visible = {{{Checkbox::P}}}Toggle(This, _Control as CMlFrame);
+		case "{{{P}}}checkbox-fast-load": {
+			declare Boolean Toolbox_FastLoad_IsEnabled for System = False;
+			Toolbox_FastLoad_IsEnabled = {{{Checkbox::P}}}Toggle(This, _Control as CMlFrame);
+		}
+		case "{{{P}}}button-return": {{{Router::P}}}PushParent(This);
+		case "{{{P}}}button-reset": {
+			{{{TextField::P}}}SetValue(This, _Controls.TextField_Guide, "{{{C_Path_Guide}}}", True);
+			{{{TextField::P}}}SetValue(This, _Controls.TextField_Opacity, "{{{C_Opacity_Default}}}", True);
+		}
+	}
+
+	// Save toolbox config
+	if ({{{Checkbox::P}}}IsCheckbox(_Control)) {
+		declare persistent Boolean[Text] Persistent_Toolbox_ActivationStateList for UserMgr.MainUser;
+		Persistent_Toolbox_ActivationStateList[_Control.ControlId] = {{{Checkbox::P}}}IsChecked(_Control);
+		UserMgr.MainUser.PersistentSave();
+	}
+}
+
+***MainInit***
+***
+declare CMlFrame {{{P}}}Frame_Global;
+
+declare persistent Boolean[Text] Persistent_Toolbox_ActivationStateList for UserMgr.MainUser;
+declare persistent Real Persistent_Toolbox_GuideOpacity for UserMgr.MainUser = {{{C_Opacity_Default}}};
+declare persistent Text Persistent_Toolbox_GuideUrl for UserMgr.MainUser = "{{{C_Path_Guide}}}";
+
+declare {{{P}}}K_Controls {{{P}}}Controls;
+
+// Current route variables
+declare CMlControl {{{P}}}Control_Moveable;
+declare Vec2 {{{P}}}Pos_FrameCurrentRoute;
+declare CMlPage {{{P}}}Page_CurrentRoute;
+declare CMlControl {{{P}}}Control_Parent;
+declare Text {{{P}}}CurrentRoutePath;
+declare Integer {{{P}}}Keeper;
+declare Boolean {{{P}}}HaveHitboxesBeenDisplayedOnce;
+declare Vec2 {{{P}}}Pos_MouseRulerOrigin;
+***
+
+***MainStart***
+***
+{{{P}}}Frame_Global <=> (Page.GetFirstChild("{{{P}}}frame-global") as CMlFrame);
+
+{{{P}}}Controls = {{{P}}}K_Controls {
+	Frame_Background = ({{{P}}}Frame_Global.GetFirstChild("{{{P}}}frame-background") as CMlFrame),
+	Frame_MousePosDisplay = (Page.GetFirstChild("{{{P}}}frame-mouse-pos-display") as CMlFrame),
+	Frame_MouseRulerDisplay = (Page.GetFirstChild("{{{P}}}frame-mouse-ruler-display") as CMlFrame),
+	Checkbox_MousePos = ({{{P}}}Frame_Global.GetFirstChild("{{{P}}}checkbox-mouse-pos") as CMlFrame),
+	Checkbox_HitboxesVisibility = ({{{P}}}Frame_Global.GetFirstChild("{{{P}}}checkbox-hitboxes-visibility") as CMlFrame),
+	Checkbox_Moveable = ({{{P}}}Frame_Global.GetFirstChild("{{{P}}}checkbox-moveable") as CMlFrame),
+	Slider_Opacity = ({{{P}}}Frame_Global.GetFirstChild("{{{P}}}slider-opacity") as CMlFrame),
+	TextField_Guide = ({{{P}}}Frame_Global.GetFirstChild("{{{P}}}textfield-guide") as CMlFrame),
+	TextField_Opacity = ({{{P}}}Frame_Global.GetFirstChild("{{{P}}}textfield-opacity") as CMlFrame),
+	Label_MousePos = (Page.GetFirstChild("{{{P}}}label-mouse-pos") as CMlLabel),
+	Label_MouseRuler = (Page.GetFirstChild("{{{P}}}label-mouse-ruler") as CMlLabel),
+	Quad_Guide = (Page.GetFirstChild("{{{P}}}quad-guide") as CMlQuad),
+	Quad_MouseRuler = (Page.GetFirstChild("{{{P}}}quad-mouse-ruler") as CMlQuad),
+	Quad_SafeArea = (Page.GetFirstChild("{{{P}}}quad-safe-area") as CMlQuad)
+};
+
+{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", False);
+{{{TextField::P}}}SetValue(This, {{{P}}}Controls.TextField_Guide, Persistent_Toolbox_GuideUrl, True);
+{{{TextField::P}}}SetValue(This, {{{P}}}Controls.TextField_Opacity, {{{P}}}TL::FormatReal(Persistent_Toolbox_GuideOpacity, 2, False, False), True);
+foreach (ControlId => IsActivated in Persistent_Toolbox_ActivationStateList) {
+	if (IsActivated) Select({{{P}}}Controls, {{{P}}}Frame_Global.GetFirstChild(ControlId), {{{P}}}Page_CurrentRoute);
+}
+***
+
+***MainLoop***
+***
+if (PageIsVisible) {
+	foreach (Event in PendingEvents) {
+		switch (Event.Type) {
+			case CMlScriptEvent::Type::KeyPress: {
+				if ({{{P}}}Config::HasFeature({{{P}}}Config::C_Feature_DebugShortcut)) {
+					// Y (keycode 142) is pressed
+					if (Input != Null && Input.IsKeyPressed(142)) { 
+						if (Event.KeyName == "F3") {
+							{{{P}}}Frame_Global.Visible = !{{{P}}}Frame_Global.Visible;
+							{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", True);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/* Navigation events */
+	foreach (Event in {{{Navigation::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case {{{Navigation::P}}}C_EventType_NavigateMouse: {
+				if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName}}}")) {
+					switch (Event.Mouse) {
+						case CMlScriptEvent::Type::MouseOver: Focus(Event.From, Event.To);
+						case CMlScriptEvent::Type::MouseClick: Select({{{P}}}Controls, Event.To, {{{P}}}Page_CurrentRoute);
+					}
+				}
+			}
+		}
+	}
+
+	/* PopUpBackground events */
+	foreach (Event in {{{PopUpBackground::P}}}GetPendingEvents(This)) {
+		if (Event.PopUpBackground != Null && Event.PopUpBackground.Id == {{{P}}}Controls.Frame_Background.Id) {
+			switch (Event.Type) {
+				case {{{PopUpBackground::P}}}C_EventType_Close: {
+					{{{P}}}Frame_Global.Visible = !{{{P}}}Frame_Global.Visible;
+					{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", False);
+				}
+			}
+		}
+	}
+
+	/* Update the local page */
+	if ({{{Router::P}}}GetCurrentRoutePath(This) != {{{P}}}CurrentRoutePath) {
+		{{{P}}}CurrentRoutePath = {{{Router::P}}}GetCurrentRoutePath(This);
+		{{{P}}}Page_CurrentRoute = Null;
+		foreach (Layer in ParentApp.UILayers) {
+			if (Layer.IsVisible && Layer.Type == CUILayer::EUILayerType::Normal && Layer.IsLocalPageScriptRunning) {
+				if ({{{Router::P}}}GetCurrentRoute(This).LayerId == Layer.Id) {
+					{{{P}}}Page_CurrentRoute <=> Layer.LocalPage;
+					if ({{{P}}}HaveHitboxesBeenDisplayedOnce) { //< Update hitboxes visibility if the tool has been manually activated once
+						ShowHitboxes(Layer.LocalPage, {{{Checkbox::P}}}IsChecked({{{P}}}Controls.Checkbox_HitboxesVisibility));
+					}
+					break;
+				}
+			}
+		}
+	}
+
+	/* TextField events */
+	foreach (Event in {{{TextField::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case {{{TextField::P}}}C_EventType_Update: {
+				if (Event.Control != Null) {
+					switch (Event.Control.ControlId) {
+						case {{{P}}}Controls.TextField_Guide.ControlId: {
+							if (Http.IsValidUrl(Event.Value)) {
+								{{{P}}}Controls.Quad_Guide.ChangeImageUrl(Event.Value);
+								Persistent_Toolbox_GuideUrl = Event.Value;
+								UserMgr.MainUser.PersistentSave();
+							}
+						}
+						case {{{P}}}Controls.TextField_Opacity.ControlId: {
+							{{{P}}}Controls.Quad_Guide.Opacity = {{{P}}}TL::ToReal(Event.Value);
+							{{{Slider::P}}}SetValueReal({{{P}}}Controls.Slider_Opacity, {{{P}}}TL::ToReal(Event.Value));
+							Persistent_Toolbox_GuideOpacity = {{{P}}}TL::ToReal(Event.Value);
+							UserMgr.MainUser.PersistentSave();
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/* Slider events */
+	foreach (Event in {{{Slider::P}}}PendingEvents) {
+		if (Event.Slider != Null && Event.Slider.ControlId == {{{P}}}Controls.Slider_Opacity.ControlId) {
+			switch (Event.Type) {
+				case {{{Slider::P}}}C_EventType_CursorDragStop: {
+					declare Real Opacity = {{{Slider::P}}}GetValueReal({{{P}}}Controls.Slider_Opacity);
+					{{{TextField::P}}}SetValue(This, {{{P}}}Controls.TextField_Opacity, {{{P}}}TL::FormatReal(Opacity, 2, False, False));
+					{{{P}}}Controls.Quad_Guide.Opacity = Opacity;
+					Persistent_Toolbox_GuideOpacity = Opacity;
+					UserMgr.MainUser.PersistentSave();
+				}
+			}
+		}
+	}
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+	// [MOVEABLE] Move scriptevents controls with "component-navigation-item" or "moveable" class
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+	if ({{{Checkbox::P}}}IsChecked({{{P}}}Controls.Checkbox_Moveable)) {
+		if ({{{P}}}Control_Moveable != Null && {{{P}}}Control_Moveable.Id != NullId) {
+			if (Input.MouseRightButton && Input.IsKeyPressed(142)) { //< Y (keycode 142)
+				{{{P}}}Control_Moveable.Parent.RelativePosition_V3 = <MouseX, MouseY> - {{{P}}}Pos_FrameCurrentRoute - {{{P}}}Control_Moveable.RelativePosition_V3;
+			} else if (Input.MouseRightButton) {
+				{{{P}}}Control_Moveable.RelativePosition_V3 = <MouseX, MouseY> - {{{P}}}Pos_FrameCurrentRoute;
+			} else if (!{{{P}}}Control_Moveable.IsFocused) {
+				System.ClipboardSet(""^{{{P}}}Control_Moveable.RelativePosition_V3);
+				log("[TOOLBOX] "^Now^"> " ^ {{{P}}}Control_Moveable.ControlId ^" : "^ {{{P}}}Control_Moveable.RelativePosition_V3);
+				{{{P}}}Control_Moveable = Null;
+			}
+		} else {
+			if ({{{P}}}Page_CurrentRoute != Null && {{{P}}}Page_CurrentRoute.MainFrame != Null) {
+				foreach (Control in {{{P}}}Page_CurrentRoute.MainFrame.ControlsCache) {
+					if (Control.IsFocused) {
+						{{{P}}}Control_Moveable = Control;
+						break;
+					}
+				}
+			}
+
+			if ({{{P}}}Control_Moveable != Null && {{{P}}}Control_Moveable.Id != NullId) {
+				{{{P}}}Keeper = 0;
+				while ({{{P}}}Control_Moveable.Parent != Null && {{{P}}}Keeper < 20) {
+					if ({{{P}}}Control_Moveable.HasClass("component-navigation-item") || {{{P}}}Control_Moveable.HasClass("moveable")) break;
+					{{{P}}}Control_Moveable = {{{P}}}Control_Moveable.Parent;
+					{{{P}}}Keeper += 1;
+				}
+	
+				if ({{{P}}}Control_Moveable.Parent != Null) {
+					{{{P}}}Keeper = 0;
+					{{{P}}}Control_Parent = {{{P}}}Control_Moveable.Parent;
+					{{{P}}}Pos_FrameCurrentRoute = {{{P}}}Control_Moveable.Parent.RelativePosition_V3;
+					while ({{{P}}}Control_Parent != Null && {{{P}}}Control_Parent.Parent != Null && {{{P}}}Keeper < 20) {
+						if ({{{P}}}Control_Parent == {{{P}}}Page_CurrentRoute.MainFrame) break;
+						{{{P}}}Pos_FrameCurrentRoute += {{{P}}}Control_Parent.Parent.RelativePosition_V3;
+						{{{P}}}Control_Parent = {{{P}}}Control_Parent.Parent;
+						{{{P}}}Keeper += 1;
+					}
+				}
+			}
+		}
+	}
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+	// [HITBOXES] Show Navigation class or Scroll class hitboxes
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+	if (!{{{P}}}HaveHitboxesBeenDisplayedOnce && {{{Checkbox::P}}}IsChecked({{{P}}}Controls.Checkbox_HitboxesVisibility)) {
+		{{{P}}}HaveHitboxesBeenDisplayedOnce = True;
+	}
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+	// [MOUSE POS] Display the mouse position nearby the mouse cursor
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+	if ({{{P}}}Controls.Frame_MousePosDisplay.Visible) {
+		{{{P}}}Controls.Frame_MousePosDisplay.RelativePosition_V3 = <MouseX + 3., MouseY - 3.>;
+		{{{P}}}Controls.Label_MousePos.SetText(""^{{{P}}}TL::FormatReal(MouseX, 2, False, False)^", "^{{{P}}}TL::FormatReal(MouseY, 2, False, False));
+		{{{P}}}Controls.Frame_MouseRulerDisplay.Visible = Input.MouseRightButton;
+		if (Input.MouseRightButton && {{{P}}}Pos_MouseRulerOrigin == <-1000., -1000.>) {
+			{{{P}}}Pos_MouseRulerOrigin = <MouseX, MouseY>;
+			{{{P}}}Controls.Quad_MouseRuler.RelativePosition_V3 = {{{P}}}Pos_MouseRulerOrigin;
+		} else if (Input.MouseRightButton) {
+			{{{P}}}Controls.Quad_MouseRuler.Size.X = {{{P}}}ML::Distance(<MouseX, MouseY>, {{{P}}}Pos_MouseRulerOrigin);
+			{{{P}}}Controls.Quad_MouseRuler.RelativeRotation = -{{{P}}}ML::RadToDeg({{{P}}}ML::OrientedAngle(<1., 0.>, <MouseX - {{{P}}}Controls.Quad_MouseRuler.RelativePosition_V3.X, MouseY - {{{P}}}Controls.Quad_MouseRuler.RelativePosition_V3.Y>));
+			{{{P}}}Controls.Label_MouseRuler.SetText(""^{{{P}}}TL::FormatReal({{{P}}}Controls.Quad_MouseRuler.Size.X, 2, False, False));
+			{{{P}}}Controls.Label_MouseRuler.Parent.RelativePosition_V3 = {{{P}}}Pos_MouseRulerOrigin + 0.5 * (<MouseX - {{{P}}}Controls.Quad_MouseRuler.RelativePosition_V3.X, MouseY - {{{P}}}Controls.Quad_MouseRuler.RelativePosition_V3.Y>);
+			if (Input.MouseRightButton && Input.IsKeyPressed(124)) { //< TAB (keycode 124)
+				{{{P}}}Controls.Quad_MouseRuler.RelativeRotation = {{{P}}}ML::NearestInteger({{{P}}}Controls.Quad_MouseRuler.RelativeRotation / 10.) * 10.;
+			}
+		} else if ({{{P}}}Pos_MouseRulerOrigin != <-1000., -1000.>) {
+			{{{P}}}Pos_MouseRulerOrigin = <-1000., -1000.>;
+			{{{P}}}Controls.Quad_MouseRuler.Size.X = 0.;
+		}
+	}
+}
+***
+""",
+[
+	Button::ComponentV2(),
+	Checkbox::ComponentV2(),
+	Navigation::ComponentV2(),
+	PopUpBackground::ComponentV2(),
+	Router::ComponentV2(),
+	Slider::Component(),
+	TextField::ComponentV2()
+],
+[]
+	);
+}

@@ -1,0 +1,78 @@
+/**
+ *	UI module: AFK client side
+ */
+#Const Version		"2023-03-28"
+#Const ScriptName "ManiaApps/Nadeo/TMNext/TrackMania/Teams_Matchmaking/UIModules/AFK_Client.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Client.Script.txt" as UIModules
+#Include "ManiaApps/Nadeo/TMNext/TrackMania/Teams_Matchmaking/UIModules/AFK_Common.Script.txt" as UIModules_AFK_Common
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the id of the UI module
+Text GetId() {
+	return UIModules_AFK_Common::C_Id;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the type of layer of the UI module
+CUILayer::EUILayerType GetLayerType() {
+	return UIModules_AFK_Common::C_LayerType;
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the module manialink
+ *
+ *	@return														The module manialink
+ */
+Text GetML() {
+	//L16N [AFK] Message sent to all players when another player has been AFK (Away From Keyboard) for a long time
+	declare Text Text_AFK = _("$<%1$> is AFK");
+
+	return MV::Create(
+GetId(), 3,
+"""
+""",
+"""
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/UserStore_ML.Script.txt" as UserStore
+
+""",
+"""
+
+***MainInit***
+***
+declare netread Text[] Net_ModeLibsAFK_AFKPlayerAccountIds for Teams[0];
+
+declare Text[] AFKPlayerAccountIds;
+***
+
+***MainLoop***
+***
+if (AFKPlayerAccountIds != Net_ModeLibsAFK_AFKPlayerAccountIds) {
+	foreach (Score in Scores) {
+		if (Score.User != Null && Net_ModeLibsAFK_AFKPlayerAccountIds.exists(Score.User.WebServicesUserId)) {
+			if (ClientUI != Null && !AFKPlayerAccountIds.exists(Score.User.WebServicesUserId)) {
+				ClientUI.SendChat(TL::Compose("{{{Text_AFK}}}", UserStore::GetPlayerName(Score.User, False)));
+			}
+		}
+	}
+	AFKPlayerAccountIds = Net_ModeLibsAFK_AFKPlayerAccountIds;
+}
+
+***
+""",
+[
+	UIModules::Component()
+],
+[]
+	);
+}

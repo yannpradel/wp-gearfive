@@ -1,0 +1,185 @@
+/**
+ *  UI module: StartRaceMenu server side
+ */
+#Const Version    "1.0.0"
+#Const ScriptName "Libs/Nadeo/Trackmania/Modes/Campaign/UIModules/StartRaceMenu_Server.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/Trackmania/Modes/Campaign/Constants.Script.txt" as Consts
+#Include "Libs/Nadeo/Trackmania/Structures/CampaignStruct.Script.txt" as CampaignStruct
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Id "UIModule_Campaign_StartRaceMenu"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Global variables
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+declare Text G_LastEventType;
+declare Integer G_GhostChoice;
+declare Text G_VIPAccountId;
+declare Text[] G_FollowersAccountIdList;
+declare Boolean G_IsStartRaceMenuLoading;
+declare CampaignStruct::LibCampaignStruct_K_PlayerCloseToMedal G_PlayerCloseToMedal;
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Show or hide the UI
+ *
+ *	@param	_Player										The player to update
+ *	@param	_Display									True to show
+ *																		False to hide
+ */
+Void SetVisibility(CPlayer _Player, Boolean _Display) {
+	if (_Player == Null) return;
+
+	declare netwrite Boolean Net_Campaign_StartRaceMenu_IsVisible for _Player;
+	Net_Campaign_StartRaceMenu_IsVisible = _Display;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Allow the user to view the PB replay or not
+Void SetCanViewReplay(Boolean _CanViewReplay) {
+	declare netwrite Boolean Net_Campaign_StartRaceMenu_CanViewReplay for Teams[0];
+	Net_Campaign_StartRaceMenu_CanViewReplay = _CanViewReplay;
+}
+
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the ready state of the start race menu
+ *
+ *	@return											The start race menu state
+ */
+Boolean IsStartRaceMenuLoading() {
+	return G_IsStartRaceMenuLoading;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the last event received by the server
+ *
+ *	@return											The last event received by the server
+ */
+Text GetLastEventType() {
+	return G_LastEventType;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the player's ghost choice
+ *
+ *	@return											The player's ghost choice
+ */
+Integer GetGhostChoice() {
+	return G_GhostChoice;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the the player close to the choosen medal
+ *
+ *	@return											The the player close to the choosen medal
+ */
+CampaignStruct::LibCampaignStruct_K_PlayerCloseToMedal GetPlayerCloseToMedal() {
+	return G_PlayerCloseToMedal;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the player's VIP choice
+ *
+ *	@return											The VIP account id chosen
+ */
+Text GetVIPAccountId() {
+	return G_VIPAccountId;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the player's followers list
+ *
+ *	@return											The list of account Id of followers
+ */
+Text[] GetFollowersAccountIdList() {
+	return G_FollowersAccountIdList;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Initialize a player
+ *
+ *	@param	_Player										The player to initialize
+ */
+Void InitializePlayer(CPlayer _Player) {
+	if (_Player == Null) return;
+
+	SetVisibility(_Player, False);
+}
+
+Void SetVolumeBalanceState_Playing() {
+	declare netwrite Integer Net_Campaign_StartRaceMenu_VolumeBalanceState_Playing for Teams[0];
+	Net_Campaign_StartRaceMenu_VolumeBalanceState_Playing = Now;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update the library
+Void Yield() {
+	G_LastEventType = "";
+	foreach (Event in UIManager.PendingEvents) {
+		declare RaceMenuEvents = Consts::C_StartRaceMenuEvents;
+		if (Event.Type == CUIConfigEvent::EType::OnLayerCustomEvent && RaceMenuEvents.exists(Event.CustomEventType)) {
+			G_LastEventType = Event.CustomEventType;
+			switch (Event.CustomEventType) {
+				case Consts::C_RaceMenuEvent_LoadingComplete: G_IsStartRaceMenuLoading = False;
+				case Consts::C_StartRaceMenuEvent_AddAccountIds: {
+					foreach (Index => AccountId in Event.CustomEventData) {
+						if (!G_FollowersAccountIdList.exists(AccountId)) {
+							G_FollowersAccountIdList.add(AccountId);
+						}
+					}
+				}
+				case Consts::C_StartRaceMenuEvent_StartRace: {
+					if (Event.CustomEventData.count > 0) {
+						G_GhostChoice = TL::ToInteger(Event.CustomEventData[0]);
+						if (G_GhostChoice == Consts::C_GhostChoice_Medals && Event.CustomEventData.count > 2) {
+							G_PlayerCloseToMedal = CampaignStruct::LibCampaignStruct_K_PlayerCloseToMedal {
+								AccountId = Event.CustomEventData[1],
+								Medal = Event.CustomEventData[2]
+							};
+						} else if (G_GhostChoice == Consts::C_GhostChoice_VIP && Event.CustomEventData.count > 1) {
+							G_VIPAccountId = Event.CustomEventData[1];
+						} else if (G_GhostChoice != Consts::C_GhostChoice_Followers) {
+							G_FollowersAccountIdList = [];
+							G_VIPAccountId = "";
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Unload the library
+Void Unload() {
+	G_LastEventType = "";
+	G_VIPAccountId = "";
+	G_FollowersAccountIdList = [];
+	G_IsStartRaceMenuLoading = True;
+	G_GhostChoice = Consts::C_GhostChoice_None;
+	G_PlayerCloseToMedal = CampaignStruct::LibCampaignStruct_K_PlayerCloseToMedal {};
+	SetCanViewReplay(False);
+
+	foreach (Player in AllPlayers) {
+		InitializePlayer(Player);
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Load the library
+Void Load() {
+	Unload();
+}

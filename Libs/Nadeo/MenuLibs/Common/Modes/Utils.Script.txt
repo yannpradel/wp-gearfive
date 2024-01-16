@@ -1,0 +1,43 @@
+/** 
+ *	Utilities
+ */
+#Const Version		"2019-03-13"
+#Const ScriptName	"Libs/Nadeo/MenuLibs/Common/Utils.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "MathLib" as ML
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the currently loaded scores table
+ *	modules
+ *
+ *	@return														The scores tables modules
+ */
+CModulePlaygroundScoresTable[] GetScoresTables() {
+	declare CModulePlaygroundScoresTable[] ScoresTables;
+	
+	if (Hud != Null) {
+		foreach (Module in Hud.Modules) {
+			if (Module is CModulePlaygroundScoresTable) {
+				ScoresTables.add((Module as CModulePlaygroundScoresTable));
+			}
+		}
+	}
+	
+	return ScoresTables;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Format a time with milliseconds
+ *
+ *	@param	_Time											The time to format
+ */
+Text TimeToText(Integer _Time) {
+	return TL::TimeToText(_Time, True)^ML::Abs(_Time % 10);
+}

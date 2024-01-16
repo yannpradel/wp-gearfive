@@ -1,0 +1,136 @@
+/**
+ *  Base for a standard game mode mania app
+ */
+#RequireContext CManiaAppPlayground
+#Const C_AppBase_Version     "2023-01-04"
+#Const C_AppBase_ScriptName  "ManiaApps/Nadeo/ModeLibs/Common/AppBase.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "Libs/Nadeo/CommonLibs/Common/Env.Script.txt" as Env
+#Include "Libs/Nadeo/CommonLibs/Common/Log.Script.txt" as Log
+#Include "Libs/Nadeo/CommonLibs/Common/Constants.Script.txt" as Const
+#Include "Libs/Nadeo/CommonLibs/Common/AudioManager_MA.Script.txt" as AudioManager
+#Include "ManiaApps/Nadeo/CommonLibs/Common/Layers.Script.txt" as Layers
+#Include "Libs/Nadeo/ModeLibs/Common/UIModules_Client.Script.txt" as UIModules
+#Include "Libs/Nadeo/ModeLibs/Common/ClientUI.Script.txt" as ClientUI
+#Include "Libs/Nadeo/ModeLibs/Common/Markers_Client.Script.txt" as Markers
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Navigation.Script.txt" as Navigation
+#Include "Libs/Nadeo/MenuLibs/Common/MenuSceneManager.Script.txt" as MenuSceneManager
+#Include "Libs/Nadeo/CommonLibs/Common/NotificationManager.Script.txt" as NotificationMgr
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Settings
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Setting S_ScriptEnvironment "production" as "<hidden>" ///< Environment in which the script runs
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Extends
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+***LogVersions***
+***
+Log::RegisterScript(Env::ScriptName, Env::Version);
+Log::RegisterScript(Log::ScriptName, Log::Version);
+Log::RegisterScript(AudioManager::ScriptName, AudioManager::Version);
+Log::RegisterScript(Layers::ScriptName, Layers::Version);
+Log::RegisterScript(UIModules::ScriptName, UIModules::Version);
+Log::RegisterScript(ClientUI::ScriptName, ClientUI::Version);
+Log::RegisterScript(Markers::ScriptName, Markers::Version);
+Log::RegisterScript(Navigation::ScriptName, Navigation::Version);
+***
+
+***LoadLibraries***
+***
+// Must be loaded before other libraries
+Env::Load();
+Env::Set(S_ScriptEnvironment);
+Log::Load();
+Layers::Load();
+UIModules::Load();
+ClientUI::Load();
+Navigation::Load(This);
+AudioManager::Load(Const::C_JsonFilePath_AudioCommon, Const::C_JsonFilePath_AudioMenu, Const::C_JsonFilePath_AudioGame);
+while (AudioManager::IsLoading()) App_Yield();
+AudioManager::CreateAudioSources();
+Markers::Load();
+NotificationMgr::Load();
+***
+
+***UnloadLibraries***
+***
+Markers::Unload();
+AudioManager::Unload();
+Navigation::Unload(This);
+ClientUI::Unload();
+UIModules::Unload();
+Layers::Unload();
+Log::Unload();
+Env::Unload();
+NotificationMgr::Unload();
+***
+
+***Yield***
+***
+UIModules::Yield();
+AudioManager::Yield(This);
+NotificationMgr::Yield();
+***
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Public
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** yield; the script
+ *  This should be the only place  
+ *  in the complete mania app where
+ *  the script yields
+ */
+Void App_Yield() {
+	yield;
+	+++Yield+++
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Main
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+main() {
+	LayersDefaultManialinkVersion = 3;
+	EnableMenuNavigationInputs = False;
+	MenuSceneManager::IncrementSceneCount(LocalUser);
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+	// Settings
+	+++Settings+++
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+	// Load libraries
+	+++LoadLibraries+++
+
+	+++LogVersions+++
+	Log::DisplayScripts();
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+	// Init app and config
+	+++InitApp+++
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+	// Start app
+	+++StartApp+++
+
+	while(True) {
+		App_Yield();
+		+++AppLoop+++
+	}
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+	// Stop app and cleanup
+	+++EndApp+++
+
+	// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+	// Unload libraries
+	+++UnloadLibraries+++
+}

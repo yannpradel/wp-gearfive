@@ -1,0 +1,22 @@
+/**
+ *  Development utilities
+ */
+#Const Version    "2022-09-27"
+#Const ScriptName "Libs/Nadeo/MenuLibs/Common/Dev.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_DebugFilePath "file://Media/.debug"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Check if the debug mode is enabled
+Boolean IsDebug() {
+	declare CHttpRequest Request <=> Http.CreateGet(C_DebugFilePath);
+	declare Boolean IsDebug = (Request != Null && Request.IsCompleted && Request.StatusCode == 200);
+	if (Request != Null) Http.Destroy(Request);
+	return IsDebug;
+}

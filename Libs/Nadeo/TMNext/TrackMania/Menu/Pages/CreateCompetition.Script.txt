@@ -1,0 +1,2127 @@
+/** 
+ *	Page: CreateCompetition
+ *  DEPRECATED see /trackmania-next/tmnext/-/issues/4387
+ */
+#Const Version		"2023-03-25"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Menu/Pages/CreateCompetition.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Includes
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/Counter.Script.txt" as Counter
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/TextField.Script.txt" as TextField
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Transition.Script.txt" as Transition
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/Navigation.Script.txt" as Navigation
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Router_ML.Script.txt" as Router
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/RoutePaths.Script.txt" as RoutePaths
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Constants.Script.txt" as Const
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/MenuSounds.Script.txt" as MenuSounds
+#Include "Libs/Nadeo/TMNext/TrackMania/ColorPalette.Script.txt" as ColorPalette
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/Button.Script.txt" as Button
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/ExpendableButton.Script.txt" as ExpendableButton
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/PopUpBackground.Script.txt" as PopUpBackground
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/PopUpMultiChoice.Script.txt" as PopUpMultiChoice
+#Include "Libs/Nadeo/TMNext/TrackMania/API/BrowserAPI.Script.txt" as BrowserAPI
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/TrackBrowser.Script.txt" as TrackBrowser
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/CompetitionStruct.Script.txt" as CompetitionStruct
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/CampaignStruct.Script.txt" as CampaignStruct
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/ClubStore_ML.Script.txt" as ClubStore
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/ScriptSettingsEditor.Script.txt" as ScriptSettingsEditor
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/ClubStruct.Script.txt" as ClubStruct
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/LoadingSpinner.Script.txt" as LoadingSpinner
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/MapRankings.Script.txt" as MapRankings
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/FormSelect.Script.txt" as FormSelect
+#Include "Libs/Nadeo/CommonLibs/Common/Platform.Script.txt" as Platform
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "Page_CreateCompetition"
+#Const C_NavGroupName "navgroup-page-createcompetition"
+
+#Const C_Privileges [
+	CPrivilegeMgr::EPrivilege::UseUserCreatedContentRequired
+]
+
+#Const C_ChoiceMode_Round 0
+#Const C_ChoiceMode_Laps 1
+#Const C_ChoiceMode_Cup 2
+
+#Const C_Choice_Cancel 0
+#Const C_Choice_Exit 1
+#Const C_Choices_Exit [
+	//L16N [CreateCompetition] Cancel and return to the competition creation
+	0 => _("Cancel"),
+	//L16N [CreateCompetition] Exit the competition creation
+	1 => _("Exit")
+]
+
+#Const C_SubSettinsStep_Text [
+	//L16N [CreateCompetition] Frame to select the start and end date of registration, and if players want qualifications (start and end date, track)
+	_("|Competition|Entry"),
+	//L16N [CreateCompetition] Frame to defined the competition, number of players per round, game mode, number of rounds
+	_("|Competition|Rounds"),
+	//L16N [CreateCompetition] Frame to select tracks which used in the Competition
+	_("|Competition|Track Pool"),
+	//L16N [CreateCompetition] Frame to defined the competition's details like name, description, icon, start date
+	_("|Competition|Infos")
+]
+#Const C_Button_NumbersSubMenu 4
+
+#Const C_Class_MapQualify "class-map-qualify"
+#Const C_Class_AddMapPool "class-map-add"
+
+#Const C_UI_TrackSize <29., 8.>
+#Const C_TrackColumnNb 3
+#Const C_TrackLineNb 2
+
+#Const C_MaxPlayerDefault 10
+#Const C_PlayersNb_Min 2
+#Const C_PlayersNb_Max 64
+
+#Const C_ImageUrl_LineDate  "file://Media/Manialinks/Nadeo/TMNext/Menus/PageCreateCompetition/menu_create_competition__line_date.dds"
+#Const C_ImageUrl_ButtonMap  "file://Media/Manialinks/Nadeo/TMNext/Menus/PageCreateCompetition/menu_create_competition__button_map_select.dds"
+#Const C_ImageUrl_BoxDescription "file://Media/Manialinks/Nadeo/TMNext/Menus/PageCreateCompetition/menu_create_competition__box_description.dds"
+#Const C_ImageUrl_LineName "file://Media/Manialinks/Nadeo/TMNext/Menus/PageCreateCompetition/menu_create_competition__line_name.dds"
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get the page manialink
+ *
+ *	@return														The page manialink
+ */
+Text GetManialink() {
+	declare Text Text_Back = _("Back");
+	declare Text Text_Next = _("Next");
+	declare Text Text_Create = _("Create");
+	declare Text[Integer] ModeNames = Const::C_ModeNames;
+	//L16N [CreateCompetition] Choice the round to start the bracket (16th final, 8th final, quarter-final, semi-final)
+	declare Text Text_Option_RoundNumber = _("Number of rounds");
+	//L16N [CreateCompetition] Maximum number of players per match
+	declare Text Text_Option_RoundPlayer = _("Players per match");
+	//L16N [CreateCompetition] Date choose to start an event, or registration, or qualification 
+	declare Text Text_TextField_StartDate = _("Start Date");
+	//L16N [CreateCompetition] Choice a game mode (Laps, round, cup)
+	declare Text Text_Option_ModeChoice  = _("Game mode");
+	//L16N [CreateCompetition] Player can select one or more tracks for his competition
+	declare Text Text_Map_Choice = _("Select tracks");
+	//L16N [CreateCompetition] Player can select one track for qualification
+	declare Text Text_Map_Choice_Qualify = _("Select track");
+	//L16N [CreateCompetition] Name of the competition
+	declare Text Text_Details_Name = _("Name");
+	//L16N [CreateCompetition] Default placeholder for competition name text field.
+	declare Text Text_Details_NameTextField = _("Competition name");
+	//L16N [CreateCompetition] Description of the competition
+	declare Text Text_Details_Description = _("Description");
+	//L16N [CreateCompetition] Default placeholder for competition description text field.
+	declare Text Text_Details_DescriptionTextField = _("Competition description");
+	//L16N [CreateCompetition] Icon of the competition
+	declare Text Text_Details_Logo = _("Logo");
+	//L16N [CreateCompetition] Button to upload a vertical image
+	declare Text Text_Vertical = _("|Image|Vertical");
+	//L16N [CreateCompetition] Title Configure and create a competition 
+	declare Text Text_CreateCompetition	= _("Create competition");
+	//L16N [CreateCompetition] Toggle to choose to have a qualification phase or not
+	declare Text Text_Qualify	= _("Qualification");
+	//L16N [CreateCompetition] Player select a fixed time duration for the qualification, [10, 20, 30, 40] minutes.
+	declare Text Text_Duration_Qualify	= _("Duration");
+	//L16N [CreateCompetition] Message explaining to the user that the start date is the start of the first round or start of the qualification phase if any. Registration is generated, begins from current date and last until start date.
+	declare Text Text_InfoDateTime = _("Registration starts now and will continue until start date. Start date is the start of the first round, or of qualifications, if any.");
+	//L16N [CreateCompetition] Message indicate to the user, the number of player who are qualified at the end of each round.
+	declare Text Text_Info_NbPlayerSelect = _("Half the players will be qualified for the next round");
+	//L16N [CreateCompetition] Message indicate to the user, the format of this competition is a tournament bracket.
+	declare Text Text_Info_CompetitionFormat = _("The competition is a tournament bracket");
+	//L16N [CreateCompetition] Message displayed when the player wants to leave the activity. They need to confirm that leaving will make them lose progress.
+	declare Text Text_CancelPopUpTitle = _("Are you sure you want to stop the creation of the competition? You will lose all progress.");
+	//L16N [CreateCompetition] Instruction displayed when the remove track button is clicked: player can remove tracks.
+	declare Text Text_SelectMapsToRemove = _("Select a track to remove");
+	//L16N [CreateCompetition] Instruction displayed when the move track button is clicked: player can change tracks order in the playlist. 
+	declare Text Text_SelectMapsToMove = _("Select a track to move");
+	//L16N [CreateCompetition] Default placeholder for competition date text field
+	declare Text Text_DefaultDate = "DD/MM/YYYY HH:mm";
+	//L16N [CreateCompetition] Title of the pop-up asking for exit confirmation.
+	declare Text Text_ExitCompetition = _("Exit competition creation");
+	// Description of the upload error pop-up
+	declare PopUpMultiChoice::K_DescriptionPart[] Description_UploadError = [
+		PopUpMultiChoice::CreateDescriptionPart(Const::C_UploadOnPlatformPopUp_Description, <120., 30.>, 3., FontManager::C_GameFontSemiBold, "$t$i", <1., 1., 1.>, False)
+	];
+	// Description of the leaving pop-up
+	declare PopUpMultiChoice::K_DescriptionPart[] Description_Exit = [
+	//L16N [CreateCompetition] Description for the pop-up displayed when the player is leaving the competition creation
+		PopUpMultiChoice::CreateDescriptionPart(_("Are you sure you want to exit the competition creation?"), <120., 30.>, 3., FontManager::C_GameFontSemiBold, "$t$i", <1., 1., 1.>, False)
+	];
+
+	declare Text Ml_SubMenus = "";
+	declare Integer NbMaps = 5;
+	declare Real SubButton_Size_X = 68.;
+	declare Real PosXSwitchBall = -3.75;
+	declare Vec2 Size_TextField = <80., 10.>;
+	declare Vec2 Size_Description = <29.*1232/352, 29.>;
+	declare Real PosY_SubMenus = 34.;
+	declare Real PosX_TitleCreateCompetition = -35.;
+	declare Real PosX_FrameSubMenu = -60.;
+	declare Vec2 Pos_FrameRegistration = <PosX_TitleCreateCompetition*3.5, 10.>;
+	declare Vec2 Pos_Qualification = <PosX_TitleCreateCompetition*-2.5, 10.>;
+	declare Vec2 Pos_FrameRound = <PosX_TitleCreateCompetition*3.5, 10.>;
+	declare Vec2 Pos_FrameMapRanking = <PosX_TitleCreateCompetition*-3., -17.>;
+	declare Vec2 Pos_FrameInfos = <PosX_TitleCreateCompetition*3.5, 0.>;
+	declare Vec2 Pos_Logos = <PosX_TitleCreateCompetition*-2.2, 10.>;
+
+	for (SubMenuIndex, 0, C_Button_NumbersSubMenu-1) {
+		declare RightTargetIndex = SubMenuIndex+1;
+		declare RightTarget = "frame-sub-button-"^RightTargetIndex;
+		if (RightTargetIndex > C_Button_NumbersSubMenu-1) RightTarget = "frame-button-option-3";
+		declare LeftTargetIndex = SubMenuIndex-1;
+		declare LeftTarget = "frame-sub-button-"^LeftTargetIndex;
+		if (LeftTargetIndex < 0) LeftTarget = "frame-button-0";
+		declare Text DownTarget = "frame-sub-buttons-0";
+		declare Real PosX_SubMenu = PosX_FrameSubMenu + ((SubButton_Size_X + 2.) * SubMenuIndex);
+		
+		Ml_SubMenus ^= """
+			<frameinstance modelid="framemodel-button" id="frame-sub-button-{{{SubMenuIndex}}}" pos="{{{PosX_SubMenu}}} {{{PosY_SubMenus}}}"/>
+		""";
+	}
+
+	declare MarginY = 1.25;
+	declare ML_Tracks = "";
+	for(J, 0, C_TrackColumnNb-1) {
+		for(I, 0, C_TrackLineNb-1) {
+			declare UpTarget = "frame-track-"^I-1^"-"^J;
+			if (I == 0) UpTarget = "button-next";
+			declare DownTarget = "frame-track-"^I+1^"-"^J;
+			if (I == C_TrackLineNb-1) DownTarget = "button-next";
+			declare LeftTarget = "frame-track-"^I^"-"^J-1;
+			if (J == 0) LeftTarget = "frame-track-"^I^"-"^C_TrackColumnNb-1;
+			declare RightTarget = "frame-track-"^I^"-"^J+1;
+			if (J == C_TrackColumnNb-1) RightTarget = "frame-track-"^I^"-0";
+			ML_Tracks ^= """
+			<frameinstance
+				modelid="framemodel-track"
+				id="frame-track-{{{I}}}-{{{J}}}"
+				pos="{{{C_UI_TrackSize.X*J - (C_UI_TrackSize.Y+MarginY)*I*0.1763}}} {{{-(C_UI_TrackSize.Y+MarginY)*I}}}"
+				class="{{{C_Class_AddMapPool}}} {{{Navigation::C_Class}}}"
+
+				data-line-nb="{{{I}}}"
+				data-column-nb="{{{J}}}"
+
+				data-nav-inputs="select;cancel;up;down;left;right"
+				data-nav-targets="_;_;{{{UpTarget}}};{{{DownTarget}}};{{{LeftTarget}}};{{{RightTarget}}}"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="quad-bg-zone"
+				data-nav-locked="1"
+			/>""";
+		}
+	}
+
+	declare Boolean PlaformIsFromFirstParty = Platform::IsFromFirstParty(System);
+
+	return MV::Create(
+C_Name, 3,
+"""
+<stylesheet>
+	<style class="image-base" halign="center" valign="center"/>
+	<style class="text-base" halign="center" valign="center2" textfont="{{{FontManager::C_GameFontRegular}}}" textsize="3" textcolor="FFF" textprefix="$i"/>
+	<style class="text-title" halign="center" valign="center2" textfont="{{{FontManager::C_GameFontExtraBold}}}" textsize="8" textcolor="FFF" textprefix="$i$t"/>
+	<style class="class-track" halign="left" valign="center2" textfont="{{{FontManager::C_GameFontExtraBold}}}" textsize="5" textprefix="$i" italicslope=".2" opacity="1." textcolor="{{{ColorPalette::C_Color_GreenTwo}}}"/>
+	<style class="quad-base" halign="center" valign="center" />
+	<style class="quad-map-qualify" size="51. 23.7" halign="center" valign="center"/>
+</stylesheet>
+
+<!-- Frame models -->
+<framemodel id="framemodel-button">
+	<label id="label-button" class="text-base" halign="left" textprefix="$t$i" textsize="6" size="{{{SubButton_Size_X}}} 10" z-index="1" textfont="{{{FontManager::C_GameFontExtraBold}}}" textcolor="FFF"/>
+</framemodel>
+<framemodel id="framemodel-track">
+	<quad id="quad-plus" z-index="1" size="{{{C_UI_TrackSize.Y}}} {{{C_UI_TrackSize.Y}}}" colorize="{{{ColorPalette::C_Color_GreenThree}}}" class="quad-base" image="{{{Const::C_ImageUrl_Icon_Plus_Oblique_256}}}"/>
+	<quad id="quad-bg-zone" z-index="0" size="{{{C_UI_TrackSize.X}}} {{{C_UI_TrackSize.Y}}}" colorize="FFF" class="quad-base {{{Navigation::C_Class_ActivationZone}}}" scriptevents="1" image="{{{C_ImageUrl_ButtonMap}}}"/>
+	<quad id="quad-bg-shadow" z-index="-1" pos=".75 -.75" size="{{{C_UI_TrackSize.X}}} {{{C_UI_TrackSize.Y}}}" class="quad-base" image="{{{C_ImageUrl_ButtonMap}}}" colorize="{{{ColorPalette::C_Color_GreenThree}}}" opacity=".5"/>
+	<label id="label-name" z-index="2" pos="-13. -.5" size="{{{C_UI_TrackSize.X-3.}}} {{{C_UI_TrackSize.Y}}}" class="class-track"/>
+</framemodel>
+
+<!-- Browsers -->
+<frameinstance modelid="{{{BrowserAPI::C_Name}}}" id="frame-browser" z-index="{{{Const::C_ZIndex_BrowserAPI}}}" hidden="1" />
+<frameinstance modelid="{{{TrackBrowser::C_Name}}}" 
+	id="frame-track-browser" 
+	z-index="{{{Const::C_ZIndex_BrowserAPI}}}"
+	data-show-only-playable="1"
+/>
+
+<!-- Frame global -->
+<frame id="frame-global" z-index="{{{Const::C_ZIndex_PopUpDisplay}}}" >
+	<frameinstance modelid="{{{PopUpBackground::C_Name}}}" id="frame-popup-background" data-pop-up-name="{{{C_Name}}}" data-layout="{{{PopUpBackground::C_Layout_Type_ClubSubMenu}}}" data-header-url="{{{Const::C_ImageUrl_PopUp_CreateCampaign_Header}}}" z-index="-1" />
+	<frameinstance id="frame-loading-spinner" modelid="{{{LoadingSpinner::C_Name}}}" z-index="50"/>
+	<frameinstance id="frame-script-settings" modelid="{{{ScriptSettingsEditor::C_Name}}}" z-index="3" />
+	<frameinstance id="popupmultichoice-upload-error" modelid="{{{PopUpMultiChoice::C_Name}}}" data-title="{{{Const::C_UploadOnPlatformPopUp_Title}}}" data-description="{{{TL::MLEncode(Description_UploadError.tojson())}}}" z-index="3" hidden="1"/>
+	<frameinstance id="popupmultichoice-exit" modelid="{{{PopUpMultiChoice::C_Name}}}" data-title="{{{Text_ExitCompetition}}}" data-description="{{{TL::MLEncode(Description_Exit.tojson())}}}" data-choices="{{{TL::MLEncode(C_Choices_Exit.tojson())}}}" data-styles-secondchoice="{{{PopUpMultiChoice::C_ChoiceStyle_Default}}} {{{ExpendableButton::C_Style_ButtonWarning}}}" z-index="3" hidden="1"/>
+	
+	<label id="label-error-message" size="210 10" class="text-base" textsize="3" textfont="{{{FontManager::C_GameFontSemiBold}}}" textcolor="{{{ColorPalette::C_Color_ErrorRed}}}" maxline="2" pos="-15 -68" textprefix="$i" italicslope=".2"/>
+	<label pos="{{{PosX_TitleCreateCompetition}}} 58"  textsize="13" textprefix="$t$i" text="{{{Text_CreateCompetition}}}" class="text-title" textcolor="FFF"/>
+	<label id="label-locked" pos="0 -5" textfont="{{{FontManager::C_GameFontExtraBold}}}" size="200 10" halign="center" class="text-base" textprefix="$t$i" italicslope="0.2" textsize="8" textcolor="fff"/>
+		
+	<frame id="frame-sub-buttons" z-index="2" pos="{{{PosX_FrameSubMenu}}} 0">
+		{{{Ml_SubMenus}}}
+	</frame>
+
+	<frame id="frame-entry" hidden="1">
+		<frame id="frame-start-date" pos="{{{Pos_FrameRegistration.X}}} {{{Pos_FrameRegistration.Y}}}">
+			<label id="label-name" text="{{{Text_TextField_StartDate}}}" pos="0 0" halign="left" class="text-title" textsize="4" size="60 1" italicslope=".2" textcolor="{{{ColorPalette::C_Color_GreenFour}}}"/>
+			<frameinstance 
+				modelid="{{{TextField::C_Name}}}" id="textfield-date-competition" pos="{{{Pos_FrameRegistration.X*-0.75}}} 0"
+				class="{{{Navigation::C_Class}}}"
+				data-size="{{{Size_TextField.X}}} {{{Size_TextField.Y}}}"
+				data-placeholder="{{{Text_DefaultDate}}}"
+				data-bgopacityunfocus="0.4"
+				data-bgcolorfocus="{{{ColorPalette::C_Color_GreenFour}}}"
+				data-bgcolorunfocus="{{{ColorPalette::C_Color_GreenFour}}}"
+				data-contourcolorfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-contouropacityunfocus=".0"
+				data-contouropacityfocus="1."
+				data-textcolorunfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-halign="center" data-valign="center"
+				data-nav-inputs="select;cancel;down;right"
+				data-nav-targets="_;_;button-next;frame-switch-qualify"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{TextField::C_NavZone}}}"
+			/>
+		</frame>
+
+		<frame id="frame-qualification" pos="{{{Pos_Qualification.X}}} {{{Pos_Qualification.Y}}}">
+			<frame id="frame-switch-qualify" 
+				class="{{{Navigation::C_Class}}} class-switch"
+				data-nav-inputs="select;cancel;down;left"
+				data-nav-targets="_;_;select-duration-qualify;textfield-date-competition"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="quad-bg"
+				data-nav-locked="0"
+				z-index="1"
+			>
+				<quad id="quad-bg" pos="{{{PosXSwitchBall}}} 0" size="50 5" class="quad-base {{{Navigation::C_Class_ActivationZone}}}" scriptevents="1"/>
+				<label id="label-qualify" opacity="0.5" pos="{{{Pos_Qualification.X*-0.75}}} -0.5" class="text-title" halign="left" textcolor="FFF" size="55 1" text="{{{Text_Qualify}}}" textsize="4.5" textfont="{{{FontManager::C_GameFontExtraBold}}}" textprefix="$t$i" />
+				<quad id="quad-switch-ball" pos="{{{PosXSwitchBall}}} 0" size="5.5 5.5" image="{{{Const::C_ImageUrl_Switch_Selection}}}" class="quad-base"/>
+				<quad id="quad-contour" size="15. 7" opacity="0.5" image="{{{Const::C_ImageUrl_Switch_Contour}}}" class="quad-base"/>
+			</frame>
+
+			<frame id="frame-detail-qualify" hidden="1">
+				<label id="label-duration-qualify" text="{{{Text_Duration_Qualify}}}" halign="left" pos="{{{Pos_Qualification.X*-0.77}}} -14" class="text-title" textsize="3.5" size="40 1" italicslope="0.2" textcolor="{{{ColorPalette::C_Color_GreenFour}}}"/>
+				<frameinstance modelid="{{{FormSelect::C_Name}}}"
+					pos="{{{Pos_Qualification.X*-0.20}}} -14"
+					data-size="60 9"
+					id="select-duration-qualify"
+					data-scale-options="1"
+					data-fontname="{{{FontManager::C_GameFontExtraBold}}}"
+					data-color-background="{{{ColorPalette::C_Color_GreenFour}}}"
+					data-color-text="{{{ColorPalette::C_Color_GreenOne}}}"
+					data-text-center="1"
+					data-custom-navigation="1"
+					class="{{{Navigation::C_Class}}}"
+					data-nav-inputs="select;cancel;up;down"
+					data-nav-targets="_;_;frame-switch-qualify;button-add-maps-qualify"
+					data-nav-group="{{{C_NavGroupName}}}"
+					data-nav-zone="{{{FormSelect::C_NavZone}}}"
+				/>
+
+				<label id="label-name-map-qualify" text="{{{Text_Map_Choice_Qualify}}}" pos="{{{Pos_Qualification.X*-0.79}}} -30" halign="left" class="text-title" textsize="3.5" size="40 1" textcolor="{{{ColorPalette::C_Color_GreenFour}}}" italicslope="0.2"/>
+				<frame
+					id="button-add-maps-qualify"
+					pos="{{{Pos_Qualification.X*0.10}}} -35"
+					class="{{{Navigation::C_Class}}} {{{C_Class_MapQualify}}}"
+					data-nav-inputs="select;cancel;down;up"
+					data-nav-targets="_;_;button-next;select-duration-qualify"
+					data-nav-group="{{{C_NavGroupName}}}"
+					data-nav-zone="quad-activation"
+					data-nav-locked="1"
+				>
+					<quad id="quad-plus" image="{{{Const::C_ImageUrl_Icon_Plus}}}" colorize="FFF" size="15. 15." class="quad-map-qualify" z-index="2"/>
+					<label id="label-text" textcolor="FFF" size="30. 5." textsize="3.5" z-index="3" valign="center" halign="center" hidden="1" italicslope=".2" textfont="{{{FontManager::C_GameFontExtraBold}}}" />
+					<quad id="quad-activation" scriptevents="1" opacity="0." alphamask="{{{Const::C_ImageUrl_Club_LiveRoom_Mask}}}" class="quad-map-qualify {{{Navigation::C_Class_ActivationZone}}}" z-index="3"/>
+					<quad id="quad-thumbnail" z-index="1" keepratio="Clip" alphamask="{{{Const::C_ImageUrl_ClubList_Button_OtherClub_Mask}}}" opacity="0.9" class="quad-map-qualify" />
+					<quad id="quad-thumbnail-bg" z-index="0" size="50 20" colorize="{{{ColorPalette::C_Color_GreenFour}}}" image="{{{Const::C_ImageUrl_ClubList_Button_OtherClub}}}" keepratio="Clip" class="quad-map-qualify" alphamask="{{{Const::C_ImageUrl_ClubList_Button_OtherClub_Mask}}}"/>
+					<quad id="quad-focus-map" z-index="3" hidden="1" class="quad-base" size="51 23.5" image="{{{Const::C_ImageUrl_ClubList_Button_OtherClub_Focus}}}" colorize="{{{ColorPalette::C_Color_White}}}" />
+				</frame>
+			</frame>
+		</frame>
+		<label id="label-info-date" text="{{{Text_InfoDateTime}}}" pos="{{{Pos_FrameRegistration.X-10}}} -50" halign="left" class="text-base" textsize="2.5" size="150 1" italicslope=".2"/>		
+	</frame>
+
+	<frame id="frame-rounds" hidden="1">
+		<frame id="frame-players-nb" pos="-122 12">
+			<label id="label-numbers-players" text="{{{Text_Option_RoundPlayer}}}" halign="left" class="text-title" textsize="4.5" size="60 1" italicslope=".2" textcolor="{{{ColorPalette::C_Color_GreenFour}}}"/>
+			<frameinstance 
+				modelid="{{{Counter::C_Name}}}" id="counter-max-players"
+				class="{{{Navigation::C_Class}}}"
+				pos="80 0" z-index="10"
+				data-value="{{{C_MaxPlayerDefault}}}"
+				data-minvalue="{{{C_PlayersNb_Min}}}"
+				data-maxvalue="{{{C_PlayersNb_Max}}}"
+				data-iconsize="6 6"
+				data-iconcolor="{{{ColorPalette::C_Color_White}}}"
+				data-opacityunfocus="0.5"
+				data-nav-inputs="select;cancel;down"
+				data-nav-targets="_;_;frame-select-round"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Counter::C_NavZone}}}"
+			/>
+		</frame>
+
+		<label id="label-info-players" text="{{{Text_Info_NbPlayerSelect}}}" pos="{{{Pos_FrameRound.X*1.01}}} {{{Pos_FrameRound.Y*-0.10}}}" halign="left" class="text-base" textsize="2.5" size="120 1" italicslope=".2"/>
+		
+		<frame id="frame-round-number" pos="{{{Pos_FrameRound.X*1.03}}} {{{Pos_FrameRound.Y*-1.5}}}" >
+			<label id="label-name" text="{{{Text_Option_RoundNumber}}}" halign="left" class="text-title" textsize="4.5" size="60 1" italicslope=".2" textcolor="{{{ColorPalette::C_Color_GreenFour}}}"/>
+			<frameinstance modelid="{{{FormSelect::C_Name}}}"
+				pos="{{{Pos_FrameRound.X*-0.6}}} 0"
+				data-size="79 9"
+				id="frame-select-round"
+				data-scale-options="1"
+				data-fontname="{{{FontManager::C_GameFontExtraBold}}}"
+				data-color-background="{{{ColorPalette::C_Color_GreenFour}}}"
+				data-color-text="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-text-center="1"
+				data-custom-navigation="1"
+				class="{{{Navigation::C_Class}}}"
+				data-nav-inputs="select;cancel;up;down"
+				data-nav-targets="_;_;counter-max-players;frame-select-mode"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{FormSelect::C_NavZone}}}"
+			/>
+		</frame>
+
+		<frame id="frame-round-mode-choice" pos="{{{Pos_FrameRound.X*1.05}}} {{{Pos_FrameRound.Y*-3}}}" >
+			<label id="label-name" text="{{{Text_Option_ModeChoice}}}" halign="left" class="text-title" textsize="4.5" size="60 1" italicslope=".2" textcolor="{{{ColorPalette::C_Color_GreenFour}}}"/>
+			<frameinstance modelid="{{{FormSelect::C_Name}}}"
+				pos="{{{Pos_FrameRound.X*-0.62}}} 0"
+				data-size="79 9"
+				id="frame-select-mode"
+				data-scale-options="1"
+				data-fontname="{{{FontManager::C_GameFontExtraBold}}}"
+				data-color-background="{{{ColorPalette::C_Color_GreenFour}}}"
+				data-color-text="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-text-center="1"
+				data-custom-navigation="1"
+				class="{{{Navigation::C_Class}}}"
+				data-nav-inputs="select;cancel;up;down;right"
+				data-nav-targets="_;_;frame-select-round;button-next;button-mode-settings"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{FormSelect::C_NavZone}}}"
+			/>
+			<frameinstance modelid="{{{Button::C_Name}}}" id="button-mode-settings" pos="160 8" hidden="1"
+				data-bgempty="1"
+				data-opacity="1"
+				data-opacityunfocus="0.5"
+				data-size="15 15"
+				data-icon="{{{Const::C_ImageUrl_Icon_Settings_Key}}}"
+				data-iconfocus="{{{Const::C_ImageUrl_Icon_Settings_Key}}}"
+				class="{{{Navigation::C_Class}}}"
+				data-nav-inputs="select;cancel;up;down;left"
+				data-nav-targets="_;_;frame-select-round;button-next;frame-select-mode"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+			/>
+		</frame>
+		<label id="label-info-bracket" text="{{{Text_Info_CompetitionFormat}}}" pos="{{{Pos_FrameRound.X*1.07}}} {{{Pos_FrameRound.Y*-4.5}}}" halign="left" class="text-base" textsize="2.5" size="120 1" italicslope=".2"/>
+	</frame>
+	
+	<frame id="frame-map" hidden="1">
+		<label id="label-info-date" text="{{{Text_Map_Choice}}}" pos="{{{Pos_FrameRegistration.X}}} {{{Pos_FrameRegistration.Y}}}" halign="left" class="text-title" textsize="3.5" size="100 1" italicslope=".2"/>
+		<frameinstance id="frame-map-rankings" modelid="{{{MapRankings::C_Name}}}" pos="{{{Pos_FrameMapRanking.X}}} {{{Pos_FrameMapRanking.Y}}}" z-index="3"/>
+		<frame id="frame-map-list" pos="{{{Pos_FrameRound.X*0.9}}} {{{Pos_FrameRegistration.Y*-0.45}}}">
+			{{{ML_Tracks}}}
+		</frame>
+	</frame>
+
+	<frame id="frame-infos" hidden="1">
+		<frame id="frame-info-text" pos="{{{Pos_FrameInfos.X}}} {{{Pos_FrameInfos.Y}}}">
+			<label id="label-name" text="{{{Text_Details_Name}}}" pos="0 {{{Pos_FrameInfos.Y+10}}}" halign="left" class="text-title" textsize="4" size="25 1" italicslope=".2"/>
+			<frameinstance 
+				modelid="{{{TextField::C_Name}}}" id="textfield-name" pos="-1.5 {{{Pos_FrameInfos.Y+1}}}"
+				class="{{{Navigation::C_Class}}}"
+				data-size="{{{Size_Description.X-4.}}} {{{Size_TextField.Y}}}"
+				data-placeholder="{{{Text_Details_NameTextField}}}"
+				data-bgopacityunfocus="0.4"
+				data-bgcolorfocus="{{{ColorPalette::C_Color_GreenFour}}}"
+				data-bgcolorunfocus="{{{ColorPalette::C_Color_GreenFour}}}"
+				data-contourcolorfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-contouropacityunfocus=".0"
+				data-contouropacityfocus="1."
+				data-textcolorunfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-halign="left" data-valign="center"
+				data-nav-inputs="select;cancel;down;right"
+				data-nav-targets="_;_;textfield-description;button-browse-logo"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{TextField::C_NavZone}}}"
+			/>
+			<label id="label-name" text="{{{Text_Details_Description}}}" pos="{{{Pos_FrameInfos.X*0.035}}} {{{Pos_FrameInfos.Y-15}}}" halign="left" class="text-title" textsize="4" size="45 1" italicslope=".2"/>
+			<frameinstance 
+				modelid="{{{TextField::C_Name}}}" id="textfield-description" pos="-9.4 {{{Pos_FrameInfos.Y-35}}}"
+				class="{{{Navigation::C_Class}}}"
+				data-size="{{{Size_Description.X}}} {{{Size_Description.Y}}}"
+				data-placeholder="{{{Text_Details_DescriptionTextField}}}"
+				data-bgopacityunfocus="0.4"
+				data-bgimage="{{{Const::C_ImageUrl_Common_TextEdit_BG}}}"
+				data-bgcolorfocus="{{{ColorPalette::C_Color_GreenFour}}}"
+				data-bgcolorunfocus="{{{ColorPalette::C_Color_GreenFour}}}"
+				data-contourimage="{{{Const::C_ImageUrl_Common_TextEdit_Contour}}}"
+				data-contourcolorfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-contouropacityunfocus=".0"
+				data-contouropacityfocus="1."
+				data-autonewline="1" data-maxline="3"
+				data-textfieldtype="{{{TextField::C_TextFieldType_TextEdit}}}"
+				data-textcolorunfocus="{{{ColorPalette::C_Color_GreenOne}}}"
+				data-textsize="4."
+				data-halign="left" data-valign="center"
+				data-nav-inputs="select;cancel;up;down;right"
+				data-nav-targets="_;_;textfield-name;button-back;button-browse-logo"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{TextField::C_NavZone}}}"
+			/>
+		</frame>
+		
+		<frame id="frame-date-and-logo" pos="{{{Pos_Logos.X}}} {{{Pos_Logos.Y}}}">
+			<frameinstance modelid="{{{Button::C_Name}}}" id="button-browse-logo"
+				data-size="{{{25.*416/336}}} 25"
+				data-bgcolor="{{{ColorPalette::C_Color_GreenThree}}}"
+				data-focuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
+				data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+				data-image="{{{Const::C_ImageUrl_ClubCreate_Button_Logo}}}" 
+				data-imagefocus="{{{Const::C_ImageUrl_ClubCreate_Button_Logo_Focus}}}"
+				data-alphamask="{{{Const::C_ImageUrl_ClubCreate_Button_Square_Mask}}}"
+				data-contourimage="{{{Const::C_ImageUrl_ClubCreate_Button_Square_Focus}}}"
+				data-contourimagecolor="{{{ColorPalette::C_Color_White}}}"
+				data-contouropacityfocus="0."
+				data-contouropacityunfocus="0."
+				pos="{{{Pos_Logos.X*-0.15}}} {{{Pos_Logos.Y-10}}}"
+				class="{{{Navigation::C_Class}}}"
+				data-nav-inputs="select;cancel;left;down;right"
+				data-nav-targets="_;_;textfield-name;button-create;button-browse-logo-vertical"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+				data-nav-locked="1"
+			/>
+			<frameinstance modelid="{{{Button::C_Name}}}" id="button-browse-logo-vertical"
+				data-size="{{{53.*504/752}}} 53"
+				data-fitlabel="0.5"
+				data-text="{{{Text_Vertical}}}"
+				data-textcolor="{{{ColorPalette::C_Color_GreenThree}}}"
+				data-textfocuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
+				data-textypos="-.9"
+				data-textxpos="0.38"
+				data-textsize="2.5"
+				data-backgroundcolortype="{{{Button::C_ColorType_None}}}"
+				data-image="{{{Const::C_ImageUrl_ClubCreate_Button_Vertical}}}" 
+				data-imagefocus="{{{Const::C_ImageUrl_ClubCreate_Button_Vertical_Focus}}}"
+				data-alphamask="{{{Const::C_ImageUrl_ClubCreate_Button_Vertical_Mask}}}"
+				data-contourimage="{{{Const::C_ImageUrl_ClubCreate_Button_Vertical_Contour}}}"
+				data-contourimagecolor="{{{ColorPalette::C_Color_White}}}"
+				data-contouropacityfocus="0."
+				data-contouropacityunfocus="0."
+				data-bgcolor="{{{ColorPalette::C_Color_GreenThree}}}"
+				data-focuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
+				pos="{{{Pos_Logos.X*0.2}}} {{{Pos_Logos.Y-10}}}"
+				class="{{{Navigation::C_Class}}}"
+				data-nav-inputs="select;cancel;left;down"
+				data-nav-targets="_;_;button-browse-logo;button-create"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+				data-nav-locked="1"
+			/>
+		</frame>
+	</frame>
+
+	<frameinstance
+		modelid="{{{Button::C_Name}}}" id="button-next"
+		pos="85 -73" z-index="2"
+		class="{{{Navigation::C_Class}}} {{{MenuSounds::C_Class}}}"
+		data-text="{{{Text_Next}}}"
+		data-size="60 12"
+		data-labelsize="38 12"
+		data-textxpos="0.45"
+		data-opacityunfocus=".5"
+		data-image="{{{Const::C_ImageUrl_ButtonBG_LocalMulti_Play}}}"
+		data-imagefocus="{{{Const::C_ImageUrl_ButtonBG_LocalMulti_Play}}}"
+		data-bgcolor="{{{ColorPalette::C_Color_GreenFour}}}"
+		data-focuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
+		data-textcolor="FFF"
+		data-textfocuscolor="FFF"
+		data-iconcolortype="{{{Button::C_ColorType_Colorize}}}"
+		data-iconcolor="FFF"
+		data-iconfocuscolor="FFF"
+		data-icon="{{{Const::C_ImageUrl_Icon_Arrow_Right_Oblique}}}"
+		data-iconfocus="{{{Const::C_ImageUrl_Icon_Arrow_Right_Oblique}}}"
+		data-iconxpos=".85"
+		data-iconypos="-.49"
+		data-textsize="5"
+		data-textopacityunfocus=".5"
+		data-iconopacityunfocus=".5"
+		data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+		data-textitalicslope=".2"
+		data-halign="center"
+		data-valign="bottom"
+		data-nav-inputs="select;cancel;left;up"
+		data-nav-targets="_;_;button-remove-map;_"
+		data-nav-group="{{{C_NavGroupName}}}"
+		data-nav-zone="{{{Button::C_NavZone}}}"
+		data-menusounds-selectsound="BackButtonSelect"
+		data-nav-locked="1"
+	/>
+
+	<frameinstance
+		modelid="{{{Button::C_Name}}}" id="button-back"
+		pos="-105 -73" z-index="2"
+		class="{{{Navigation::C_Class}}} {{{MenuSounds::C_Class}}}"
+		data-text="{{{Text_Back}}}"
+		data-size="60 12"
+		data-labelsize="50 12"
+		data-textxpos="0.55"
+		data-opacityunfocus=".5"
+		data-image="{{{Const::C_ImageUrl_ButtonBG_LocalMulti_Play}}}"
+		data-imagefocus="{{{Const::C_ImageUrl_ButtonBG_LocalMulti_Play}}}"
+		data-bgcolor="{{{ColorPalette::C_Color_GreenFour}}}"
+		data-focuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
+		data-textcolor="FFF"
+		data-textfocuscolor="FFF"
+		data-iconcolortype="{{{Button::C_ColorType_Colorize}}}"
+		data-iconcolor="FFF"
+		data-iconfocuscolor="FFF"
+		data-icon="{{{Const::C_ImageUrl_Icon_Arrow_Left_Oblique}}}"
+		data-iconfocus="{{{Const::C_ImageUrl_Icon_Arrow_Left_Oblique}}}"
+		data-iconxpos=".15"
+		data-iconypos="-.49"
+		data-textsize="5"
+		data-textopacityunfocus=".5"
+		data-iconopacityunfocus=".5"
+		data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+		data-textitalicslope=".2"
+		data-halign="center"
+		data-valign="bottom"
+		data-nav-inputs="select;cancel;right;up"
+		data-nav-targets="_;_;button-move-map;_"
+		data-nav-group="{{{C_NavGroupName}}}"
+		data-nav-zone="{{{Button::C_NavZone}}}"
+		data-menusounds-selectsound="BackButtonSelect"
+	/>
+
+	<frameinstance
+		modelid="{{{Button::C_Name}}}" id="button-create"
+		pos="85 -73" z-index="2"
+		class="{{{Navigation::C_Class}}} {{{MenuSounds::C_Class}}}"
+		data-text="{{{Text_Create}}}"
+		data-size="60 12"
+		data-labelsize="38 12"
+		data-textxpos="0.45"
+		data-opacityunfocus=".5"
+		data-image="{{{Const::C_ImageUrl_ButtonBG_LocalMulti_Play}}}"
+		data-imagefocus="{{{Const::C_ImageUrl_ButtonBG_LocalMulti_Play}}}"
+		data-bgcolor="{{{ColorPalette::C_Color_GreenFour}}}"
+		data-focuscolor="{{{ColorPalette::C_Color_GreenFour}}}"
+		data-textcolor="FFF"
+		data-textfocuscolor="FFF"
+		data-iconcolortype="{{{Button::C_ColorType_Colorize}}}"
+		data-iconcolor="FFF"
+		data-iconfocuscolor="FFF"
+		data-icon="{{{Const::C_ImageUrl_Icon_Arrow_Right_Oblique}}}"
+		data-iconfocus="{{{Const::C_ImageUrl_Icon_Arrow_Right_Oblique}}}"
+		data-iconxpos=".85"
+		data-iconypos="-.49"
+		data-textsize="5"
+		data-textopacityunfocus=".5"
+		data-iconopacityunfocus=".5"
+		data-textfont="{{{FontManager::C_GameFontExtraBold}}}"
+		data-textitalicslope=".2"
+		data-halign="center"
+		data-valign="bottom"
+		data-nav-inputs="select;cancel;left;up"
+		data-nav-targets="_;_;button-back;_"
+		data-nav-group="{{{C_NavGroupName}}}"
+		data-nav-zone="{{{Button::C_NavZone}}}"
+		data-menusounds-selectsound="BackButtonSelect"
+		hidden="1"
+		data-nav-locked="1"
+	/>
+
+	<frame id="frame-maps-selection" hidden="1">
+		<frame pos="-40 -67">
+			<label id="label-remove-map" pos="3 0" text="{{{Text_SelectMapsToRemove}}}" size="72 10" class="text-base" textprefix="$t$i" italicslope="0.2" halign="left" textsize="4" textfont="{{{FontManager::C_GameFontSemiBold}}}" textcolor="{{{ColorPalette::C_Color_ErrorRed}}}" hidden="1"/>
+			<frameinstance
+				modelid="{{{Button::C_Name}}}" id="button-remove-map"
+				pos="-6.75 0.5"
+				data-size="14 14"
+				data-image="{{{Const::C_ImageUrl_Icon_Bin_Inc}}}"
+				data-bgcolor="fff"
+				data-opacity="1."
+				data-imagefocus="{{{Const::C_ImageUrl_Icon_Bin_Inc}}}"
+				data-focuscolor="fff"
+				data-opacityunfocus="0.5"
+				data-halign="center"
+				data-valign="center"
+				data-nav-inputs="left;right;up;select;cancel"
+				data-nav-targets="button-move-map;button-next;frame-track-0-0;_;_"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+				class="{{{Navigation::C_Class}}}"
+			/>
+			<label id="label-move-map" pos="3 0" text="{{{Text_SelectMapsToMove}}}" size="72 10" class="text-base" textprefix="$t$i" italicslope="0.2" halign="left" textsize="4" textcolor="fff" hidden="1"/>
+			<frameinstance
+				modelid="{{{Button::C_Name}}}" id="button-move-map"
+				pos="-26.75 0.5"
+				data-size="14 14"
+				data-image="{{{Const::C_ImageUrl_Icon_Move_Oblique}}}"
+				data-bgcolor="fff"
+				data-opacity="1."
+				data-imagefocus="{{{Const::C_ImageUrl_Icon_Move_Oblique}}}"
+				data-focuscolor="fff"
+				data-opacityunfocus="0.5"
+				data-halign="center"
+				data-valign="center"
+				data-nav-inputs="left;right;up;select;cancel"
+				data-nav-targets="button-back;button-remove-map;frame-track-0-0;_;_"
+				data-nav-group="{{{C_NavGroupName}}}"
+				data-nav-zone="{{{Button::C_NavZone}}}"
+				class="{{{Navigation::C_Class}}}"
+			/>
+		</frame>
+	</frame>
+</frame>
+""",
+"""
+#Include "MathLib" as ML
+#Include "TextLib" as TL
+#Include "TimeLib" as TiL
+#Include "ColorLib" as CL
+#Include "Libs/Nadeo/CommonLibs/Common/Http.Script.txt" as Http
+#Include "Libs/Nadeo/CommonLibs/Common/MainUser.Script.txt" as MainUser
+#Include "Libs/Nadeo/TMNext/TrackMania/API/CompetitionAPI.Script.txt" as CompetitionAPI
+#Include "Libs/Nadeo/TMNext/TrackMania/Menu/Overlays/ControllerInfo_ML.Script.txt" as ControllerInfo
+
+#Const C_CompetitionDescription_MaxChar 1000
+#Const C_CompetitionName_Limits <4, 20>
+#Const C_DelayBeforeStart 600
+
+#Const C_Days_To_Month [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365]
+#Const C_Days_To_Month_Leap [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]
+#Const C_AppErrorCode_DateException "INVALID_CLUB_COMPETITION_DATES_EXCEPTION"
+#Const C_AppErrorCode_ChallengeWhithoutMap "CHALLENGE_WITHOUT_MAP"
+
+#Const C_SubSettinsStep_Text {{{dump(C_SubSettinsStep_Text)}}}
+#Const C_Button_NumbersSubMenu {{{dump(C_Button_NumbersSubMenu)}}}
+
+//Constant Modes
+#Const C_ChoiceMode_Round {{{dump(C_ChoiceMode_Round)}}}
+#Const C_ChoiceMode_Laps {{{dump(C_ChoiceMode_Laps)}}}
+#Const C_ChoiceMode_Cup {{{dump(C_ChoiceMode_Cup)}}}
+#Const C_ModeNames {{{dump(Const::C_ModeNames)}}}
+#Const C_ModeIndex_Round {{{dump(Const::C_ModeIndex_Rounds)}}}
+#Const C_ModeIndex_Laps {{{dump(Const::C_ModeIndex_Laps)}}}
+#Const C_ModeIndex_Cup {{{dump(Const::C_ModeIndex_Cup)}}}
+
+#Const C_SubMenu_Entry 0
+#Const C_SubMenu_Rounds 1
+#Const C_SubMenu_Map 2
+#Const C_SubMenu_Infos 3
+#Const C_MediaType_Logo "logo"
+#Const C_MediaType_Vertical "vertical"
+
+//Constant List of rounds and their values
+#Const C_ChoiceLists [
+	_("Semi-final"),
+	_("Quarter-final"),
+	_("8th final"),
+	_("16th final")
+]
+
+//Constant List of duration for qualifications
+#Const C_Duration_Qualification [
+	//L16N [CreateCompetition] min means minutes. Translation must be shorter than 8 characters.
+	_("10 min"),
+	//L16N [CreateCompetition] min means minutes. Translation must be shorter than 8 characters.
+	_("20 min"),
+	//L16N [CreateCompetition] min means minutes. Translation must be shorter than 8 characters.
+	_("30 min"),
+	//L16N [CreateCompetition] min means minutes. Translation must be shorter than 8 characters.
+	_("40 min")
+]
+
+#Const C_SemiFinal 0
+#Const C_QuarterFinal 1
+#Const C_EighthFinal 2
+#Const C_SixTeenthFinal 3
+
+#Const C_Index_Ten_Minutes 0
+#Const C_Index_Twenty_Minutes 1
+#Const C_Index_Thirty_Minutes 2
+#Const C_Index_Fourty_Minutes 3
+
+#Const C_One_Minute 60
+#Const C_Ten_Minutes 600
+#Const C_Twenty_Minutes 1200
+#Const C_Thirty_Minutes 1800
+#Const C_Fourty_Minutes 2400
+
+#Const C_Multiplier_None 0
+#Const C_SemiFinal_Multiplier 2
+#Const C_QuarterFinal_Multiplier 4
+#Const C_EighthFinal_Multiplier 8
+#Const C_SixTeenthFinal_Multiplier 16
+
+#Const C_PlaformIsFromFirstParty {{{dump(PlaformIsFromFirstParty)}}}
+
+//Structures
+
+#Struct K_UI_Controls {
+	CMlFrame Frame_Global;
+	CMlFrame Frame_Entry;
+	CMlFrame Frame_Qualification;
+	CMlFrame Frame_Map;
+	CMlFrame Frame_Rounds;
+	CMlFrame Frame_Infos;
+	CMlFrame Frame_SubButtons;
+	CMlFrame Frame_MapList;
+	CMlFrame Frame_MapRanking;
+	CMlFrame Frame_Browser;
+	CMlFrame Frame_RoundMode_Choice;
+	CMlFrame Frame_Info_Text;
+	CMlFrame Frame_Info_DateAndLogo;
+	CMlFrame Button_Back;
+	CMlFrame Button_Next;
+	CMlFrame Button_Create;
+	CMlFrame Button_ModeSetting;
+	CMlFrame TextField_StartDate; 
+	CMlFrame TextField_MaxPlayerPerMatch;
+	CMlFrame TextField_Name;
+	CMlFrame TextField_Description;
+	CMlFrame Button_BrowseLogo;
+	CMlFrame Button_BrowseLogoVertical;
+	CMlLabel Label_Error;
+	CMlFrame Frame_LoadingSpinner;
+	CMlFrame Frame_SwitchBall;
+	CMlFrame Frame_DetailQualify;
+	CMlFrame Frame_SelectRounds;
+	CMlFrame Frame_SelectModes;
+	CMlFrame Frame_SelectDuration_Qualify;
+	CMlFrame Frame_Maps_Remove;
+	CMlFrame Counter_MaxPlayers;
+	CMlFrame PopUpMultiChoice_UploadError;
+	CMlFrame PopUpMultiChoice_Exit;
+}
+
+#Struct K_Competition_MapUploads {
+	{{{CampaignStruct::P}}}K_Map[Text] MapsToUpload;
+	Ident Task_RegisterMapId;
+	Ident[Text] Task_RegisterMapIdList;
+	{{{CampaignStruct::P}}}K_Map[Text] MapsQualify;
+	Ident[Text] Task_RegisterMapIdQualifyList;
+}
+
+#Struct K_PageState {
+	Integer Current_SubMenu;
+	{{{CompetitionStruct::P}}}K_CreateCompetition CreateCompetition;
+	
+	Integer ActivityId;
+	Integer ChoiceRound;
+	Text[] ModeName;
+
+	Integer Competition_Start_TimeStamp;
+
+	Http::K_Request Request;
+	Http::K_Request RequestPostResponseUploadLogo;
+	Http::K_Request RequestPostResponseUploadVertical;
+	Integer ScriptSetting;
+
+	// Map 
+	{{{CampaignStruct::P}}}K_Map[Text] MapList;
+	{{{CampaignStruct::P}}}K_Map[Text] MapQualifyList;
+	Text[] NameMap;
+	K_Competition_MapUploads MapUploads;
+	Boolean[Text] IsBrowsing;
+	Boolean[Text] IsDeleting;
+	{{{ClubStruct::P}}}K_Room Room;
+	Boolean QualifyChoice;
+	//new display map
+	Boolean ShowPlus;
+	Integer MapsCurrentPage;
+	Integer DisplayedMapRankingsIndex;
+	Integer MapCount;
+	Boolean IsRemovingMaps;
+	Boolean IsMovingMaps;
+	Integer MovedMapIndex;
+}
+
+""",
+"""
+Text GetDefaultName() {
+	// No translation here, it doesn't translate in the CMlFrame
+	declare LocalUserName = TL::Length(TL::StripFormatting(LocalUser.Name));
+	declare Length = C_CompetitionName_Limits.Y - 14;
+	if (LocalUserName > Length) {
+		declare Text NameCompetition = TL::SubString(LocalUser.Name, 0, 6);
+		return NameCompetition^"'s Competition";
+	}
+	return LocalUser.Name^"'s Competition";
+}
+
+Text GetErrorMessage(Text _AppCode, K_PageState _State) {
+	switch (_AppCode) {
+		case C_AppErrorCode_DateException : {
+			//L16N [CreateCompetition] The creation of this competition failed. The start date must be at least 10 min after the end of qualification or registration.
+			return _("Start time must be at least 10 minutes after registration or qualification, please enter another time or date");
+		} 
+		case C_AppErrorCode_ChallengeWhithoutMap : {
+			//L16N [CreateCompetition] The creation of this competition failed. Player must select a track for qualifications.
+			return _("You must select a track for qualifications");
+		}
+	}
+	//L16N [CreateCompetition] Message to inform player of an unknown error. %1 is an http error code. %2 is the App_Code, can be empty.
+	return TL::Compose(_("The creation of this competition failed, please try again (Error code: %1 %2)"), ""^Http::GetStatusCode(_State.Request), _AppCode);
+}
+
+Void FocusQuad(CMlFrame _Control, Boolean _Show) {
+	declare CMlQuad FocusQuad = _Control.GetFirstChild("quad-focus") as CMlQuad;
+	FocusQuad.Hide();
+	if (_Show) {
+		FocusQuad.Show();
+	}
+}
+
+K_PageState StartLaterThanCurrentDate(K_UI_Controls _Controls, K_PageState _State) {
+	declare K_PageState State = _State;
+
+	_Controls.Label_Error.Value = "";
+	if (TiL::GetDelta(""^State.Competition_Start_TimeStamp, TiL::GetCurrent()) <= C_One_Minute) {
+		//L16N [CreateCompetition] Start date must be later than current date. Start date cannot be in the past.
+		_Controls.Label_Error.Value = _("Start date must be later than current date");
+	} else {
+		State.CreateCompetition.MatchStartDate = {{{TextField::P}}}GetValue(_Controls.TextField_StartDate);
+	}
+	return State;
+}
+
+Void ShowMapPlus(CMlFrame _Frame_Map) {
+	{{{Navigation::P}}}Lock(_Frame_Map, False);
+	declare CMlLabel Label_Name <=> (_Frame_Map.GetFirstChild("label-name") as CMlLabel);
+	declare CMlQuad Quad_Bg <=> (_Frame_Map.GetFirstChild("quad-bg-zone") as CMlQuad);
+	declare CMlQuad Quad_Shadow <=> (_Frame_Map.GetFirstChild("quad-bg-shadow") as CMlQuad);
+	declare CMlQuad Quad_Plus <=> (_Frame_Map.GetFirstChild("quad-plus") as CMlQuad);
+	Label_Name.SetText("");
+	Quad_Bg.Colorize = {{{ColorPalette::C_Color_Vec3_GreenOne}}};
+	Quad_Bg.Opacity = 0.5;
+	Quad_Shadow.Opacity = 0.;
+	Quad_Plus.Opacity = 1.;
+	_Frame_Map.Show();
+}
+
+Void ShowMap(CMlFrame _Frame_Map, {{{CampaignStruct::P}}}K_Map _Map) {
+	{{{Navigation::P}}}Lock(_Frame_Map, False);
+	declare CMlLabel Label_Name <=> (_Frame_Map.GetFirstChild("label-name") as CMlLabel);
+	declare CMlQuad Quad_Bg <=> (_Frame_Map.GetFirstChild("quad-bg-zone") as CMlQuad);
+	declare CMlQuad Quad_Shadow <=> (_Frame_Map.GetFirstChild("quad-bg-shadow") as CMlQuad);
+	declare CMlQuad Quad_Plus <=> (_Frame_Map.GetFirstChild("quad-plus") as CMlQuad);
+	Label_Name.SetText(_Map.Name);
+	Label_Name.TextSizeReal = 4.;
+	Quad_Bg.Colorize = {{{ColorPalette::C_Color_Vec3_GreenOne}}};
+	Quad_Bg.Opacity = 1.;
+	Quad_Shadow.Opacity = 0.5;
+	Quad_Plus.Opacity = 0.;
+	_Frame_Map.Show();
+}
+
+Void HideMap(CMlFrame _Frame_Map) {
+	{{{Navigation::P}}}Lock(_Frame_Map, True);
+	_Frame_Map.Hide();
+}
+
+Void SetActiveSubButton(Boolean _IsFocused, K_UI_Controls _Controls, Integer _CurrentSubMenu) {
+	foreach (Control_SubButton in _Controls.Frame_SubButtons.Controls) {
+		if (TL::StartsWith("frame-sub-button-", Control_SubButton.ControlId)) {
+			if (TL::EndsWith(TL::ToText(_CurrentSubMenu), Control_SubButton.ControlId)) {
+				((Control_SubButton as CMlFrame).GetFirstChild("label-button") as CMlLabel).Opacity = 1.;
+			} else {
+				((Control_SubButton as CMlFrame).GetFirstChild("label-button") as CMlLabel).Opacity = .5;
+			}
+		}
+	}
+}
+
+Void InitSubMenusButtons(K_UI_Controls _Controls) {
+declare Integer Step_Number = 1;
+	foreach (Index => Control_Button in _Controls.Frame_SubButtons.Controls) {
+		if (!(Control_Button is CMlFrame) || !C_SubSettinsStep_Text.existskey(Index)) continue;
+			declare Label_Button = ((Control_Button as CMlFrame).GetFirstChild("label-button") as CMlLabel);
+			Label_Button.Value = TL::Compose("%1-%2", ""^Step_Number, C_SubSettinsStep_Text[Index]);
+			Step_Number = Step_Number + 1;
+	}
+}
+
+Void DisplayTrackBrowser(Boolean _IsVisible, K_UI_Controls _Controls) {
+	_Controls.Frame_Global.Visible = !_IsVisible;
+	{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", !_IsVisible);
+	{{{TrackBrowser::P}}}Display(This, _IsVisible, False);
+	if (!_IsVisible) ControllerInfo::SetButtons(["A" => _("Select"), "B" => _("Back")]);
+}
+
+Void DisplayBrowser(Boolean _IsVisible, K_UI_Controls _Controls) {
+	_Controls.Frame_Browser.Visible = _IsVisible;
+	_Controls.Frame_Global.Visible = !_IsVisible;
+	{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", !_IsVisible);
+	{{{BrowserAPI::P}}}FocusBrowser(This, _IsVisible);
+}
+
+Integer MapControlToMapUidsKey(K_PageState _State, CMlControl _Control) {
+	declare Result = -123;
+	if (_Control != Null) {
+		declare MapLineNb = "";
+		declare MapColumnNb = "";
+		if (_Control.DataAttributeExists("line-nb")) MapLineNb = _Control.DataAttributeGet("line-nb");
+		if (_Control.DataAttributeExists("column-nb")) MapColumnNb = _Control.DataAttributeGet("column-nb");
+
+		if (MapLineNb != "" && MapColumnNb != "") {
+			Result = TL::ToInteger(MapLineNb) + TL::ToInteger(MapColumnNb) * {{{C_TrackLineNb}}};
+		}
+		Result += _State.MapsCurrentPage * {{{C_TrackLineNb * C_TrackColumnNb}}};
+		if (_State.ShowPlus) {
+			if (
+				_Control.ControlId == "frame-track-0-0" &&
+				_State.MapsCurrentPage == 0
+			) {
+				Result = -1;
+			}
+			else if (Result > 0) {
+				Result -= 1;
+			}
+		}
+	}
+	return Result;
+}
+
+CMlControl MapUidsKeyToMapControl(K_PageState _State, K_UI_Controls _Controls, Integer _MapUidsKey) {
+	declare ResultId = "";
+
+	if (_MapUidsKey >= 0) {
+		declare SlotIndex = _MapUidsKey;
+		SlotIndex -= _State.MapsCurrentPage * {{{C_TrackLineNb * C_TrackColumnNb}}};
+		if (_State.ShowPlus) SlotIndex += 1;
+		if (
+			SlotIndex >= 0 &&
+			SlotIndex < {{{C_TrackLineNb * C_TrackColumnNb}}}
+		) {
+			ResultId = "frame-track-"^(SlotIndex%{{{C_TrackLineNb}}})^"-"^(SlotIndex/{{{C_TrackColumnNb}}});
+		}
+	} else if (
+		_MapUidsKey == -1 &&
+		_State.MapsCurrentPage == 0 &&
+		_State.ShowPlus
+	) {
+		ResultId = "frame-track-0-0";
+	}
+
+	if (ResultId != "") return _Controls.Frame_MapList.GetFirstChild(ResultId);
+	return Null;
+}
+
+Void Focus(CMlControl _From, CMlControl _To, K_PageState _State, K_UI_Controls _PageControls) {
+	declare K_PageState State = _State;
+	if ({{{Transition::P}}}IsInTransition(This)) return;
+	
+	if (_From != Null) {
+		{{{Navigation::P}}}Unfocus(This, _From);
+		if ({{{Button::P}}}IsButton(_From)) {
+			{{{Button::P}}}Unfocus(This, (_From as CMlFrame));
+		} else if ({{{TextField::P}}}IsTextField(_From)) {
+			{{{TextField::P}}}Unfocus(This, (_From as CMlFrame));
+		} else if ({{{Counter::P}}}IsCounter(_From)) {
+			{{{Counter::P}}}Unfocus((_From as CMlFrame));
+		} else if ({{{FormSelect::P}}}IsFormSelect(This, _From)) {
+			{{{FormSelect::P}}}Focus(This, _From.Id, False);
+		} else if (_From.HasClass("{{{C_Class_MapQualify}}}")) {
+			((_From as CMlFrame).GetFirstChild("quad-focus-map") as CMlQuad).Hide();
+		} else if (_From.HasClass("{{{C_Class_AddMapPool}}}")) {
+			if (MapControlToMapUidsKey(State, _From) == State.MovedMapIndex) {
+				((_From as CMlFrame).GetFirstChild("quad-bg-zone") as CMlQuad).Colorize = <1.,1.,1.>;
+			} else {
+				((_From as CMlFrame).GetFirstChild("quad-bg-zone") as CMlQuad).Colorize = {{{ColorPalette::C_Color_Vec3_GreenOne}}};
+			}
+		} else if (_From == _PageControls.Frame_SwitchBall) {
+			declare CMlQuad QuadContour = _PageControls.Frame_SwitchBall.GetFirstChild("quad-contour") as CMlQuad;
+			QuadContour.Opacity = 0.5;
+		}
+	}
+	
+	if (_To != Null) {
+		{{{Navigation::P}}}Focus(This, _To);
+		if ({{{Button::P}}}IsButton(_To)) {
+			{{{Button::P}}}Focus(This, (_To as CMlFrame));
+		} else if ({{{TextField::P}}}IsTextField(_To)) {
+			{{{TextField::P}}}Focus(This, (_To as CMlFrame));
+		} else if ({{{Counter::P}}}IsCounter(_To)) {
+			{{{Counter::P}}}Focus((_To as CMlFrame));
+		} else if ({{{FormSelect::P}}}IsFormSelect(This, _To)) {
+			{{{FormSelect::P}}}Focus(This, _To.Id, True);
+		} else if (_To.HasClass("{{{C_Class_MapQualify}}}")) {
+			((_To as CMlFrame).GetFirstChild("quad-focus-map") as CMlQuad).Show();
+		}	else if (_To.HasClass("{{{C_Class_AddMapPool}}}")) {
+			((_To as CMlFrame).GetFirstChild("quad-bg-zone") as CMlQuad).Colorize = {{{ColorPalette::C_Color_Vec3_GreenFive}}};
+		} else if (_To == _PageControls.Frame_SwitchBall) {
+			declare CMlQuad QuadContour = _PageControls.Frame_SwitchBall.GetFirstChild("quad-contour") as CMlQuad;
+			QuadContour.Opacity = 1.;
+		}
+		if (TL::StartsWith("frame-track-", _To.ControlId)) {
+			declare MapKey = MapControlToMapUidsKey(State, _To);
+			declare {{{CampaignStruct::P}}}K_Map Map;
+			if (State.CreateCompetition.MapUrl.existskey(MapKey) && State.MapList.existskey(State.CreateCompetition.MapUrl[MapKey].Id)) {
+				Map = State.MapList[State.CreateCompetition.MapUrl[MapKey].Id];
+			} else {
+				MapKey = -1;
+			}
+			State.DisplayedMapRankingsIndex = MapKey;
+			{{{MapRankings::P}}}UpdateMapInfoDisplayed(This, _PageControls.Frame_MapRanking, Map);
+		}
+	}
+}
+
+K_PageState ShowQualification(K_UI_Controls _Controls, K_PageState _State) {  
+	declare K_PageState State = _State;
+	declare Real LabelOpacity;
+	declare CMlFrame Button_Map = (_Controls.Frame_DetailQualify.GetFirstChild("button-add-maps-qualify") as CMlFrame);
+	declare CMlQuad BackgroundMap = Button_Map.GetFirstChild("quad-thumbnail") as CMlQuad;
+	declare CMlLabel Label_MapName = Button_Map.GetFirstChild("label-text") as CMlLabel;
+	declare CMlQuad QuadPlus = Button_Map.GetFirstChild("quad-plus") as CMlQuad;
+	Label_MapName.Value = "";
+	QuadPlus.Hide();
+	Label_MapName.Hide();
+	
+	if (State.QualifyChoice) {
+		State.QualifyChoice = False;
+		LabelOpacity = 0.5;
+		(_Controls.Frame_SwitchBall.GetFirstChild("quad-switch-ball")).RelativePosition_V3.X = {{{PosXSwitchBall}}};
+		(_Controls.Frame_SwitchBall.GetFirstChild("label-qualify") as CMlLabel).Opacity = LabelOpacity;
+		(_Controls.Frame_Qualification.GetFirstChild("frame-detail-qualify")).Visible = State.QualifyChoice;
+		State.CreateCompetition.QualifierDuration = C_Index_Ten_Minutes;
+		{{{FormSelect::P}}}Select(This, _Controls.Frame_SelectDuration_Qualify.Id, C_Index_Ten_Minutes);
+		{{{Navigation::P}}}Lock(Button_Map, True);
+		{{{Navigation::P}}}Lock(_Controls.Frame_SelectDuration_Qualify, True);
+		BackgroundMap.ChangeImageUrl("");
+	} else {
+		State.QualifyChoice = True;
+		QuadPlus.Show();
+		LabelOpacity = 1.;
+		State.CreateCompetition.QualifierDuration = C_Ten_Minutes;
+		(_Controls.Frame_SwitchBall.GetFirstChild("quad-switch-ball")).RelativePosition_V3.X = {{{PosXSwitchBall}}} * -1.25;
+		(_Controls.Frame_SwitchBall.GetFirstChild("label-qualify") as CMlLabel).Opacity = LabelOpacity;
+		(_Controls.Frame_Qualification.GetFirstChild("frame-detail-qualify")).Visible = State.QualifyChoice;
+		{{{Navigation::P}}}Lock(Button_Map, False);
+		{{{Navigation::P}}}Lock(_Controls.Frame_SelectDuration_Qualify, False);
+		Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), Button_Map, State, _Controls);
+	}
+	return State;
+}
+
+Void ShowStateFrame(K_UI_Controls _Controls, Integer _CurrentSubMenu, K_PageState _State) {
+	_Controls.Frame_Entry.Hide();
+	_Controls.Frame_Rounds.Hide();
+	_Controls.Frame_Map.Hide();
+	_Controls.Frame_Infos.Hide();
+	_Controls.Frame_Browser.Hide();
+	_Controls.Frame_Maps_Remove.Hide();
+
+	{{{Button::P}}}ShowAndUnlock(_Controls.Button_Next);
+	{{{Button::P}}}HideAndLock(_Controls.Button_Create);
+	foreach (Button in _Controls.Frame_MapList.Controls) {
+		{{{Navigation::P}}}Lock(Button, True);
+	}
+
+	{{{Navigation::P}}}Lock(_Controls.Frame_Maps_Remove.GetFirstChild("button-move-map"), True);
+	{{{Navigation::P}}}Lock(_Controls.Frame_Maps_Remove.GetFirstChild("button-remove-map"), True);
+	{{{Navigation::P}}}Lock(_Controls.Button_BrowseLogoVertical, True);
+	{{{Navigation::P}}}Lock(_Controls.Button_BrowseLogo, True);
+	{{{Navigation::P}}}ChangeControlTarget(This, _Controls.Button_Back, "right", "button-move-map");
+	{{{Navigation::P}}}ChangeControlTarget(This, _Controls.Button_Back, "up", "");
+	{{{Navigation::P}}}ChangeControlTarget(This, _Controls.Button_Next, "up", "");
+
+	switch (_CurrentSubMenu) {
+		case C_SubMenu_Entry: {
+			_Controls.Frame_Entry.Show();
+			{{{Navigation::P}}}ChangeControlTarget(This, _Controls.Button_Back, "up", "textfield-date-competition");
+			{{{Navigation::P}}}ChangeControlTarget(This, _Controls.Button_Next, "up", "textfield-date-competition");
+		}
+		case C_SubMenu_Rounds: {
+			_Controls.Frame_Rounds.Show();
+			{{{Button::P}}}ShowAndUnlock(_Controls.Button_ModeSetting);
+			{{{Navigation::P}}}ChangeControlTarget(This, _Controls.Button_Back, "up", _Controls.Frame_SelectModes.ControlId);
+			{{{Navigation::P}}}ChangeControlTarget(This, _Controls.Button_Next, "up", _Controls.Frame_SelectModes.ControlId);
+		}
+		case C_SubMenu_Map: {
+			_Controls.Frame_Map.Show();
+			_Controls.Frame_Maps_Remove.Show();
+			{{{Navigation::P}}}ChangeControlTarget(This, _Controls.Button_Next, "up", "frame-track-0-0");
+			{{{Navigation::P}}}ChangeControlTarget(This, _Controls.Button_Back, "up", "frame-track-0-0");
+			{{{Navigation::P}}}Lock(_Controls.Frame_MapList.GetFirstChild("frame-track-0-0"), False);
+			{{{Navigation::P}}}Lock(_Controls.Frame_Maps_Remove.GetFirstChild("button-move-map"), False);
+			{{{Navigation::P}}}Lock(_Controls.Frame_Maps_Remove.GetFirstChild("button-remove-map"), False);
+			foreach (Button in _Controls.Frame_MapList.Controls) {
+				if (Button.Visible) {{{Navigation::P}}}Lock(Button, False);
+			}
+		}
+		case C_SubMenu_Infos: {
+			{{{Button::P}}}HideAndLock(_Controls.Button_Next);
+			{{{Button::P}}}ShowAndUnlock(_Controls.Button_Create);
+			{{{Navigation::P}}}Lock(_Controls.Button_BrowseLogoVertical, False);
+			{{{Navigation::P}}}Lock(_Controls.Button_BrowseLogo, False);
+			{{{Navigation::P}}}ChangeControlTarget(This, _Controls.Button_Back, "right", _Controls.Button_Create.ControlId);
+			{{{Navigation::P}}}ChangeControlTarget(This, _Controls.Button_Back, "up", _Controls.TextField_Description.ControlId);
+			{{{Navigation::P}}}ChangeControlTarget(This, _Controls.Button_Create, "up", _Controls.Button_BrowseLogoVertical.ControlId);
+			Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), _Controls.Button_Create, _State, _Controls);
+			_Controls.Frame_Infos.Show();
+		}
+	}
+}
+
+
+K_PageState CancelPage(K_UI_Controls _Controls, K_PageState _PageState) {
+	declare K_PageState State = _PageState;
+	State.Current_SubMenu = C_SubMenu_Entry;
+
+	_Controls.Button_ModeSetting.Hide();
+	SetActiveSubButton(True, _Controls, State.Current_SubMenu);
+
+	State.IsBrowsing[C_MediaType_Vertical] = False;
+	State.IsBrowsing[C_MediaType_Logo] = False;
+
+	{{{Button::P}}}SetValue(This, _Controls.Button_BrowseLogoVertical, "{{{Text_Vertical}}}");
+	{{{Button::P}}}SetImage(This, _Controls.Button_BrowseLogoVertical, "{{{Const::C_ImageUrl_ClubCreate_Button_Vertical}}}");
+	{{{Button::P}}}SetImageFocus(This, _Controls.Button_BrowseLogoVertical, "{{{Const::C_ImageUrl_ClubCreate_Button_Vertical_Focus}}}");
+	{{{Button::P}}}SetImage(This, _Controls.Button_BrowseLogo, "{{{Const::C_ImageUrl_ClubCreate_Button_Logo}}}");
+	{{{Button::P}}}SetImageFocus(This, _Controls.Button_BrowseLogo, "{{{Const::C_ImageUrl_ClubCreate_Button_Logo_Focus}}}");
+
+	State.NameMap.clear();
+	State.MapList.clear();
+	State.MapUploads.Task_RegisterMapIdList.clear();
+
+	{{{TextField::P}}}SetValue(This, _Controls.TextField_Description, "");
+	{{{TextField::P}}}SetValue(This, _Controls.TextField_Name, "");
+	_Controls.Label_Error.Value = "";
+	(_Controls.Frame_Global.GetFirstChild("label-locked") as CMlLabel).Value = "";
+	foreach (Task_RegisterMapId in State.MapUploads.Task_RegisterMapIdList) {
+		DataFileMgr.TaskResult_Release(Task_RegisterMapId);
+	}
+	State.CreateCompetition = {{{CompetitionStruct::P}}}GetEmptyCompetition();
+	return State;
+}
+
+Void DisplayErrors(K_UI_Controls _Controls, K_PageState _State) {
+	_Controls.Label_Error.Value = "";
+	switch (_State.Current_SubMenu) {
+		case C_SubMenu_Entry : {
+			//L16N [CreateCompetition] Competition must have a start date, the field cannot be empty
+			if (_State.CreateCompetition.MatchStartDate == "") _Controls.Label_Error.Value = _("The competition start date cannot be empty");
+			if (_State.QualifyChoice) {
+				//L16N [CreateCompetition] User must add one track for the qualification, the field cannot be empty.
+				if (_State.CreateCompetition.MapsQualify.count == 0) _Controls.Label_Error.Value = _("You need to add one track for the qualification");
+				//L16N [CreateCompetition] User must select a duration for the qualification.
+				else if (_State.CreateCompetition.QualifierDuration < C_Ten_Minutes) _Controls.Label_Error.Value = _("You must select a duration for the qualification");
+			}
+		}
+		case C_SubMenu_Rounds: {
+			if (_State.CreateCompetition.MaxPlayers_Total == C_Multiplier_None) _Controls.Label_Error.Value = _("The number of players per match cannot be null");
+		}
+		case C_SubMenu_Map: {
+			//L16N [CreateCompetition] User must add at least one track, the field cannot be empty 
+			if (_State.CreateCompetition.MapUrl.count == 0) _Controls.Label_Error.Value = _("You need to add at least one track");
+		}
+	}
+}
+
+Boolean IsLeapYear(Integer _Year) {
+	if ((_Year % 4) != 0) return False;
+	if ((_Year % 100) == 0) return ((_Year % 400) == 0);
+	return True;
+}
+
+K_PageState GetTimestamp(K_PageState _State, K_UI_Controls _Controls, Text _EntryDate) {
+	declare K_PageState State = _State;
+	declare Text[] Match = TL::RegexMatch("(0[1-9]|[1-2][0-9]|3[0-1])\\/(0[1-9]|1[0-2])\\/([0-9]{4}) (2[0-3]|[01][0-9]):([0-5][0-9])", _EntryDate, "i"); //< verify 'DD/MM/YYYY HH:MM' date format
+	if (Match.count > 0 && Match[0] != "") { //< The date has the correct format
+		declare Integer Day = TL::ToInteger(Match[1]);
+		declare Integer Month = TL::ToInteger(Match[2]);
+		declare Integer Year = TL::ToInteger(Match[3]);
+		declare Integer Hour = TL::ToInteger(Match[4]);
+		declare Integer Minute = TL::ToInteger(Match[5]);
+		declare Integer[] DayToMonth = [];
+		declare Integer YearMinus = Year - 1900;
+		declare Text CurrentTimeZone = System.CurrentTimezoneTimeOffset;
+		State.Competition_Start_TimeStamp = 0;
+
+		if (TL::StartsWith("+", CurrentTimeZone)) {
+			Hour -= TL::ToInteger(TL::SubString(CurrentTimeZone, 1, 2));
+			Minute -= TL::ToInteger(TL::SubString(CurrentTimeZone, 4, 2));
+		} else {
+			Hour += TL::ToInteger(TL::SubString(CurrentTimeZone, 1, 2));
+			Minute += TL::ToInteger(TL::SubString(CurrentTimeZone, 4, 2));
+		}
+	
+		if (Year >= 1 && Year <= 9999 && Month >= 1 && Month <= 12) {
+			if (IsLeapYear(Year)) DayToMonth = C_Days_To_Month_Leap;
+			else DayToMonth = C_Days_To_Month;
+	
+			if (Day >= 1 && Day <= (DayToMonth[Month] - DayToMonth[Month - 1])) {
+				State.Competition_Start_TimeStamp = (Minute * 60) + (Hour * 3600) + (DayToMonth[Month - 1] + (Day - 1)) * 86400 + (YearMinus - 70) * 31536000 +  ((YearMinus - 69) / 4) * 86400 - ((YearMinus - 1) / 100) * 86400 + ((YearMinus + 299) / 400) * 86400;
+				State = StartLaterThanCurrentDate(_Controls, State);
+			} else {
+				//L16N [CreateCompetition] Value of day must be greater or equal than 1 and smaller or equal than %1. %1 will be replaced by max day of Month, e.g. "Day must be between 1 and 31"
+				_Controls.Label_Error.Value = TL::Compose(_("Day must be between 1 and %1"), ""^(DayToMonth[Month] - DayToMonth[Month - 1]));
+			}
+		} else {
+			//L16N [CreateCompetition] Value of year must be greater or equal than 1 and smaller or equal than 9999. Value of month must be greater or equal than 1 and smaller or equal than 12.
+			_Controls.Label_Error.Value = _("Year must be between 1 and 9999 and Month must be between 1 and 12");
+		}
+	} else {
+		//L16N [CreateCompetition] Error message displayed when the format of the date entered by the player is not valid. 
+		_Controls.Label_Error.Value = TL::Compose(_("The format of the date is not %1"), "{{{Text_DefaultDate}}}");
+	}
+
+	return State;
+}
+
+Text TransformDate(Text _EntryDate) {
+	declare Text NewDate = _EntryDate;
+	declare Text Year = TL::SubString(NewDate, 6, 4);
+	declare Text Month = TL::SubString(NewDate, 3, 2);
+	declare Text Day = TL::SubString(NewDate, 0, 2);
+	declare Text Hour = TL::SubString(NewDate, 11, 5);
+	NewDate = Year^"-"^Month^"-"^Day^"T"^Hour^":00.000"^System.CurrentTimezoneTimeOffset;
+	return NewDate;
+}
+
+K_PageState UpdateMapList(K_PageState _State, K_UI_Controls _PageControls) {
+	declare K_PageState State = _State;
+
+	// Update Map List
+	State.ShowPlus = State.CreateCompetition.MapUrl.count <= {{{NbMaps}}}-1;
+	foreach (ControlKey => Control_Map in _PageControls.Frame_MapList.Controls) {
+		declare CMlFrame Frame_Map <=> (Control_Map as CMlFrame);
+		declare MapKey = ControlKey + State.MapsCurrentPage * {{{C_TrackColumnNb * C_TrackLineNb}}};
+		if (State.ShowPlus) MapKey -= 1;
+		if (ControlKey == 0 && State.ShowPlus && State.MapsCurrentPage == 0) {
+			ShowMapPlus(Frame_Map);
+		} else if (State.CreateCompetition.MapUrl.existskey(MapKey)) {
+			ShowMap(Frame_Map, State.MapList[State.CreateCompetition.MapUrl[MapKey].Id]);
+		} else {
+			HideMap(Frame_Map);
+		}
+	}
+	
+	State.MapCount = State.CreateCompetition.MapUrl.count;
+
+	// Update Thumbnail
+	declare MapIndex = State.DisplayedMapRankingsIndex;
+	declare {{{CampaignStruct::P}}}K_Map Map;
+	// Check if map is currently displayed
+	declare MapDisplayIndex = MapIndex;
+	if (State.ShowPlus) MapDisplayIndex += 1;
+	if (
+		MapIndex < 0 ||
+		MapDisplayIndex < State.MapsCurrentPage * {{{C_TrackLineNb * C_TrackColumnNb}}} ||
+		MapDisplayIndex >= (State.MapsCurrentPage + 1) * {{{C_TrackLineNb * C_TrackColumnNb}}} ||
+		!State.CreateCompetition.MapUrl.existskey(MapIndex) ||
+		!State.MapList.existskey(State.CreateCompetition.MapUrl[MapIndex].Id)
+	) {
+		MapIndex = State.MapsCurrentPage * {{{C_TrackLineNb * C_TrackColumnNb}}};
+		if (State.ShowPlus && State.MapsCurrentPage > 0) MapIndex -= 1;
+	}
+	// Check if map exists
+	if (State.CreateCompetition.MapUrl.existskey(MapIndex) && State.MapList.existskey(State.CreateCompetition.MapUrl[MapIndex].Id)) {
+		Map = State.MapList[State.CreateCompetition.MapUrl[MapIndex].Id];
+	} else {
+		MapIndex = -1;
+	}
+	State.DisplayedMapRankingsIndex = MapIndex;
+	{{{MapRankings::P}}}UpdateMapInfoDisplayed(
+		This,
+		_PageControls.Frame_MapRanking,
+		Map
+	);
+
+	return State;
+}
+
+K_PageState UpdateRemoveButtons(K_PageState _State, K_UI_Controls _Controls) {
+	declare K_PageState State = _State;
+	_Controls.Frame_Maps_Remove.GetFirstChild("label-move-map").Visible = State.IsMovingMaps;
+	declare Button_MoveMap <=> (_Controls.Frame_Maps_Remove.GetFirstChild("button-move-map") as CMlFrame);
+	if (State.IsMovingMaps) {
+		{{{Button::P}}}SetImage(This, Button_MoveMap, "{{{Const::C_ImageUrl_Icon_Cross_Oblique}}}");
+		{{{Button::P}}}SetImageFocus(This, Button_MoveMap, "{{{Const::C_ImageUrl_Icon_Cross_Oblique}}}");
+	} else {
+		State.MovedMapIndex = -123;
+		State = UpdateMapList(State, _Controls);
+		{{{Button::P}}}SetImage(This, Button_MoveMap, "{{{Const::C_ImageUrl_Icon_Move_Oblique}}}");
+		{{{Button::P}}}SetImageFocus(This, Button_MoveMap, "{{{Const::C_ImageUrl_Icon_Move_Oblique}}}");
+	}
+
+	_Controls.Frame_Maps_Remove.GetFirstChild("label-remove-map").Visible = State.IsRemovingMaps;
+	declare Button_RemoveMap <=> (_Controls.Frame_Maps_Remove.GetFirstChild("button-remove-map") as CMlFrame);
+	if (State.IsRemovingMaps) {
+		{{{Button::P}}}SetImage(This, Button_RemoveMap, "{{{Const::C_ImageUrl_Icon_Cross_Oblique}}}");
+		{{{Button::P}}}SetImageFocus(This, Button_RemoveMap, "{{{Const::C_ImageUrl_Icon_Cross_Oblique}}}");
+	} else {
+		{{{Button::P}}}SetImage(This, Button_RemoveMap, "{{{Const::C_ImageUrl_Icon_Bin_Inc}}}");
+		{{{Button::P}}}SetImageFocus(This, Button_RemoveMap, "{{{Const::C_ImageUrl_Icon_Bin_Inc}}}");
+	}
+	return State;
+}
+
+K_PageState Select(CMlControl _Control, K_UI_Controls _Controls, K_PageState _PageState) {
+	declare K_PageState State = _PageState;
+	if (_Control == Null || {{{Transition::P}}}IsInTransition(This)) return State;
+
+	switch (_Control.ControlId) {
+		case "button-back": {
+			if (State.Current_SubMenu == 0) {
+				{{{PopUpMultiChoice::P}}}Open(This, _Controls.PopUpMultiChoice_Exit);
+			} else {
+				State.IsRemovingMaps = False;
+				State.IsMovingMaps = False;
+				State.Current_SubMenu = State.Current_SubMenu - 1;
+				ShowStateFrame(_Controls, State.Current_SubMenu, State);
+			}
+		}
+		case "button-next": {
+			State.IsRemovingMaps = False;
+			State.IsMovingMaps = False;
+			DisplayErrors(_Controls, State); // Function to verify values of current step.
+			State.Current_SubMenu = State.Current_SubMenu + 1;
+			ShowStateFrame(_Controls, State.Current_SubMenu, State);
+		}
+		case "frame-switch-qualify": {
+			State = ShowQualification(_Controls, State);
+		}
+		case "button-add-maps-qualify": {
+			DisplayTrackBrowser(True, _Controls);
+		}
+		case "button-browse-logo": {
+			if (C_PlaformIsFromFirstParty) {
+				{{{PopUpMultiChoice::P}}}Open(This, _Controls.PopUpMultiChoice_UploadError);
+			} else {
+				State.IsBrowsing[C_MediaType_Logo] = True;
+				_Controls.Frame_Browser.Show();
+			}
+		}
+		case "button-browse-logo-vertical": {
+			if (C_PlaformIsFromFirstParty) {
+				{{{PopUpMultiChoice::P}}}Open(This, _Controls.PopUpMultiChoice_UploadError);
+			} else {
+				State.IsBrowsing[C_MediaType_Vertical] = True;
+				_Controls.Frame_Browser.Show();
+			}
+		}
+		case "button-mode-settings": {
+			if (_Controls.Button_ModeSetting.Visible) {
+				{{{ScriptSettingsEditor::P}}}Show(State.ScriptSetting, State.Room.ScriptSettings);
+				{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", False);
+			}
+		}
+		case "button-remove-map": {
+			State.IsRemovingMaps = !State.IsRemovingMaps;
+			State.IsMovingMaps = False;
+		}
+		case "button-move-map": {
+			State.IsMovingMaps = !State.IsMovingMaps;
+			State.IsRemovingMaps = False;
+		}
+		case "button-create": {
+			if (State.CreateCompetition.Name != "" 
+				&& State.CreateCompetition.MaxPlayers_Total != C_Multiplier_None
+				&& State.CreateCompetition.MapUrl.count > 0
+				&& State.CreateCompetition.Description != ""
+				&& State.CreateCompetition.MatchStartDate != ""
+				&& TiL::GetDelta(""^State.Competition_Start_TimeStamp, TiL::GetCurrent()) > C_One_Minute
+				&& !State.QualifyChoice || (State.CreateCompetition.MapsQualify.count > 0 && State.CreateCompetition.QualifierDuration >= C_Ten_Minutes)
+			) {
+				State.CreateCompetition.MatchStartDate = TransformDate(State.CreateCompetition.MatchStartDate);
+
+				State.CreateCompetition.ClubId = {{{ClubStore::P}}}GetUserCurrentClub().Id;
+				if (Http::IsInitialized(State.Request)) {
+					State.Request = Http::Destroy(State.Request);
+				}
+				if (Http::IsInitialized(State.RequestPostResponseUploadLogo)) {
+					State.RequestPostResponseUploadLogo = Http::Destroy(State.RequestPostResponseUploadLogo);
+				}
+				if (Http::IsInitialized(State.RequestPostResponseUploadVertical)) {
+					State.RequestPostResponseUploadVertical = Http::Destroy(State.RequestPostResponseUploadVertical);
+				}
+				{{{LoadingSpinner::P}}}StartAnimation(This, _Controls.Frame_LoadingSpinner);
+				State.Request = CompetitionAPI::PostCompetitionCreate(State.CreateCompetition);
+			} else {
+				//L16N [CreateCompetition] Competition must have a description. the field cannot be empty
+				if (State.CreateCompetition.Description == "") _Controls.Label_Error.Value = _("Description cannot be empty");
+				//L16N [CreateCompetition] Competition must have a name, the field cannot be empty 
+				else if (State.CreateCompetition.Name == "") _Controls.Label_Error.Value = _("Name cannot be empty");
+				//L16N [CreateCompetition] Competition must add at least one track, the field cannot be empty 
+				else if (State.CreateCompetition.MapUrl.count == 0) _Controls.Label_Error.Value = _("You need to add at least one track");
+				//L16N [CreateCompetition] Competition must have a start date, the field cannot be empty 
+				else if (State.CreateCompetition.MatchStartDate == "") _Controls.Label_Error.Value = _("Competition start date cannot be empty");
+				//L16N [CreateCompetition] Competition must add one track for the qualification, the field cannot be empty 
+				else if (State.QualifyChoice && State.CreateCompetition.MapsQualify.count == 0) _Controls.Label_Error.Value = _("You need to add one track for the qualification");
+				//L16N [CreateCompetition] Start date must be later than current date
+				else if (TiL::GetDelta(""^State.Competition_Start_TimeStamp, TiL::GetCurrent()) <= C_One_Minute) _Controls.Label_Error.Value = _("Start date must be later than current date");
+				//L16N [CreateCompetition] All fields of this form must be complete to finalize the creation of this competition
+				else _Controls.Label_Error.Value = _("Creation failed, information missing");
+			}
+		}
+		default: {
+			if ({{{FormSelect::P}}}IsFormSelect(This, _Control.Id)) {
+				{{{FormSelect::P}}}DisplayOptions(This, _Control.Id, True);
+				{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", False);
+			} else if (_Control.HasClass("{{{C_Class_AddMapPool}}}")) {
+				if (_Control.ControlId == "frame-track-0-0" && State.ShowPlus == True) {
+					State.IsRemovingMaps = False;
+					State.IsMovingMaps = False;
+					DisplayTrackBrowser(True, _Controls);
+				} else {
+					{{{Navigation::P}}}Lock(_Control, True);
+				}
+				declare MapKey = MapControlToMapUidsKey(State, _Control);
+				if (State.CreateCompetition.MapUrl.existskey(MapKey) && State.MapList.existskey(State.CreateCompetition.MapUrl[MapKey].Id)) {
+					if (State.IsRemovingMaps) {
+						State.IsRemovingMaps = False;
+						State.MapList.removekey(State.CreateCompetition.MapUrl[MapKey].Id);
+						State.CreateCompetition.MapUrl.removekey(MapKey);
+						State = UpdateMapList(State, _Controls);
+						declare NewFocusMapKey = MapControlToMapUidsKey(State, _Control);
+						if (NewFocusMapKey == -1 || State.CreateCompetition.MapUrl.existskey(NewFocusMapKey) && State.MapList.existskey(State.CreateCompetition.MapUrl[NewFocusMapKey].Id)) {
+							Focus(Null, _Control, State, _Controls);
+						} else {
+							declare ControlToFocus = MapUidsKeyToMapControl(State, _Controls, NewFocusMapKey-1);
+							if (ControlToFocus != Null) Focus(_Control, (ControlToFocus as CMlFrame), State, _Controls);
+						}
+					}
+					if (State.IsMovingMaps) {
+						if (State.CreateCompetition.MapUrl.existskey(State.MovedMapIndex) && State.MapList.existskey(State.CreateCompetition.MapUrl[State.MovedMapIndex].Id)) {
+							// Swap Maps
+							declare {{{CompetitionStruct::P}}}K_Map MapUidStorage = State.CreateCompetition.MapUrl[State.MovedMapIndex];
+							State.CreateCompetition.MapUrl[State.MovedMapIndex] = State.CreateCompetition.MapUrl[MapKey];
+							State.CreateCompetition.MapUrl[MapKey] = MapUidStorage;
+							State.MovedMapIndex = -1;
+							State = UpdateMapList(State, _Controls);
+							Focus(Null, _Control, State, _Controls);
+						} else {
+							State.MovedMapIndex = MapKey;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if (State.IsMovingMaps != _PageState.IsMovingMaps || State.IsRemovingMaps != _PageState.IsRemovingMaps) {
+		State = UpdateRemoveButtons(State, _Controls);
+	}
+
+	SetActiveSubButton(True, _Controls, State.Current_SubMenu);
+	return State;
+}
+
+***MainInit***
+***
+declare K_UI_Controls Controls;
+declare K_PageState State;
+***
+
+***MainStart***
+***
+Controls.Frame_Global <=> (Page.GetFirstChild("frame-global") as CMlFrame);
+Controls.Frame_Browser <=> (Page.GetFirstChild("frame-browser") as CMlFrame);
+Controls.Frame_Entry <=> (Controls.Frame_Global.GetFirstChild("frame-entry") as CMlFrame);
+Controls.Frame_Qualification <=> (Controls.Frame_Global.GetFirstChild("frame-qualification") as CMlFrame);
+Controls.Frame_Map <=> (Controls.Frame_Global.GetFirstChild("frame-map") as CMlFrame);
+Controls.Frame_Rounds <=> (Controls.Frame_Global.GetFirstChild("frame-rounds") as CMlFrame);
+Controls.Frame_Infos <=> (Controls.Frame_Global.GetFirstChild("frame-infos") as CMlFrame);
+Controls.Frame_SubButtons <=> (Controls.Frame_Global.GetFirstChild("frame-sub-buttons") as CMlFrame);
+Controls.Frame_MapList <=> (Controls.Frame_Map.GetFirstChild("frame-map-list") as CMlFrame);
+Controls.Frame_MapRanking <=> (Controls.Frame_Map.GetFirstChild("frame-map-rankings") as CMlFrame);
+Controls.Frame_RoundMode_Choice <=> (Controls.Frame_Rounds.GetFirstChild("frame-round-mode-choice") as CMlFrame);
+Controls.Frame_Info_Text <=> (Controls.Frame_Infos.GetFirstChild("frame-info-text") as CMlFrame);
+Controls.Frame_Info_DateAndLogo <=> (Controls.Frame_Infos.GetFirstChild("frame-date-and-logo") as CMlFrame);
+Controls.Button_Back <=> (Controls.Frame_Global.GetFirstChild("button-back") as CMlFrame);
+Controls.Button_Next <=> (Controls.Frame_Global.GetFirstChild("button-next") as CMlFrame);
+Controls.Button_Create <=> (Controls.Frame_Global.GetFirstChild("button-create") as CMlFrame);
+Controls.Button_ModeSetting <=> (Controls.Frame_RoundMode_Choice.GetFirstChild("button-mode-settings") as CMlFrame);
+Controls.TextField_StartDate <=> (Controls.Frame_Global.GetFirstChild("textfield-date-competition") as CMlFrame);
+Controls.TextField_Name <=> (Controls.Frame_Info_Text.GetFirstChild("textfield-name") as CMlFrame);
+Controls.TextField_Description <=> (Controls.Frame_Info_Text.GetFirstChild("textfield-description") as CMlFrame);
+Controls.Button_BrowseLogo <=> (Controls.Frame_Info_DateAndLogo.GetFirstChild("button-browse-logo") as CMlFrame);
+Controls.Button_BrowseLogoVertical <=> (Controls.Frame_Info_DateAndLogo.GetFirstChild("button-browse-logo-vertical") as CMlFrame);
+Controls.Label_Error <=> (Controls.Frame_Global.GetFirstChild("label-error-message") as CMlLabel);
+Controls.Frame_LoadingSpinner <=> (Controls.Frame_Global.GetFirstChild("frame-loading-spinner") as CMlFrame);
+Controls.Frame_SelectRounds <=> (Controls.Frame_Global.GetFirstChild("frame-select-round") as CMlFrame);
+Controls.Frame_SelectModes <=> (Controls.Frame_Global.GetFirstChild("frame-select-mode") as CMlFrame);
+Controls.Frame_SwitchBall <=> (Controls.Frame_Qualification.GetFirstChild("frame-switch-qualify") as CMlFrame);
+Controls.Frame_DetailQualify <=> (Controls.Frame_Qualification.GetFirstChild("frame-detail-qualify") as CMlFrame);
+Controls.Frame_SelectDuration_Qualify <=> (Controls.Frame_DetailQualify.GetFirstChild("select-duration-qualify") as CMlFrame);
+Controls.Frame_Maps_Remove <=> (Controls.Frame_Global.GetFirstChild("frame-maps-selection") as CMlFrame);
+Controls.Counter_MaxPlayers <=> (Controls.Frame_Global.GetFirstChild("counter-max-players") as CMlFrame);
+Controls.PopUpMultiChoice_UploadError <=> (Page.GetFirstChild("popupmultichoice-upload-error") as CMlFrame);
+Controls.PopUpMultiChoice_Exit <=> (Page.GetFirstChild("popupmultichoice-exit") as CMlFrame);
+
+State.ModeName.add(C_ModeNames[C_ModeIndex_Round]);
+State.ModeName.add(C_ModeNames[C_ModeIndex_Laps]);
+State.ModeName.add(C_ModeNames[C_ModeIndex_Cup]);
+declare Text[] ChoiceLists;
+foreach (Index => Choice in C_ChoiceLists) {
+	ChoiceLists.add(TL::Compose((Index+2)^" - %1", Choice));
+}
+{{{FormSelect::P}}}SetOptions(This, Controls.Frame_SelectRounds.Id, ChoiceLists);
+{{{FormSelect::P}}}SetOptions(This, Controls.Frame_SelectModes.Id, State.ModeName);
+{{{FormSelect::P}}}SetOptions(This, Controls.Frame_SelectDuration_Qualify.Id, C_Duration_Qualification);
+{{{TrackBrowser::P}}}SetMapTypeFilters(This, ["{{{Const::C_MapType_Race}}}"]);
+declare BrowserSettings = {{{BrowserAPI::P}}}GetDefaultSettings();
+BrowserSettings.FilterByExtension = ["png", "jpg", "jpeg", "dds"];
+BrowserSettings.DisplayFileNameTooltip = True;
+{{{BrowserAPI::P}}}SetCurrentBrowser(This, {{{BrowserAPI::C_BrowserType_PathNavigation}}}, "{{{BrowserAPI::C_BrowserName_Image}}}", [{{{BrowserAPI::C_DataType_Image}}}], "{{{BrowserAPI::C_Path_Local}}}", BrowserSettings);
+***
+
+***MainLoop***
+***
+if ({{{Router::P}}}PageIsRunning(This, "{{{RoutePaths::C_Path_CreateCompetition}}}")) {
+	if (State.MapCount != State.CreateCompetition.MapUrl.count) {
+		State = UpdateMapList(State, Controls);
+	}
+
+	foreach (Event in {{{Router::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case "{{{Router::C_Event_EnteringRoute}}}": {
+				{{{FormSelect::P}}}Select(This, Controls.Frame_SelectRounds.Id, C_SemiFinal);
+				{{{FormSelect::P}}}Select(This, Controls.Frame_SelectModes.Id, C_ChoiceMode_Round);
+				State.NameMap.clear();
+				State.CreateCompetition.LogoUrl = "";
+				State.CreateCompetition.LogoVerticalUrl = "";
+				State.IsBrowsing[C_MediaType_Vertical] = False;
+				State.IsBrowsing[C_MediaType_Logo] = False;
+				State = CancelPage(Controls, State);
+				State.Current_SubMenu = C_SubMenu_Entry;
+				InitSubMenusButtons(Controls);
+				SetActiveSubButton(True, Controls, State.Current_SubMenu);
+				{{{Button::P}}}ShowAndUnlock(Controls.Button_Next);
+				{{{Button::P}}}HideAndLock(Controls.Button_Create);
+				ShowStateFrame(Controls, State.Current_SubMenu, State);
+				Focus({{{Navigation::P}}}GetFocusedControl(This, "{{{C_NavGroupName}}}"), Controls.Button_Next, State, Controls);
+				{{{TextField::P}}}SetValue(This, Controls.TextField_StartDate, "", False);
+				{{{TextField::P}}}SetValue(This, Controls.TextField_Name, GetDefaultName(), True);
+				{{{Counter::P}}}SetValue(Controls.Counter_MaxPlayers, {{{C_MaxPlayerDefault}}});
+				State.QualifyChoice = True;
+				Controls.Frame_DetailQualify.Visible = False;
+				State = ShowQualification(Controls, State);
+				State = UpdateMapList(State, Controls);
+				State.ScriptSetting = C_ModeIndex_Round;
+				State.CreateCompetition.ScriptName = "ROUNDS";
+				State.ChoiceRound = C_SemiFinal_Multiplier;
+				State.CreateCompetition.MaxPlayers_Total = State.CreateCompetition.MaxPlayersPerMatch * State.ChoiceRound;
+				State.Competition_Start_TimeStamp = 0;
+			}
+		}
+	}
+
+	foreach (Event in {{{Navigation::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case {{{Navigation::P}}}C_EventType_NavigateInput: {
+				if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName}}}")) {
+					if (Event.Input == CMlScriptEvent::EMenuNavAction::Select) {
+						State = Select(Event.To, Controls, State);
+					} else if (Event.Input == CMlScriptEvent::EMenuNavAction::Cancel) {
+						{{{PopUpMultiChoice::P}}}Open(This, Controls.PopUpMultiChoice_Exit);
+					} else {
+						Focus(Event.From, Event.To, State, Controls);
+					}
+				}
+			}
+			case {{{Navigation::P}}}C_EventType_NavigateMouse: {
+				if ({{{Navigation::P}}}IsEventFromGroup(This, Event, "{{{C_NavGroupName}}}")) {
+					if (Event.Mouse == CMlScriptEvent::Type::MouseClick) {
+						Controls.Label_Error.Value = "";
+						State = Select(Event.To, Controls, State);
+					} else if (Event.Mouse == CMlScriptEvent::Type::MouseOver) {
+						Focus(Event.From, Event.To, State, Controls);
+					}
+				}
+			}
+		}
+	}
+
+	foreach (Event in {{{Counter::P}}}PendingEvents) {
+		switch (Event.Type) {
+			case {{{Counter::P}}}C_EventType_Update: {
+				if (Event.Counter.ControlId == Controls.Counter_MaxPlayers.ControlId) {
+					State.CreateCompetition.MaxPlayersPerMatch = {{{Counter::P}}}GetValue(Controls.Counter_MaxPlayers);
+					State.CreateCompetition.MaxPlayers_Total = State.CreateCompetition.MaxPlayersPerMatch * State.ChoiceRound;
+				}
+			}
+		}
+	}
+
+	foreach (Event in {{{TextField::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case {{{TextField::P}}}C_EventType_Update: {
+				if (Event.Control != Null) {
+					switch (Event.Control.ControlId) {
+						case Controls.TextField_Name.ControlId: {
+							if (Event.Value != State.CreateCompetition.Name) {
+								declare Text NewName = Event.Value;
+								declare Integer Length = TL::Length(TL::StripFormatting(NewName));
+								if (Length < C_CompetitionName_Limits.X || Length > C_CompetitionName_Limits.Y) {
+									//L16N [CreateCompetition] Message displayed when the competition's name has the wrong length. %1 and %2 will be replaced by a number, e.g. "The name of Competition has a minimum of 4 and a maximum of 20 characters"
+									Controls.Label_Error.Value = TL::Compose(_("The name of the competition has a minimum of %1 and a maximum of %2 characters"), ""^C_CompetitionName_Limits.X, ""^C_CompetitionName_Limits.Y);
+									if (Length < C_CompetitionName_Limits.X) {
+										// Set the default name
+										NewName = GetDefaultName();
+									} else {
+										NewName = TL::SubText(NewName, 0, C_CompetitionName_Limits.Y);
+									}
+								}
+								{{{TextField::P}}}SetValue(This, Controls.TextField_Name, NewName);
+								State.CreateCompetition.Name = NewName;
+							}
+						}
+						case Controls.TextField_Description.ControlId: {
+							if (Event.Value != State.CreateCompetition.Description) {
+								declare Text NewDescription = TL::Trim(Event.Value);
+								declare Integer Length = TL::Length(TL::StripFormatting(NewDescription));
+								if (TL::Length(NewDescription) > C_CompetitionDescription_MaxChar) {
+									NewDescription = TL::SubText(NewDescription, 0, C_CompetitionDescription_MaxChar);
+									//L16N [CreateCompetition] Message displayed when the competition's description is too long. %1 will be replaced by a number, e.g. "The description of Competition has a maximum of 1000 characters"
+									Controls.Label_Error.Value = TL::Compose(_("The description of Competition has a maximum of %1 characters"), ""^C_CompetitionDescription_MaxChar);
+								}
+								if (NewDescription == "") {
+									//L16N [CreateCompetition] Message displayed when the competition's description is empty. "The fieds description of Competition cannot be empty"
+									Controls.Label_Error.Value = _("The description of Competition cannot be empty");
+								}
+								{{{TextField::P}}}SetValue(This, Controls.TextField_Description, NewDescription);
+								State.CreateCompetition.Description = NewDescription;
+							}
+						}
+						case Controls.TextField_StartDate.ControlId: {
+							if (Event.Value != "") State = GetTimestamp(State, Controls, Event.Value);
+							else State.Competition_Start_TimeStamp = 0;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	foreach (Event in {{{PopUpBackground::P}}}GetPendingEvents(This)) {
+		if (Event.Type == {{{PopUpBackground::P}}}C_Event_LeavePopUp && Event.PopUpName == "{{{C_Name}}}") {
+			{{{PopUpMultiChoice::P}}}Open(This, Controls.PopUpMultiChoice_Exit);
+		}
+	}
+
+	foreach (Event in {{{FormSelect::P}}}GetPendingEvents(This)) {
+		switch (Event.Id) {
+			case Controls.Frame_SelectRounds.Id: {
+				if (Event.Type == {{{FormSelect::P}}}C_EventType_Select) {
+					switch (Event.SelectedIndex) {
+						case C_SemiFinal: {
+							State.ChoiceRound = C_SemiFinal_Multiplier;
+						}
+						case C_QuarterFinal: {
+							State.ChoiceRound = C_QuarterFinal_Multiplier;
+						}
+						case C_EighthFinal: {
+							State.ChoiceRound = C_EighthFinal_Multiplier;
+						}
+						case C_SixTeenthFinal: {
+							State.ChoiceRound = C_SixTeenthFinal_Multiplier;
+						}
+					}
+					declare Integer Max_Players = State.CreateCompetition.MaxPlayersPerMatch * State.ChoiceRound;
+					State.CreateCompetition.MaxPlayers_Total = Max_Players;
+				}
+			}
+			case Controls.Frame_SelectModes.Id: {
+				if (Event.Type == {{{FormSelect::P}}}C_EventType_Select) {
+					switch (Event.SelectedIndex) {
+						case C_ChoiceMode_Round: {
+							State.ScriptSetting = C_ModeIndex_Round;
+							State.CreateCompetition.ScriptName = "ROUNDS";
+						}
+						case C_ChoiceMode_Laps: {
+							State.ScriptSetting = C_ModeIndex_Laps;
+							State.CreateCompetition.ScriptName = "LAPS";
+						}
+						case C_ChoiceMode_Cup: {
+							State.ScriptSetting = C_ModeIndex_Cup;
+							State.CreateCompetition.ScriptName = "CUP";
+						}
+					}
+				}
+			}
+			case Controls.Frame_SelectDuration_Qualify.Id: {
+				if (Event.Type == {{{FormSelect::P}}}C_EventType_Select) {
+					switch (Event.SelectedIndex) {
+						case C_Index_Ten_Minutes: {
+							State.CreateCompetition.QualifierDuration = C_Ten_Minutes;
+						}
+						case C_Index_Twenty_Minutes: {
+							State.CreateCompetition.QualifierDuration = C_Twenty_Minutes;
+						}
+						case C_Index_Thirty_Minutes: {
+							State.CreateCompetition.QualifierDuration = C_Thirty_Minutes;
+						}
+						case C_Index_Fourty_Minutes: {
+							State.CreateCompetition.QualifierDuration = C_Fourty_Minutes;
+						}
+					}
+				}
+			}
+		}
+		
+		if (Event.Type == {{{FormSelect::P}}}C_EventType_HideOptions) {
+			{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", True);
+		} else if (Event.Type == {{{FormSelect::P}}}C_EventType_RequestToggle) {
+			if (Event.DisplayingOptions && !{{{Navigation::P}}}GroupIsEnabled(This, "{{{C_NavGroupName}}}")) {
+				{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", True);
+				{{{FormSelect::P}}}DisplayOptions(This, Event.Id, False);
+			}
+		}
+	}
+
+	foreach (Event in {{{ScriptSettingsEditor::P}}}PendingEvents) {
+		if (Event.Type == {{{ScriptSettingsEditor::P}}}C_Event_Confirm) {
+			State.CreateCompetition.ScriptSettings.clear();
+			State.Room.ScriptSettings = Event.ScriptSettingsDiff;
+			foreach (Index => settings in State.Room.ScriptSettings) {
+				State.CreateCompetition.ScriptSettings.add({{{CompetitionStruct::P}}}K_ScriptSetting {
+					Name = settings.Key,
+					Value = settings.Value,
+					Type = settings.Type
+				});
+			}
+			{{{ScriptSettingsEditor::P}}}Hide();
+			{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", True);
+		}
+		if (Event.Type == {{{ScriptSettingsEditor::P}}}C_Event_Cancel) {
+			{{{ScriptSettingsEditor::P}}}Hide();
+			{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", True);
+		}
+	}
+
+	/* PopUpMultiChoice events */
+	foreach (Event in {{{PopUpMultiChoice::P}}}GetPendingEvents(This)) {
+		if (Event.PopUpMultiChoice != Null) {
+			switch (Event.Type) {
+				case {{{PopUpMultiChoice::P}}}C_EventType_Display: {
+					{{{Navigation::P}}}EnableGroup(This, "{{{C_NavGroupName}}}", !Event.PopUpMultiChoice.Visible);
+				}
+				case {{{PopUpMultiChoice::P}}}C_EventType_Select: {
+					switch (Event.PopUpMultiChoice.ControlId) {
+						case Controls.PopUpMultiChoice_Exit.ControlId: {
+							switch (Event.SelectedIndex) {
+								case {{{C_Choice_Exit}}}: {
+									State = CancelPage(Controls, State);
+									{{{Router::P}}}PushParent(This, ["{{{RoutePaths::C_Query_SkipPageInit}}}" => ""]);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	foreach (Event in {{{TrackBrowser::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case {{{TrackBrowser::P}}}C_Event_Select: {
+				declare {{{CampaignStruct::P}}}K_Map Map = Event.Track;
+				if (State.Current_SubMenu == C_SubMenu_Entry) {
+					State.CreateCompetition.MapsQualify.clear();
+					State.MapQualifyList.clear();
+					State.MapUploads.MapsQualify.clear();
+					if (!Http.IsValidUrl(Map.DownloadUrl) || Map.DownloadUrl == "") {
+						declare CTaskResult_NSMap Task <=> DataFileMgr.Map_NadeoServices_Register(MainUser::GetMainUserId(), Map.Uid);
+						if (Task != Null) {
+							State.MapUploads.Task_RegisterMapIdQualifyList[Map.Uid] = Task.Id;
+							State.MapUploads.MapsQualify[Map.Uid] = Map;
+						}
+					} else {
+						State.CreateCompetition.MapsQualify.add({{{CompetitionStruct::P}}}K_Map {
+							DownloadUrl = Map.DownloadUrl,
+							Id = Map.Uid
+						});
+					}
+					declare CMlFrame Button_Map = Controls.Frame_DetailQualify.GetFirstChild("button-add-maps-qualify") as CMlFrame;
+					declare CMlQuad BackgroundMap = Button_Map.GetFirstChild("quad-thumbnail") as CMlQuad;
+					declare CMlLabel Label_MapName = Button_Map.GetFirstChild("label-text") as CMlLabel;
+					declare CMlQuad QuadPlus = Button_Map.GetFirstChild("quad-plus") as CMlQuad;
+					Label_MapName.Value = Map.Name;
+					QuadPlus.Hide();
+					Label_MapName.Show();
+					BackgroundMap.ChangeImageUrl(Map.ThumbnailUrl);
+				} else if (State.Current_SubMenu == C_SubMenu_Map) {
+					if (!State.MapList.existskey(Map.Uid)) {
+						if (!Http.IsValidUrl(Map.DownloadUrl) || Map.DownloadUrl == "") {
+							if (State.MapUploads.Task_RegisterMapIdList.count > 0) {
+								foreach (Task_RegisterMapId in State.MapUploads.Task_RegisterMapIdList) {
+									DataFileMgr.TaskResult_Release(Task_RegisterMapId);
+								}
+								State.MapUploads.Task_RegisterMapIdList = [];
+							}
+							State.MapUploads.MapsToUpload = [];
+							declare CTaskResult_NSMap Task <=> DataFileMgr.Map_NadeoServices_Register(MainUser::GetMainUserId(), Map.Uid);
+							if (Task != Null) {
+								State.MapUploads.Task_RegisterMapIdList[Map.Uid] = Task.Id;
+								State.MapUploads.MapsToUpload[Map.Uid] = Map;
+							}
+						} else {
+							State.MapList[Map.Uid] = Map;
+							State.CreateCompetition.MapUrl.add({{{CompetitionStruct::P}}}K_Map  {
+								DownloadUrl = Map.DownloadUrl,
+								Id = Map.Uid
+							});
+							State = UpdateMapList(State, Controls);
+						}
+					} else {
+						//L16N [CreateCompetition] Message displayed when the selected track is already used. 1% will be replace by the name of the track, a track can be choose once.
+						Controls.Label_Error.Value = TL::Compose(_("The track %1 is already used, please select another track"), "$<"^Map.Name^"$>");
+					}
+				}
+				DisplayTrackBrowser(False, Controls);
+			}
+			case {{{TrackBrowser::P}}}C_Event_Exit: {
+				DisplayTrackBrowser(False, Controls);
+			}
+		}
+	}
+
+	foreach (Event in {{{BrowserAPI::P}}}GetPendingEvents(This)) {
+		switch (Event.Type) {
+			case {{{BrowserAPI::P}}}C_EventType_Select: {
+				switch (Event.DataType) {
+					case {{{BrowserAPI::P}}}C_DataType_Image: {
+						if (State.IsBrowsing[C_MediaType_Logo]) {
+							State.IsBrowsing[C_MediaType_Logo] = False;
+							State.CreateCompetition.LogoUrl = {{{BrowserAPI::P}}}C_BasePath_Media^Event.Data;
+							{{{Button::P}}}SetImage(This, Controls.Button_BrowseLogo, {{{BrowserAPI::P}}}C_BasePath^State.CreateCompetition.LogoUrl);
+							{{{Button::P}}}SetImageFocus(This, Controls.Button_BrowseLogo, {{{BrowserAPI::P}}}C_BasePath^State.CreateCompetition.LogoUrl);
+							{{{Button::P}}}SetContourOpacityFocus(This, Controls.Button_BrowseLogo, 1.);
+						} else if (State.IsBrowsing[C_MediaType_Vertical]) {
+							State.IsBrowsing[C_MediaType_Vertical] = False;
+							State.CreateCompetition.LogoVerticalUrl = {{{BrowserAPI::P}}}C_BasePath_Media^Event.Data;
+							{{{Button::P}}}SetValue(This, Controls.Button_BrowseLogoVertical, "");
+							{{{Button::P}}}SetImage(This, Controls.Button_BrowseLogoVertical, {{{BrowserAPI::P}}}C_BasePath^State.CreateCompetition.LogoVerticalUrl);
+							{{{Button::P}}}SetImageFocus(This, Controls.Button_BrowseLogoVertical, {{{BrowserAPI::P}}}C_BasePath^State.CreateCompetition.LogoVerticalUrl);
+							{{{Button::P}}}SetContourOpacityFocus(This, Controls.Button_BrowseLogoVertical, 1.);
+						}
+					}
+				}
+				DisplayBrowser(False, Controls);
+			}
+			case {{{BrowserAPI::P}}}C_EventType_Cancel: {
+				DisplayBrowser(False, Controls);
+			}
+		}
+	}
+
+	//Upload MapQualify Request 
+	declare TmpTaskQualify = State.MapUploads.Task_RegisterMapIdQualifyList;
+	foreach(MapUid => Task_RegisterMapId in TmpTaskQualify) {
+		declare CTaskResult_NSMap Task_RegisterMap;
+		if (DataFileMgr.TaskResults.existskey(Task_RegisterMapId) && (DataFileMgr.TaskResults[Task_RegisterMapId] is CTaskResult_NSMap)) {
+			Task_RegisterMap = (DataFileMgr.TaskResults[Task_RegisterMapId] as CTaskResult_NSMap);
+		} 
+		if (Task_RegisterMap == Null) {
+			State.MapUploads.Task_RegisterMapIdQualifyList.removekey(MapUid);
+		}
+		if (Task_RegisterMap != Null && !Task_RegisterMap.IsProcessing) {
+			if (Task_RegisterMap.HasSucceeded) {
+				State.MapQualifyList[MapUid] = {{{CampaignStruct::P}}}GetMapFromNSMap({{{CampaignStruct::P}}}K_Map {}, Task_RegisterMap.Map);
+				State.CreateCompetition.MapsQualify.add({{{CompetitionStruct::P}}}K_Map {
+					DownloadUrl = State.MapQualifyList[MapUid].DownloadUrl,
+					Id = State.MapQualifyList[MapUid].Uid
+				});
+			} else {
+				//L16N [CreateCompetition] Message displayed when the track cannot be uploaded. %1 will be replaced by the name of the track, %2 will be replaced by an error code.
+				Controls.Label_Error.Value = TL::Compose(_("Track '%1' could not be uploaded. Please try again. (Error: %2)"), State.MapQualifyList[MapUid].Name, Task_RegisterMap.ErrorCode);
+			}
+			DataFileMgr.TaskResult_Release(Task_RegisterMap.Id);
+			State.MapUploads.Task_RegisterMapIdQualifyList.removekey(MapUid);
+		}
+	}
+
+	// Upload maps round request
+	declare TmpTask = State.MapUploads.Task_RegisterMapIdList;
+	foreach (MapUid => Task_RegisterMapId in TmpTask) {
+		declare CTaskResult_NSMap Task_RegisterMap;
+		if (DataFileMgr.TaskResults.existskey(Task_RegisterMapId) && (DataFileMgr.TaskResults[Task_RegisterMapId] is CTaskResult_NSMap)) {
+			Task_RegisterMap = (DataFileMgr.TaskResults[Task_RegisterMapId] as CTaskResult_NSMap);
+		} 
+		if (Task_RegisterMap == Null) {
+			State.MapUploads.Task_RegisterMapIdList.removekey(MapUid);
+		}
+		if (Task_RegisterMap != Null && !Task_RegisterMap.IsProcessing) {
+			if (!Task_RegisterMap.HasSucceeded) {
+				declare Text MapName = State.MapUploads.MapsToUpload.get(MapUid, {{{CampaignStruct::P}}}K_Map {}).Name;
+				//L16N [CreateCompetition] Message displayed when the track cannot be uploaded. %1 will be replaced by the name of the track, %2 will be replaced by an error code.
+				Controls.Label_Error.Value = TL::Compose(_("Track '%1' could not be uploaded. Please try again. (Error: %2)"), MapName, Task_RegisterMap.ErrorCode);
+				State.MapUploads.MapsToUpload.removekey(MapUid); //< Keep only the ones that succeeded
+			} else {
+				if (Task_RegisterMap.Map != Null) {
+					State.MapList[MapUid] = {{{CampaignStruct::P}}}GetMapFromNSMap({{{CampaignStruct::P}}}K_Map {}, Task_RegisterMap.Map);
+					if (State.MapList[MapUid].DownloadUrl != "") {
+						State.CreateCompetition.MapUrl.add({{{CompetitionStruct::P}}}K_Map {
+							DownloadUrl =  State.MapList[MapUid].DownloadUrl,
+							Id = MapUid
+						});
+						State = UpdateMapList(State, Controls);
+					} else {
+						State.MapList.removekey(MapUid);
+					}
+				}
+			}
+			DataFileMgr.TaskResult_Release(Task_RegisterMap.Id);
+			State.MapUploads.Task_RegisterMapIdList.removekey(MapUid);
+		}
+	}
+
+	if (Http::IsInitialized(State.Request)) {
+		State.Request = Http::Update(State.Request);
+		if (!Http::IsRunning(State.Request)) {
+			if (Http::IsSuccess(State.Request)) {
+				State.ActivityId = CompetitionAPI::GetResponseFromPostCompetitionCreate(State.Request);
+				if (State.CreateCompetition.LogoUrl != "" || State.CreateCompetition.LogoVerticalUrl != "") {
+					if (State.CreateCompetition.LogoUrl != "") State.RequestPostResponseUploadLogo = CompetitionAPI::PostUploadImgLogo(State.ActivityId, State.CreateCompetition.LogoUrl);
+					if (State.CreateCompetition.LogoVerticalUrl != "") State.RequestPostResponseUploadVertical = CompetitionAPI::PostUploadImgVertical(State.ActivityId, State.CreateCompetition.LogoVerticalUrl);
+					{{{LoadingSpinner::P}}}StartAnimation(This, Controls.Frame_LoadingSpinner);
+				} else {
+					State = CancelPage(Controls, State);
+					{{{LoadingSpinner::P}}}StopAnimation(This, Controls.Frame_LoadingSpinner);
+					{{{Router::P}}}PushParent(This, ["{{{RoutePaths::C_Query_SkipPageInit}}}" => ""]);
+				}
+				{{{LoadingSpinner::P}}}StopAnimation(This, Controls.Frame_LoadingSpinner);
+			} else {
+				{{{LoadingSpinner::P}}}StopAnimation(This, Controls.Frame_LoadingSpinner);
+				//L16N [CreateCompetition] Message to inform that the request used to create competiton failed. %1 replace by error code
+				Controls.Label_Error.Value = GetErrorMessage(CompetitionAPI::GetError(State.Request).app_code, State);
+			}
+			State.Request = Http::Destroy(State.Request);
+		}
+	}
+
+	if (Http::IsInitialized(State.RequestPostResponseUploadLogo)) {
+		State.RequestPostResponseUploadLogo = Http::Update(State.RequestPostResponseUploadLogo);
+		if (!Http::IsRunning(State.RequestPostResponseUploadLogo)) {
+			if (Http::IsSuccess(State.RequestPostResponseUploadLogo)) {
+				if (State.CreateCompetition.LogoVerticalUrl != "") {
+					if (Http::IsSuccess(State.RequestPostResponseUploadVertical)){
+						State = CancelPage(Controls, State);
+						State.RequestPostResponseUploadVertical = Http::Destroy(State.RequestPostResponseUploadVertical);
+						State.RequestPostResponseUploadLogo = Http::Destroy(State.RequestPostResponseUploadLogo);
+						{{{LoadingSpinner::P}}}StopAnimation(This, Controls.Frame_LoadingSpinner);
+						{{{Router::P}}}PushParent(This, ["{{{RoutePaths::C_Query_SkipPageInit}}}" => ""]);
+					}
+				} else {
+					State = CancelPage(Controls, State);
+					{{{LoadingSpinner::P}}}StopAnimation(This, Controls.Frame_LoadingSpinner);
+					{{{Router::P}}}PushParent(This, ["{{{RoutePaths::C_Query_SkipPageInit}}}" => ""]);
+				}
+				{{{LoadingSpinner::P}}}StopAnimation(This, Controls.Frame_LoadingSpinner);
+			} else {
+				if (State.CreateCompetition.LogoVerticalUrl != "") {
+					if (Http::IsSuccess(State.RequestPostResponseUploadVertical)){
+						State = CancelPage(Controls, State);
+						State.RequestPostResponseUploadVertical = Http::Destroy(State.RequestPostResponseUploadVertical);
+						{{{LoadingSpinner::P}}}StopAnimation(This, Controls.Frame_LoadingSpinner);
+						{{{Router::P}}}PushParent(This, ["{{{RoutePaths::C_Query_SkipPageInit}}}" => ""]);
+					} else {
+						//L16N [CreateCompetition] Message to inform that the request used to uploading logo and vertical failed. %1 replace by error code
+						Controls.Label_Error.Value = TL::Compose(_("Uploading of the logo and Vertical failed (Error code: %1)"), ""^Http::GetStatusCode(State.RequestPostResponseUploadLogo));
+						{{{Router::P}}}PushParent(This, ["{{{RoutePaths::C_Query_SkipPageInit}}}" => ""]);
+					}
+				} else {
+					//L16N [CreateCompetition] Message to inform that the request used to uploading logo failed. %1 replace by error code
+					Controls.Label_Error.Value = TL::Compose(_("Upload of the logo failed (Error code: %1)"), ""^Http::GetStatusCode(State.RequestPostResponseUploadLogo));
+					{{{LoadingSpinner::P}}}StopAnimation(This, Controls.Frame_LoadingSpinner);
+					{{{Router::P}}}PushParent(This, ["{{{RoutePaths::C_Query_SkipPageInit}}}" => ""]);
+				}
+			}
+			State.RequestPostResponseUploadLogo = Http::Destroy(State.RequestPostResponseUploadLogo);
+		}
+	}
+
+	if (Http::IsInitialized(State.RequestPostResponseUploadVertical)) {
+		State.RequestPostResponseUploadVertical = Http::Update(State.RequestPostResponseUploadVertical);
+		if (!Http::IsRunning(State.RequestPostResponseUploadVertical)) {
+			if (Http::IsSuccess(State.RequestPostResponseUploadVertical)) {
+				if (State.CreateCompetition.LogoUrl != "") {
+					if (Http::IsSuccess(State.RequestPostResponseUploadLogo)) {
+						State = CancelPage(Controls, State);
+						State.RequestPostResponseUploadVertical = Http::Destroy(State.RequestPostResponseUploadVertical);
+						State.RequestPostResponseUploadLogo = Http::Destroy(State.RequestPostResponseUploadLogo);
+						{{{LoadingSpinner::P}}}StopAnimation(This, Controls.Frame_LoadingSpinner);
+						{{{Router::P}}}PushParent(This, ["{{{RoutePaths::C_Query_SkipPageInit}}}" => ""]);
+					} else {
+						//L16N [CreateCompetition] Message to inform that the request used to uploading logo and vertical failed. %1 replace by error code
+						Controls.Label_Error.Value = TL::Compose(_("Uploading of the logo and Vertical failed (Error code: %1)"), ""^Http::GetStatusCode(State.RequestPostResponseUploadLogo));
+					}
+					{{{LoadingSpinner::P}}}StopAnimation(This, Controls.Frame_LoadingSpinner);
+				} else {
+					{{{LoadingSpinner::P}}}StopAnimation(This, Controls.Frame_LoadingSpinner);
+					State = CancelPage(Controls, State);
+					{{{Router::P}}}PushParent(This, ["{{{RoutePaths::C_Query_SkipPageInit}}}" => ""]);
+				}
+			} else {
+				if (State.CreateCompetition.LogoUrl != "") { 
+					if (Http::IsSuccess(State.RequestPostResponseUploadLogo)) {
+						State = CancelPage(Controls, State);
+						State.RequestPostResponseUploadLogo = Http::Destroy(State.RequestPostResponseUploadLogo);
+						{{{LoadingSpinner::P}}}StopAnimation(This, Controls.Frame_LoadingSpinner);
+						{{{Router::P}}}PushParent(This, ["{{{RoutePaths::C_Query_SkipPageInit}}}" => ""]);
+					} else {
+						//L16N [CreateCompetition] Message to inform that the request used to uploading logo and vertical failed. %1 replace by error code
+						Controls.Label_Error.Value = TL::Compose(_("Uploading of the logo and Vertical failed (Error code: %1)"), ""^Http::GetStatusCode(State.RequestPostResponseUploadLogo));
+						{{{Router::P}}}PushParent(This, ["{{{RoutePaths::C_Query_SkipPageInit}}}" => ""]);
+					}
+				} else {
+					//L16N [CreateCompetition] Message to inform that the request used to uploading vertical logo failed. %1 replace by error code
+					Controls.Label_Error.Value = TL::Compose(_("Uploading of the vertical Image failed (Error code: %1)"), ""^Http::GetStatusCode(State.RequestPostResponseUploadVertical));
+					{{{LoadingSpinner::P}}}StopAnimation(This, Controls.Frame_LoadingSpinner);
+					{{{Router::P}}}PushParent(This, ["{{{RoutePaths::C_Query_SkipPageInit}}}" => ""]);
+				}
+			}
+			State.RequestPostResponseUploadVertical = Http::Destroy(State.RequestPostResponseUploadVertical);
+		}
+	}
+
+}
+***
+""",
+[
+	Counter::Component(),
+	Transition::ComponentV2(),
+	TextField::ComponentV2(),
+	Navigation::ComponentV2(),
+	Router::ComponentV2(),
+	MenuSounds::ComponentV2(),
+	Button::ComponentV2(),
+	ExpendableButton::ComponentV2(),
+	PopUpBackground::ComponentV2(),
+	PopUpMultiChoice::ComponentV2(),
+	BrowserAPI::ComponentV2(),
+	TrackBrowser::ComponentV2(),
+	CompetitionStruct::Component(),
+	CampaignStruct::Component(),
+	ClubStore::ComponentV2(),
+	ScriptSettingsEditor::Component(),
+	ClubStruct::Component(),
+	LoadingSpinner::ComponentV2(),
+	MapRankings::ComponentV2(),
+	FormSelect::ComponentV2()
+],
+[]
+	);
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update from the ManiaApp
+Void Yield() {
+	
+}

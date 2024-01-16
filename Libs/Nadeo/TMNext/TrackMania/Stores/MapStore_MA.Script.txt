@@ -1,0 +1,486 @@
+/** 
+ *	Store value for Maps
+ */
+#Const Version		"2023-06-05"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Stores/MapStore_MA.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "Libs/Nadeo/CommonLibs/Common/Store_MA.Script.txt" as Store
+#Include "Libs/Nadeo/CommonLibs/Common/Http.Script.txt" as Http
+#Include "Libs/Nadeo/CommonLibs/Common/MainUser.Script.txt" as MainUser
+#Include "Libs/Nadeo/CommonLibs/Common/Task.Script.txt" as Task
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/UserStore_MA.Script.txt" as UserStore
+#Include "Libs/Nadeo/TMNext/TrackMania/API/MapAPI.Script.txt" as MapAPI
+#Include "Libs/Nadeo/TMNext/TrackMania/Structures/CampaignStruct.Script.txt" as CampaignStruct
+#Include "Libs/Nadeo/TMNext/TrackMania/Stores/MapStore_ML.Script.txt" as MapStore
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const MapStore::C_State_Null as C_State_Null
+#Const MapStore::C_StoreId as C_StoreId
+
+#Const MapStore::C_Action_GetMap as C_Action_GetMap
+#Const MapStore::C_Action_LoadFavoriteMaps as C_Action_LoadFavoriteMaps
+#Const MapStore::C_Action_RemoveMapFromFavorites as C_Action_RemoveMapFromFavorites
+#Const MapStore::C_Action_AddMapToFavorites as C_Action_AddMapToFavorites
+#Const MapStore::C_Action_ToggleCurrentMapFromFavorites as C_Action_ToggleCurrentMapFromFavorites
+
+#Const MapStore::C_Event_CurrentMapUpdated as C_Event_CurrentMapUpdated
+#Const MapStore::C_Event_CurrentMapRequestInProgress as C_Event_CurrentMapRequestInProgress
+#Const MapStore::C_Event_FavoriteMapsUpdated as C_Event_FavoriteMapsUpdated
+#Const MapStore::C_Event_FavoriteMapsError as C_Event_FavoriteMapsError
+
+#Const MapStore::C_CurrentMapStatus_Null as C_CurrentMapStatus_Null
+#Const MapStore::C_CurrentMapStatus_LoadingInfos as C_CurrentMapStatus_LoadingInfos
+#Const MapStore::C_CurrentMapStatus_AddingToFavorites as C_CurrentMapStatus_AddingToFavorites
+#Const MapStore::C_CurrentMapStatus_RemovingFromFavorites as C_CurrentMapStatus_RemovingFromFavorites
+#Const MapStore::C_CurrentMapStatus_Success as C_CurrentMapStatus_Success
+#Const MapStore::C_CurrentMapStatus_Error as C_CurrentMapStatus_Error
+
+#Const MapStore::C_ErrorCode_Null as C_ErrorCode_Null
+#Const MapStore::C_ErrorCode_FailedLoadInfos as C_ErrorCode_FailedLoadInfos
+#Const MapStore::C_ErrorCode_FailedAddFavorites as C_ErrorCode_FailedAddFavorites
+#Const MapStore::C_ErrorCode_FailedRemoveFavorites as C_ErrorCode_FailedRemoveFavorites
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct MapStore::K_CurrentMap as K_CurrentMap
+#Struct MapStore::K_FavoriteMapsPager as K_FavoriteMapsPager
+#Struct MapStore::K_State as K_State
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Globales
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+declare Http::K_Request G_Request_GetMap;
+declare Http::K_Request G_Request_GetPlayerFavoriteMaps;
+declare Http::K_Request G_Request_RemoveMapFromFavorites;
+declare Http::K_Request G_Request_AddMapToFavorites;
+declare Task::K_Task G_Task_GetAuthorDisplayNames;
+declare MapAPI::K_MapList G_Tmp_FavoriteMapList;
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update the current map (player is racing on)
+K_State Mutation_LoadPlayerCurrentMap(
+	K_State _State,
+	Integer _Status,
+	Integer _ErrorCode,
+	Integer _ErrorCodeHttp,
+	Boolean _IsMapUploadedToNS,
+	Boolean _IsFavorite,
+	Text _Uid
+) {
+	declare K_State State = _State;
+
+	State.CurrentMap = K_CurrentMap {
+		Status = _Status,
+		ErrorCode = _ErrorCode,
+		ErrorCodeHttp = _ErrorCodeHttp,
+		IsMapUploadedToNS = _IsMapUploadedToNS,
+		IsFavorite = _IsFavorite,
+		Uid = _Uid
+	};
+
+	Store::SendEvent(C_StoreId, C_Event_CurrentMapUpdated);
+
+	return State;
+}
+
+K_State Mutation_LoadPlayerCurrentMap(K_State _State,	Integer _Status, Integer _ErrorCode, Integer _ErrorCodeHttp) {
+	declare K_State State = _State;
+
+	State.CurrentMap = K_CurrentMap {
+		Status = _Status,
+		ErrorCode = _ErrorCode,
+		ErrorCodeHttp = _ErrorCodeHttp,
+		IsMapUploadedToNS = State.CurrentMap.IsMapUploadedToNS,
+		IsFavorite = State.CurrentMap.IsFavorite,
+		Uid = State.CurrentMap.Uid
+	};
+
+	Store::SendEvent(C_StoreId, C_Event_CurrentMapUpdated);
+
+	return State;
+}
+
+K_State Mutation_LoadPlayerCurrentMap(K_State _State,	Integer _Status, Boolean _IsMapFavorite) {
+	declare K_State State = _State;
+
+	State.CurrentMap = K_CurrentMap {
+		Status = _Status,
+		ErrorCode = C_ErrorCode_Null,
+		ErrorCodeHttp = C_ErrorCode_Null,
+		IsMapUploadedToNS = State.CurrentMap.IsMapUploadedToNS,
+		IsFavorite = _IsMapFavorite,
+		Uid = State.CurrentMap.Uid
+	};
+
+	Store::SendEvent(C_StoreId, C_Event_CurrentMapUpdated);
+
+	return State;
+}
+
+K_State Mutation_LoadPlayerCurrentMap(K_State _State,	Integer _Status, Text _Uid) {
+	declare K_State State = _State;
+	
+	State.CurrentMap = K_CurrentMap {
+		Status = _Status,
+		ErrorCode = C_ErrorCode_Null,
+		ErrorCodeHttp = C_ErrorCode_Null,
+		IsMapUploadedToNS = State.CurrentMap.IsMapUploadedToNS,
+		IsFavorite = State.CurrentMap.IsFavorite,
+		Uid = _Uid
+	};
+
+	Store::SendEvent(C_StoreId, C_Event_CurrentMapUpdated);
+
+	return State;
+}
+
+Boolean CanLaunchNewRequest() {
+	declare K_State TMNext_MapStore_State for System = C_State_Null;
+	return (
+		TMNext_MapStore_State.CurrentMap.Status != C_CurrentMapStatus_LoadingInfos &&
+		TMNext_MapStore_State.CurrentMap.Status != C_CurrentMapStatus_AddingToFavorites &&
+		TMNext_MapStore_State.CurrentMap.Status != C_CurrentMapStatus_RemovingFromFavorites
+	);
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Get infos on the specified map 
+ *
+ *	@param	_MapUid								The id of the map
+ *
+ */
+Void Action_GetMap(Text _MapUid) {
+	declare K_State TMNext_MapStore_State for System = C_State_Null;
+	if (_MapUid != TMNext_MapStore_State.CurrentMap.Uid) {
+		// We changed map, we don't care about the result of the requests for the previous map
+		if (Http::IsInitialized(G_Request_RemoveMapFromFavorites)) {
+			G_Request_RemoveMapFromFavorites = Http::Destroy(G_Request_RemoveMapFromFavorites);
+		}
+		if (Http::IsInitialized(G_Request_AddMapToFavorites)) {
+			G_Request_AddMapToFavorites = Http::Destroy(G_Request_AddMapToFavorites);
+		}
+		if (Http::IsInitialized(G_Request_GetMap)) {
+			G_Request_GetMap = Http::Destroy(G_Request_GetMap);
+		}
+
+		G_Request_GetMap = MapAPI::GetMap(_MapUid);
+	
+		declare K_State TMNext_MapStore_State for System = C_State_Null;
+		TMNext_MapStore_State = Mutation_LoadPlayerCurrentMap(
+			TMNext_MapStore_State,
+			C_CurrentMapStatus_LoadingInfos,
+			C_ErrorCode_Null,
+			C_ErrorCode_Null,
+			False,
+			False,
+			_MapUid
+		);
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Load player's favorite maps
+Void Action_LoadFavoriteMapsPage(Integer _Offset, Integer _Length, Text _Sort, Text _Order, Text _MapType, Boolean _Playable, Boolean _OnlyUserMaps) {
+	if (Http::IsInitialized(G_Request_GetPlayerFavoriteMaps)) {
+		Http::Destroy(G_Request_GetPlayerFavoriteMaps);
+	}
+	G_Request_GetPlayerFavoriteMaps = MapAPI::GetFavoritesMaps(_Offset, _Length, _Sort, _Order, _MapType, _Playable, _OnlyUserMaps);
+	
+	declare K_State TMNext_MapStore_State for System = C_State_Null;
+	TMNext_MapStore_State.FavoriteMapsPager.Offset = _Offset;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update the player's favorite maps
+K_State Mutation_LoadPlayerFavoriteMaps(K_State _State, MapAPI::K_MapList _MapList) {
+	declare K_State State = _State;
+
+	State.FavoriteMapsPager.Maps = [];
+	foreach (Index => FavMap in _MapList.Maps) {
+		State.FavoriteMapsPager.Maps[Index + State.FavoriteMapsPager.Offset] = FavMap;
+		State.FavoriteMapsPager.Maps[Index + State.FavoriteMapsPager.Offset].AuthorDisplayName = UserMgr.FindDisplayName(FavMap.AuthorLogin);
+	}
+	State.FavoriteMapsPager.Total = _MapList.ItemCount;
+
+	Store::SendEvent(C_StoreId, C_Event_FavoriteMapsUpdated);
+
+	return State;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Remove the specified map from player's favorite maps
+ *
+ *	@param	_MapUid								The id of the map to remove
+ *
+ */
+Void Action_RemoveMapFromFavorites(Text _MapUid) {
+	declare K_State TMNext_MapStore_State for System = C_State_Null;
+	if (CanLaunchNewRequest()) {
+		if (Http::IsInitialized(G_Request_RemoveMapFromFavorites)) {
+			Http::Destroy(G_Request_RemoveMapFromFavorites);
+		}
+		G_Request_RemoveMapFromFavorites = MapAPI::PostRemoveFavoriteMap(_MapUid);
+		
+		TMNext_MapStore_State = Mutation_LoadPlayerCurrentMap(TMNext_MapStore_State, C_CurrentMapStatus_RemovingFromFavorites, _MapUid);
+	} else {
+		Store::SendEvent(C_StoreId, C_Event_CurrentMapRequestInProgress);
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Add the specified map to player's favorite maps
+ *
+ *	@param	_MapUid								The id of the map to add
+ *
+ */
+Void Action_AddMapToFavorites(Text _MapUid) {
+	declare K_State TMNext_MapStore_State for System = C_State_Null;
+	if (CanLaunchNewRequest()) {
+		if (Http::IsInitialized(G_Request_AddMapToFavorites)) {
+			Http::Destroy(G_Request_AddMapToFavorites);
+		}
+		G_Request_AddMapToFavorites = MapAPI::PostAddFavoriteMap(_MapUid);
+		
+		TMNext_MapStore_State = Mutation_LoadPlayerCurrentMap(TMNext_MapStore_State, C_CurrentMapStatus_AddingToFavorites, _MapUid);
+	} else {
+		Store::SendEvent(C_StoreId, C_Event_CurrentMapRequestInProgress);
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/** Add or remove the current map to player's favorite maps
+ *
+ */
+Void Action_ToggleCurrentMapFromFavorites() {
+	declare K_State TMNext_MapStore_State for System = C_State_Null;
+	if (TMNext_MapStore_State.CurrentMap.IsMapUploadedToNS) {
+		if (TMNext_MapStore_State.CurrentMap.IsFavorite) {
+			Action_RemoveMapFromFavorites(TMNext_MapStore_State.CurrentMap.Uid);
+		} else {
+			Action_AddMapToFavorites(TMNext_MapStore_State.CurrentMap.Uid);
+		}
+	}
+}
+
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Initialize the Map store
+Void Initialize(Boolean _ResetData) {
+	if (_ResetData) {
+		declare K_State TMNext_MapStore_State for System = C_State_Null;
+		TMNext_MapStore_State = K_State {
+			FavoriteMapsPager = K_FavoriteMapsPager {
+				Maps = [],
+				Offset = 0,
+				Total = 0
+			},
+			CurrentMap = K_CurrentMap {
+				Status = C_CurrentMapStatus_Null,
+				ErrorCode = C_ErrorCode_Null,
+				ErrorCodeHttp = C_ErrorCode_Null,
+				IsMapUploadedToNS = False,
+				IsFavorite = False,
+				Uid = ""
+			}
+		};
+	}
+	G_Tmp_FavoriteMapList = MapAPI::K_MapList {};
+
+	if (Http::IsInitialized(G_Request_GetMap)) {
+		G_Request_GetMap = Http::Destroy(G_Request_GetMap);
+	}
+	G_Request_GetMap = Http::GetEmptyRequest();
+
+	if (Http::IsInitialized(G_Request_GetPlayerFavoriteMaps)) {
+		G_Request_GetPlayerFavoriteMaps = Http::Destroy(G_Request_GetPlayerFavoriteMaps);
+	}
+	G_Request_GetPlayerFavoriteMaps = Http::GetEmptyRequest();
+
+	if (Task::IsInitialized(G_Task_GetAuthorDisplayNames)) {
+		G_Task_GetAuthorDisplayNames = Task::Destroy(G_Task_GetAuthorDisplayNames);
+	}
+	G_Task_GetAuthorDisplayNames = Task::GetEmptyTask();
+
+	if (Http::IsInitialized(G_Request_RemoveMapFromFavorites)) {
+		G_Request_RemoveMapFromFavorites = Http::Destroy(G_Request_RemoveMapFromFavorites);
+	}
+	G_Request_RemoveMapFromFavorites = Http::GetEmptyRequest();
+
+	if (Http::IsInitialized(G_Request_AddMapToFavorites)) {
+		G_Request_AddMapToFavorites = Http::Destroy(G_Request_AddMapToFavorites);
+	}
+	G_Request_AddMapToFavorites = Http::GetEmptyRequest();
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Process event
+Void ProcessEvent(CManiaAppEvent _Event) {
+	switch (_Event.Type) {
+		case CManiaAppEvent::EType::LayerCustomEvent: {
+			switch(_Event.CustomEventType) {
+				case C_Action_GetMap: {
+					if (_Event.CustomEventData.count >= 1) {
+						Action_GetMap(_Event.CustomEventData[0]);
+					}
+				}
+				case C_Action_LoadFavoriteMaps: {
+					if (_Event.CustomEventData.count >= 7) {
+						Action_LoadFavoriteMapsPage(
+							TL::ToInteger(_Event.CustomEventData[0]),
+							TL::ToInteger(_Event.CustomEventData[1]),
+							_Event.CustomEventData[2],
+							_Event.CustomEventData[3],
+							_Event.CustomEventData[4],
+							(_Event.CustomEventData[5] == "1"),
+							(_Event.CustomEventData[6] == "1")	
+						);
+					}
+				}
+				case C_Action_RemoveMapFromFavorites: {
+					if (_Event.CustomEventData.count >= 1) {
+						Action_RemoveMapFromFavorites(_Event.CustomEventData[0]);
+					}
+				}
+				case C_Action_AddMapToFavorites: {
+					if (_Event.CustomEventData.count >= 1) {
+						Action_AddMapToFavorites(_Event.CustomEventData[0]);
+					}
+				}
+				case C_Action_ToggleCurrentMapFromFavorites: {
+					Action_ToggleCurrentMapFromFavorites();
+				}
+			}
+		}
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Process events
+Void ProcessEvents(CNod _Context) {
+	switchtype (_Context as Context) {
+		case CManiaAppTitle: {
+			foreach (Event in Context.PendingEvents) {
+				ProcessEvent(Event);
+			}
+		}
+		case CManiaAppPlayground: {
+			foreach (Event in Context.PendingEvents) {
+				ProcessEvent(Event);
+			}
+		}
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Update the Map store
+Void Yield() {
+	ProcessEvents(This);
+
+	// Get map infos
+	if (Http::IsInitialized(G_Request_GetMap)) {
+		G_Request_GetMap = Http::Update(G_Request_GetMap);
+		if (!Http::IsRunning(G_Request_GetMap)) {
+			declare K_State TMNext_MapStore_State for System = C_State_Null;
+			if (Http::IsSuccess(G_Request_GetMap)) {
+				declare CampaignStruct::LibCampaignStruct_K_Map Response = MapAPI::GetResponseFromGetMap(G_Request_GetMap);
+				TMNext_MapStore_State = Mutation_LoadPlayerCurrentMap(
+					TMNext_MapStore_State,
+					C_CurrentMapStatus_Success,
+					C_ErrorCode_Null,
+					C_ErrorCode_Null,
+					True,
+					Response.IsFavorite,
+					Response.Uid
+				);
+			} else {
+				TMNext_MapStore_State = Mutation_LoadPlayerCurrentMap(
+					TMNext_MapStore_State,
+					C_CurrentMapStatus_Error,
+					C_ErrorCode_FailedLoadInfos,
+					Http::GetStatusCode(G_Request_GetMap),
+					False,
+					False,
+					TMNext_MapStore_State.CurrentMap.Uid
+				);
+			}
+			G_Request_GetMap = Http::Destroy(G_Request_GetMap);
+		}
+	}
+
+	// Get player favorite maps
+	if (Http::IsInitialized(G_Request_GetPlayerFavoriteMaps)) {
+		G_Request_GetPlayerFavoriteMaps = Http::Update(G_Request_GetPlayerFavoriteMaps);
+		if (!Http::IsRunning(G_Request_GetPlayerFavoriteMaps)) {
+			if (Http::IsSuccess(G_Request_GetPlayerFavoriteMaps)) {
+				declare Text[] AuthorAccountIds = [];
+				G_Tmp_FavoriteMapList = MapAPI::GetResponseFromGetFavoritesMaps(G_Request_GetPlayerFavoriteMaps);
+				foreach (FavMap in G_Tmp_FavoriteMapList.Maps) {
+					AuthorAccountIds.add(FavMap.AuthorLogin);
+				}
+				G_Task_GetAuthorDisplayNames = Task::Create(UserMgr, UserMgr.RetrieveDisplayName(MainUser::GetMainUserId(), AuthorAccountIds));
+			} else {
+				declare Integer ErrorCodeHttp = Http::GetStatusCode(G_Request_GetPlayerFavoriteMaps);
+				//L16N [MapStore] %1 goes for the type of error
+				declare Text ErrorMessage = TL::Compose(_("Error while retrieving your favorite tracks. (Error code: %1)"), ""^ErrorCodeHttp);
+				Store::SendEvent(C_StoreId, C_Event_FavoriteMapsError, [""^ErrorCodeHttp, ErrorMessage]);
+			}
+			G_Request_GetPlayerFavoriteMaps = Http::Destroy(G_Request_GetPlayerFavoriteMaps);
+		}
+	}
+
+	// Task to retrieve favorite maps infos from NadeoServices
+	if (Task::IsInitialized(G_Task_GetAuthorDisplayNames)) {
+		G_Task_GetAuthorDisplayNames = Task::Update(G_Task_GetAuthorDisplayNames);
+		if (!Task::IsRunning(G_Task_GetAuthorDisplayNames)) {
+			if (Task::IsSuccess(G_Task_GetAuthorDisplayNames)) {
+				declare K_State TMNext_MapStore_State for System = C_State_Null;
+				TMNext_MapStore_State = Mutation_LoadPlayerFavoriteMaps(TMNext_MapStore_State, G_Tmp_FavoriteMapList);
+			} else {
+				//L16N [MapStore] %1 goes for the type of error
+				declare Text ErrorMessage = TL::Compose(_("Error while retrieving your favorite tracks. (Error code: %1)"), ""^Task::GetSourceTaskError(G_Task_GetAuthorDisplayNames).Code);
+				Store::SendEvent(C_StoreId, C_Event_FavoriteMapsError, [""^Task::GetSourceTaskError(G_Task_GetAuthorDisplayNames).Code, ErrorMessage]);
+			}
+			G_Tmp_FavoriteMapList = MapAPI::K_MapList {};
+			G_Task_GetAuthorDisplayNames = Task::Destroy(G_Task_GetAuthorDisplayNames);
+		}
+	}
+
+	// Remove map from favorites
+	if (Http::IsInitialized(G_Request_RemoveMapFromFavorites)) {
+		G_Request_RemoveMapFromFavorites = Http::Update(G_Request_RemoveMapFromFavorites);
+		if (!Http::IsRunning(G_Request_RemoveMapFromFavorites)) {
+			declare K_State TMNext_MapStore_State for System = C_State_Null;
+			if (Http::IsSuccess(G_Request_RemoveMapFromFavorites)) {
+				TMNext_MapStore_State = Mutation_LoadPlayerCurrentMap(TMNext_MapStore_State, C_CurrentMapStatus_Success, False);
+			} else {
+				TMNext_MapStore_State = Mutation_LoadPlayerCurrentMap(TMNext_MapStore_State, C_CurrentMapStatus_Error, C_ErrorCode_FailedRemoveFavorites, Http::GetStatusCode(G_Request_RemoveMapFromFavorites));
+			}
+			G_Request_RemoveMapFromFavorites = Http::Destroy(G_Request_RemoveMapFromFavorites);
+		}
+	}
+
+	// Add map to favorites
+	if (Http::IsInitialized(G_Request_AddMapToFavorites)) {
+		G_Request_AddMapToFavorites = Http::Update(G_Request_AddMapToFavorites);
+		if (!Http::IsRunning(G_Request_AddMapToFavorites)) {
+			declare K_State TMNext_MapStore_State for System = C_State_Null;
+			if (Http::IsSuccess(G_Request_AddMapToFavorites)) {
+				TMNext_MapStore_State = Mutation_LoadPlayerCurrentMap(TMNext_MapStore_State, C_CurrentMapStatus_Success, True);
+			} else {
+				TMNext_MapStore_State = Mutation_LoadPlayerCurrentMap(TMNext_MapStore_State, C_CurrentMapStatus_Error, C_ErrorCode_FailedAddFavorites, Http::GetStatusCode(G_Request_AddMapToFavorites));
+			}
+			G_Request_AddMapToFavorites = Http::Destroy(G_Request_AddMapToFavorites);
+		}
+	}
+}

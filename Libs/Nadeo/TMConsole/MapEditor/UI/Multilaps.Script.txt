@@ -1,0 +1,296 @@
+/** 
+ * Multilaps UI
+ */
+
+#Const Version		"2023-02-15"
+#Const ScriptName	"Multilaps.Script.txt"
+
+#Include "Libs/Nadeo/ModeLibs/Legacy/Manialink3.Script.txt" as Manialink
+#Include "Libs/Nadeo/TMConsole/Buttons.Script.txt" as Buttons2
+#Include "Libs/Nadeo/TMConsole/MapEditor/Layers.Script.txt" as Layers
+#Include "Libs/Nadeo/TMConsole/MapEditor/Sound.Script.txt" as Sound
+#Include "Libs/Nadeo/TMConsole/MapEditor/Inputs.Script.txt" as Inputs
+#Include "Libs/Nadeo/TMNext/TrackMania/ColorPalette.Script.txt" as Colors
+#Include "Libs/Nadeo/TMConsole/MapEditor/UI/Stylesheet.Script.txt" as Styles
+
+// Constants
+#Const C_DefaultVisibility False
+#Const C_LapsNbMin 	1 	///< Minimum number of laps
+#Const C_LapsNbMax	99	///< Maximum number of laps
+#Const C_AutoRepeat_Init	500	///< Delay before activation of the auto repeat
+#Const C_AutoRepeat_Delay	100 ///< Delay between two activations during the auto repeat
+
+declare Boolean G_Confirmed; 	///< Number of laps confirmed
+declare Boolean G_Canceled;		///< Number of laps canceled
+declare Integer G_SkipInput;	///< Skip inputs for this frame
+declare Integer G_AutoRepeat;	///< Next time the auto repeat can be activated
+declare Integer G_AutoRepeatCount;	///< Number of times the auto repeat has been activated
+
+
+Text Private_GetMultilapsML() {
+	declare MultilapsSizeX = 24.;
+	declare MultilapsSizeY = 6.;
+	declare OptionSize = 8.;
+	declare ButtonSize = 0.9;
+	
+	declare Pointer = "file://Media/Manialinks/Nadeo/TMConsole/MapEditor/Images/Menu/pointer.dds";
+	declare ButtonConfirm = Buttons2::Menu_Select();
+	declare ButtonCancel = Buttons2::Menu_Cancel();
+	
+	// TODO Note RBVDZ 2022-10-03: Check if this UI can show up. If so, make sure header uses BuildSmartQuad
+	return """
+<manialink version="3" name="MapEditor:Multilaps">
+<stylesheet>
+	{{{Styles::Get()}}}
+</stylesheet>
+<frame id="Frame_Global">
+	<frame pos="0 {{{92 + Styles::GetSize2(<0., MultilapsSizeY>, Styles::CircleSize_Bottom()).Y}}}" hidden="1" id="Frame_NewMultilaps">
+		<frame {{{Styles::BuildPosition2(Styles::GetPosition2(<-MultilapsSizeX*0.5, 0., 1.>, Styles::CircleSize_Bottom()))}}}>
+			{{{Styles::BuildLabel(<MultilapsSizeX*0.5, -0.45, 2.>, <MultilapsSizeX, 1.>, Styles::CircleSize_Bottom(), Styles::Align_CenterCenter2(), [
+				//L16N [MapEditor] Title of the pop-up allowing to select the number of laps raced on a multilaps track
+				"text" => _("Number of laps"), "class" => "tm2020-text-header"
+			])}}}
+			{{{Styles::BuildQuad(<0., -1., 3.>, <MultilapsSizeX, MultilapsSizeY-2.>, Styles::CircleSize_Bottom(), Styles::Align_LeftTop(), ["bgcolor" => Colors::C_Color_DarkBlue])}}}
+			{{{Styles::BuildQuad(<MultilapsSizeX*0.5, -1.5, 5.>, <1., 0.5>, Styles::CircleSize_Bottom(), Styles::Align_CenterCenter(), ["rot" => "180", "image" => Pointer, "colorize" => Colors::C_Color_White, "id" => "Quad_Up"])}}}
+			{{{Styles::BuildQuad(<MultilapsSizeX*0.5, -4.5, 5.>, <1., 0.5>, Styles::CircleSize_Bottom(), Styles::Align_CenterCenter(), ["image" => Pointer, "colorize" => Colors::C_Color_White, "id" => "Quad_Down"])}}}
+			<frame {{{Styles::BuildPosition2(Styles::GetPosition2(<MultilapsSizeX*0.5-2.5, -1., 4.>, Styles::CircleSize_Bottom()))}}} {{{Styles::BuildSize2(Styles::GetSize2(<5., 4.>, Styles::CircleSize_Bottom()))}}}>
+				<frame id="Frame_LapsNb">
+					{{{Styles::BuildLabel(<2.5, -2., 0.>, <5., 4.>, Styles::CircleSize_Bottom(), Styles::Align_CenterCenter2(), ["class" => "turbo2-text-laps", "id" => "Label_LapsNb"])}}}
+					{{{Styles::BuildLabel(<2.5, 2., 0.>, <5., 4.>, Styles::CircleSize_Bottom(), Styles::Align_CenterCenter2(), ["class" => "turbo2-text-laps", "id" => "Label_LapsNb2"])}}}
+					{{{Styles::BuildLabel(<2.5, -6., 0.>, <5., 4.>, Styles::CircleSize_Bottom(), Styles::Align_CenterCenter2(), ["class" => "turbo2-text-laps", "id" => "Label_LapsNb3"])}}}
+				</frame>
+			</frame>
+			<frame {{{Styles::BuildPosition2(Styles::GetPosition2(<MultilapsSizeX-OptionSize-1., -MultilapsSizeY+1., 6.>, Styles::CircleSize_Bottom()))}}}>
+				{{{Styles::BuildQuad(<0., 0., 0.>, <OptionSize, 1.>, Styles::CircleSize_Bottom(), Styles::Align_RightTop(), ["bgcolor" => Colors::C_Color_Black])}}}
+				{{{Styles::BuildQuad(<-0.5, -0.5, 2.>, <ButtonSize, ButtonSize>, Styles::CircleSize_Bottom(), Styles::Align_CenterCenter(), ["image" => ButtonCancel])}}}
+				{{{Styles::BuildLabel(<-1., -0.45, 1.>, <OptionSize-1., 1.>, Styles::CircleSize_Bottom(), Styles::Align_RightCenter2(), [
+					//L16N [MapEditor] Cancel an action
+					"text" => _("Cancel"), "class" => "turbo2-text-button", "id" => "Label_Cancel"
+				])}}}
+			</frame>
+			<frame {{{Styles::BuildPosition2(Styles::GetPosition2(<MultilapsSizeX, -MultilapsSizeY+1., 5.>, Styles::CircleSize_Bottom()))}}}>
+				{{{Styles::BuildQuad(<0., 0., 0.>, <OptionSize, 1.>, Styles::CircleSize_Bottom(), Styles::Align_RightTop(), ["bgcolor" => Colors::C_Color_Black])}}}
+				{{{Styles::BuildQuad(<-0.5, -0.5, 2.>, <ButtonSize, ButtonSize>, Styles::CircleSize_Bottom(), Styles::Align_CenterCenter(), ["image" => ButtonConfirm])}}}
+				{{{Styles::BuildLabel(<-1., -0.45, 1.>, <OptionSize-1., 1.>, Styles::CircleSize_Bottom(), Styles::Align_RightCenter2(), [
+					//L16N [MapEditor] Validate an action
+					"text" => _("|Infinitive|Validate"), "class" => "turbo2-text-button", "id" => "Label_Confirm"
+				])}}}
+			</frame>
+		</frame>
+	</frame>
+</frame>
+<script><!--
+#Include "TextLib" as TL
+{{{Manialink::DefaultIncludes()}}}
+
+declare CMlFrame Frame_LapsNb;
+declare CMlLabel Label_LapsNb;
+declare CMlLabel Label_LapsNb2;
+declare CMlLabel Label_LapsNb3;
+declare CMlQuad Quad_Up;
+declare CMlQuad Quad_Down;
+
+{{{Manialink::Animations(["EaseOutQuad"])}}}
+
+Void SetVisibility(Boolean _Visible) {
+	if (_Visible) {
+		LibManialink_Anim({{{Manialink::Inject("""<frame pos="0 25" hidden="0" id="Frame_NewMultilaps" />""")}}}, 250, "EaseOutQuad");
+	} else {
+		LibManialink_Anim({{{Manialink::Inject("""<frame pos="0 {{{92 + Styles::GetSize2(<0., MultilapsSizeY>, Styles::CircleSize_Bottom()).Y}}}" hidden="1" id="Frame_NewMultilaps" />""")}}}, 250, "EaseOutQuad");
+	}
+}
+
+Void SetLapsNb(Integer _LapsNb) {
+	Label_LapsNb.Value = TL::ToText(_LapsNb);
+	Label_LapsNb2.Value = TL::ToText(_LapsNb+1);
+	Label_LapsNb3.Value = TL::ToText(_LapsNb-1);
+	
+	declare L_Direction for Page = 0;
+	if (L_Direction > 0) {
+		Frame_LapsNb.RelativePosition_V3.Y = {{{Styles::GetSize2(<0., 4.>, Styles::CircleSize_Bottom()).Y}}};
+	} else if (L_Direction < 0) {
+		Frame_LapsNb.RelativePosition_V3.Y = {{{-Styles::GetSize2(<0., 4.>, Styles::CircleSize_Bottom()).Y}}};
+	}
+	LibManialink_Anim(Frame_LapsNb, {{{Manialink::Inject("""<frame pos="0 0" />""")}}}, 250, "EaseOutQuad");
+	
+	if (_LapsNb <= {{{C_LapsNbMin}}}) {
+		Quad_Up.Visible = True;
+		Quad_Down.Visible = False;
+	} else if (_LapsNb >= {{{C_LapsNbMax}}}) {
+		Quad_Up.Visible = False;
+		Quad_Down.Visible = True;
+	} else {
+		Quad_Up.Visible = True;
+		Quad_Down.Visible = True;
+	}
+}
+
+main() {
+	Frame_LapsNb <=> (Page.GetFirstChild("Frame_LapsNb") as CMlFrame);
+	Label_LapsNb <=> (Frame_LapsNb.GetFirstChild("Label_LapsNb") as CMlLabel);
+	Label_LapsNb2 <=> (Frame_LapsNb.GetFirstChild("Label_LapsNb2") as CMlLabel);
+	Label_LapsNb3 <=> (Frame_LapsNb.GetFirstChild("Label_LapsNb3") as CMlLabel);
+	Quad_Up <=> (Page.GetFirstChild("Quad_Up") as CMlQuad);
+	Quad_Down <=> (Page.GetFirstChild("Quad_Down") as CMlQuad);
+	
+	declare L_Visibility for Page = {{{C_DefaultVisibility}}};
+	declare L_LapsNb for Page = 0;
+	declare PrevVisibility = {{{C_DefaultVisibility}}};
+	declare PrevLapsNb = L_LapsNb;
+	
+	SetVisibility({{{C_DefaultVisibility}}});
+	SetLapsNb(L_LapsNb);
+	
+	while (True) {
+		yield;
+		
+		LibManialink_AnimLoop();
+		
+		if (PrevVisibility != L_Visibility) {
+			PrevVisibility = L_Visibility;
+			SetVisibility(L_Visibility);
+		}
+		
+		if (PrevLapsNb != L_LapsNb) {
+			PrevLapsNb = L_LapsNb;
+			SetLapsNb(L_LapsNb);
+		}
+	}
+}
+--></script>
+</manialink>	
+""";
+}
+
+Text GetScriptVersion() { return Version; }
+Text GetScriptName() { return ScriptName; }
+
+// Set the multilaps UI visibility
+Void SetVisibility(Boolean _Visible) {
+	declare L_Visibility for Layers::GetPage("Multilaps") = False;
+	L_Visibility = _Visible;
+}
+
+Void Show() {
+	G_Confirmed = False;
+	G_Canceled = False;
+	G_SkipInput = Now;
+	
+	declare L_LapsNb for Layers::GetPage("Multilaps") = 0;
+	declare L_Direction for Layers::GetPage("Multilaps") = 0;
+	L_LapsNb = Map.TMObjective_NbLaps;
+	L_Direction = 0;
+				
+	SetVisibility(True);
+}
+
+Void Hide() {
+	SetVisibility(False);
+}
+
+// Number of laps confirmed
+Boolean Confirmed() {
+	return G_Confirmed;
+}
+
+//  Number of laps cancelled
+Boolean Canceled() {
+	return G_Canceled;
+}
+
+/// Update laps number
+Void Loop() {
+	// If we pressed ::EInput::CursorPlace when we called Show() we would directly skip the pop up
+	// To avoid that we skip the inputs of the first waiting frame
+	if (G_SkipInput == Now) return;
+	
+	foreach (Event in PendingEvents) {
+		if (Event.Type == CMapEditorPluginEvent::Type::EditorInput) {
+			declare CMapEditorPluginEvent::EInput EventInput = Inputs::GetEventInput(Event.Input, Input.JapanStylePadButtons);
+			if (EventInput == CMapEditorPluginEvent::EInput::CursorPlace) {
+				G_Confirmed = True;
+				return ;
+			} else if (EventInput == CMapEditorPluginEvent::EInput::CursorDelete) {
+				G_Canceled = True;
+				return ;
+			}
+		}
+	}
+	
+	if (
+		EditorInputIsDown_CursorDown ||
+		EditorInputIsDown_IconDown ||
+		EditorInputIsDown_CursorUp ||
+		EditorInputIsDown_IconUp
+	) {
+		if (G_AutoRepeat < 0 || Now >= G_AutoRepeat) {
+			if (
+				EditorInputIsDown_CursorDown ||
+				EditorInputIsDown_IconDown
+			) {
+				Map.TMObjective_NbLaps -= 1;
+				if (Map.TMObjective_NbLaps < C_LapsNbMin) Map.TMObjective_NbLaps = C_LapsNbMin;
+				else Sound::Play("EditorMenuMove");
+				declare L_LapsNb for Layers::GetPage("Multilaps") = 0;
+				declare L_Direction for Layers::GetPage("Multilaps") = 0;
+				L_LapsNb = Map.TMObjective_NbLaps;
+				L_Direction = -1;
+			} else if (
+				EditorInputIsDown_CursorUp ||
+				EditorInputIsDown_IconUp
+			) {
+				Map.TMObjective_NbLaps += 1;
+				if (Map.TMObjective_NbLaps > C_LapsNbMax) Map.TMObjective_NbLaps = C_LapsNbMax;
+				else Sound::Play("EditorMenuMove");
+				declare L_LapsNb for Layers::GetPage("Multilaps") = 0;
+				declare L_Direction for Layers::GetPage("Multilaps") = 0;
+				L_LapsNb = Map.TMObjective_NbLaps;
+				L_Direction = 1;
+			}
+		}
+		
+		if (G_AutoRepeat < 0) {
+			G_AutoRepeat = Now + C_AutoRepeat_Init;
+			G_AutoRepeatCount += 1;
+		} else if (Now >= G_AutoRepeat) {
+			if (G_AutoRepeatCount > 10) {
+				G_AutoRepeat = Now + (C_AutoRepeat_Delay / 4);
+			} else {
+				G_AutoRepeat = Now + C_AutoRepeat_Delay;
+			}
+			G_AutoRepeatCount += 1;
+		}
+		
+	} else {
+		G_AutoRepeat = -1;
+		G_AutoRepeatCount = 0;
+		
+		declare L_Direction for Layers::GetPage("Multilaps") = 0;
+		L_Direction = 0;
+	}
+}
+
+Void Unload() {
+	Layers::Destroy("Multilaps");
+	
+	G_Confirmed = False;
+	G_Canceled = False;
+	G_SkipInput = -1;
+	G_AutoRepeat = -1;
+	G_AutoRepeatCount = 0;
+}
+
+Void Load() {
+	Unload();
+	
+	declare LayerMultilaps <=> Layers::Create("Multilaps");
+	LayerMultilaps.ManialinkPage = Private_GetMultilapsML();
+	
+	declare Page <=> LayerMultilaps.LocalPage;
+	declare L_Visibility for Page = C_DefaultVisibility;
+	declare L_LapsNb for Page = 0;
+	declare L_Direction for Page = 0;
+	L_Visibility = C_DefaultVisibility;
+	L_LapsNb = Map.TMObjective_NbLaps;
+	L_Direction = 0;
+}

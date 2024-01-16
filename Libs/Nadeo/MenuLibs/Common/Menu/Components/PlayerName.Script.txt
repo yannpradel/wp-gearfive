@@ -1,0 +1,1200 @@
+/** 
+ *	Component: PlayerName
+ *	=====================
+ *
+ *	Confluence : https://confluence.ubisoft.com/display/Nadeo/PlayerName
+ *
+ *	Info
+ *	----
+ *	
+ *	Display the name of a player with the required first party icon for crossplay
+ *
+ *	Parameters
+ *	----------
+ *
+ *	- `data-size` (`Vec2`): size of the component bounding box
+ *	- `data-textsize` (`Real`): textsize of the labels displaying the name and first party logo
+ *	- `data-textfont` (`Text`): font of the label displaying the name
+ *	- `data-textprefix` (`Text`): prefix of the label displaying the name
+ *	- `data-textcolor` (`Text`): color of the label displaying the name
+ *	- `data-opacity` (`Real`): opacity of the component
+ *	- `data-halign` (`Text`): horizontal alignment of the component. Can be `left`, `center` or `right`.
+ *	- `data-valign` (`Text`): vertical alignment of the component. Can be `top`, `center`, `center2` or `bottom`.
+ *	- `data-textcompose` (`Text`): add a text to compose with the player name, works only with one compose for now ! Used to indicate track authors for example, e.g _("By %1") will display "By PlayerName", 
+ */
+#Const Version		"2023-04-17"
+#Const ScriptName	"Libs/Nadeo/MenuLibs/Common/Menu/Components/PlayerName.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "TextLib" as TL
+#Include "MathLib" as ML
+#Include "ColorLib" as CL
+#Include "Libs/Nadeo/CommonLibs/Common/MainUser.Script.txt" as MainUser
+#Include "Libs/Nadeo/CommonLibs/Common/Platform.Script.txt" as Platform
+#Include "Libs/Nadeo/CommonLibs/Common/Task.Script.txt" as Task
+#Include "Libs/Nadeo/MenuLibs/Common/Components/Tools.Script.txt" as Tools
+#Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/LoadingSpinner.Script.txt" as LoadingSpinner
+#Include "Libs/Nadeo/MenuLibs/Common/FontManager.Script.txt" as FontManager
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Structures
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Struct K_Controls {
+	CMlFrame PlayerName_Component;
+	CMlFrame Frame_Align;
+	CMlLabel Label_Name;
+	CMlLabel Label_FirstPartyIcon;
+	CMlFrame LoadingSpinner_Name;
+}
+#Struct K_PlayerName {
+	K_Controls Controls;
+	Boolean IsInitialized;
+	Boolean RecommandedWidthWarningDisplayed;
+	Vec2 Size;
+	Text LoadingAccountId;
+	Text Name;
+	Text ClubTag;
+	Boolean IsFirstPartyDisplayName;
+	Boolean DisplayFirstPartyLogo;
+	Boolean DisplayClubTag;
+	Text FirstPartyLogo;
+	Real TextSize;
+	Text TextFont;
+	Text TextPrefix;
+	Vec3 TextColor;
+	Real Opacity;
+	Integer OpacityAnimDuration;
+	CMlControl::AlignHorizontal HAlign;
+	CMlControl::AlignVertical VAlign;
+	Text TextCompose;
+	Real Width;
+	Integer[] Dirty;
+}
+#Struct K_NamesAndClubTagsEntry {
+	Integer Status;
+	Text ClubTag;
+	Boolean HasRequestedClubTag;
+}
+#Struct K_NamesAndClubTags {
+	K_NamesAndClubTagsEntry[Text] Entries;
+	Boolean HasPending;
+	Task::K_Task Task_RetrieveDisplayName;
+	Task::K_Task Task_GetClubTagList;
+	Boolean IsRequesting;
+	Boolean IsSuccess;
+	Integer CooldownEndTime;
+}
+#Struct K_Event {
+	Integer Type;
+	CMlFrame PlayerName;
+}
+#Struct K_State {
+	K_NamesAndClubTags NamesAndClubTags;
+	K_Event[] DelayedPendingEvents;
+	K_Event[] PendingEvents;
+}
+#Struct K_Result {
+	K_State State;
+	K_PlayerName PlayerName;
+}
+#Struct K_UserInfo {
+	Text AccountId;
+	Text Name;
+	Text ClubTag;
+	Boolean IsFirstPartyDisplayName;
+	Boolean DisplayFirstPartyLogo;
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constants
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_Name "component-menulibs-player-name" // Component name
+#Const P "MenuLibs_PlayerName::" // Prefix use to differentiate functions/variables in the script
+#Const Q "MenuLibs_PlayerName"
+
+#Const C_Class_PlayerName "menulibs-player-name_player-name"
+#Const C_Id_FrameAlign "menulibs-player-name_frame-align"
+#Const C_Id_LabelName "menulibs-player-name_label-name"
+#Const C_Id_LabelFirstPartyIcon "menulibs-player-name_label-first-party-icon"
+#Const C_Id_LoadingSpinnerName "menulibs-player-name_loading-spinner-name"
+
+#Const C_Property_Size 1
+#Const C_Property_Name 2
+#Const C_Property_TextSize 3
+#Const C_Property_TextFont 4
+#Const C_Property_TextPrefix 5
+#Const C_Property_TextColor 6
+#Const C_Property_Opacity 7
+#Const C_Property_HAlign 8
+#Const C_Property_VAlign 9
+#Const C_Property_TextCompose 10
+
+#Const C_Status_Null 0
+#Const C_Status_Pending 1
+#Const C_Status_Requesting 2
+#Const C_Status_Complete 3
+
+#Const C_EventType_Null 0
+#Const C_EventType_WidthUpdate 1
+
+#Const C_Anim_Null -1
+#Const C_Anim_Instant 0
+
+#Const C_Nadeo_Login "Nadeo"
+#Const C_Nadeo_Name "Nadeo"
+#Const C_Nadeo_ClubTag ""
+#Const C_Nadeo_IsFirstPartyDisplayName False
+#Const C_Nadeo_DisplayFirstPartyLogo True
+
+#Const C_NameTextSizeMin 0.1
+#Const C_MarginBetweenNameAndLogo 1.
+#Const C_NamesAndClubTagsEntriesSize 150
+#Const C_NamesAndClubTagsCooldownDuration 1000
+#Const C_EnableRecommandedWidthWarning True
+#Const C_MinimumRecommandedWidth_WithClubTag 30.
+#Const C_MinimumRecommandedWidth_WithoutClubTag 22.
+#Const C_Debug_ForceSonyLogo False
+#Const C_Debug_EnableLongName False
+#Const C_Debug_LongName_Name "WWWWWWWWWWWWWWWWI" //< The I character should be visible at the end of the name
+#Const C_Debug_LongName_ClubTag "WWWWW"
+
+#Const C_PlayerName_Null K_PlayerName {
+	Controls = K_Controls {},
+	IsInitialized = False,
+	RecommandedWidthWarningDisplayed = False,
+	Size = <0., 0.>,
+	LoadingAccountId = "",
+	Name = "",
+	ClubTag = "",
+	IsFirstPartyDisplayName = False,
+	DisplayFirstPartyLogo = False,
+	DisplayClubTag = False,
+	FirstPartyLogo = "",
+	TextSize = 2.,
+	TextFont = "",
+	TextPrefix = "",
+	TextColor = <1., 1., 1.>,
+	Opacity = 1.,
+	OpacityAnimDuration = 0,
+	HAlign = CMlControl::AlignHorizontal::Left,
+	VAlign = CMlControl::AlignVertical::Top,
+	TextCompose = "",
+	Width = 0.,
+	Dirty = []
+}
+#Const C_NamesAndClubTagsEntry_Null K_NamesAndClubTagsEntry {
+	Status = 0,
+	ClubTag = "",
+	HasRequestedClubTag = False
+}
+#Const C_State_Null K_State {
+	NamesAndClubTags = K_NamesAndClubTags {},
+	DelayedPendingEvents = [],
+	PendingEvents = []
+}
+#Const C_UserInfo_Null K_UserInfo {
+	AccountId = "",
+	Name = "",
+	ClubTag = "",
+	IsFirstPartyDisplayName = False,
+	DisplayFirstPartyLogo = False
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the manialink of the component
+Text GetManialink() {
+	return """
+<frame class="{{{C_Class_PlayerName}}}">
+	<frame id="{{{C_Id_FrameAlign}}}">
+		<frameinstance id="{{{C_Id_LoadingSpinnerName}}}" modelid="{{{LoadingSpinner::C_Name}}}" />
+		<!--
+		We MUST initialize the label with a textprefix value.
+		Otherwise the `TextPrefix` property initialization in the
+		script will be bugged. The latest `TextPrefix` applied
+		will also be applied to all other labels that had their
+		`TextPrefix` updated.
+		-->
+		<label id="{{{C_Id_LabelName}}}" valign="center2" textprefix="$z" />
+		<label id="{{{C_Id_LabelFirstPartyIcon}}}" valign="center2" textfont="{{{FontManager::C_GameFontExtraBold}}}" />
+	</frame>
+</frame>
+	""";
+}
+
+// Create a user info object from a user that can be used later to display the name of a player
+K_UserInfo GetUserInfo(CUser _User, Boolean _DisplayClubTag) {
+	declare Text ClubTag = "";
+	if (_DisplayClubTag) ClubTag = _User.ClubTag;
+	return K_UserInfo {
+		AccountId = _User.WebServicesUserId,
+		Name = _User.Name,
+		ClubTag = ClubTag,
+		IsFirstPartyDisplayName = _User.IsFirstPartyDisplayName,
+		DisplayFirstPartyLogo = !Tools::IsFakeUser(_User)
+	};
+}
+
+// Request the names and club tags of the players
+K_State Private_RequestNamesAndClubTags(K_State _State, Text[] _AccountIds, Boolean _DisplayClubTag) {
+	declare K_State State = _State;
+
+	// Find players that we don't already know
+	foreach (AccountId in _AccountIds) {
+		declare K_NamesAndClubTagsEntry Entry = State.NamesAndClubTags.Entries.get(AccountId, C_NamesAndClubTagsEntry_Null);
+		if (
+			Entry.Status == C_Status_Null ||
+			(_DisplayClubTag && !Entry.HasRequestedClubTag)
+		) {
+			State.NamesAndClubTags.Entries[AccountId] = K_NamesAndClubTagsEntry {
+				Status = C_Status_Pending,
+				ClubTag = "",
+				HasRequestedClubTag = _DisplayClubTag
+			};
+			State.NamesAndClubTags.HasPending = True;
+		}
+	}
+
+	// If the number of entries exceed the maximum size, remove the oldest ones
+	if (State.NamesAndClubTags.Entries.count > C_NamesAndClubTagsEntriesSize) {
+		declare Integer NumberOfEntriesToRemove = State.NamesAndClubTags.Entries.count - C_NamesAndClubTagsEntriesSize;
+		declare Text[] AccountIdsToRemove;
+		foreach (AccountId => Entry in State.NamesAndClubTags.Entries) {
+			if (!_AccountIds.exists(AccountId)) {
+				AccountIdsToRemove.add(AccountId);
+			}
+			if (AccountIdsToRemove.count >= NumberOfEntriesToRemove) break;
+		}
+		foreach (AccountId in AccountIdsToRemove) {
+			State.NamesAndClubTags.Entries.removekey(AccountId);
+		}
+	}
+
+	return State;
+}
+K_State Private_RequestNamesAndClubTags(K_State _State, Text _AccountId, Boolean _DisplayClubTag) {
+	return Private_RequestNamesAndClubTags(_State, [_AccountId], _DisplayClubTag);
+}
+
+Void Private_AssertValidComponent(CMlFrame _Frame_PlayerName, K_PlayerName _PlayerName) {
+	assert(_PlayerName.IsInitialized, "The control '"^_Frame_PlayerName.ControlId^_Frame_PlayerName.Id^"' is not a valid PlayerName component");
+}
+
+Boolean Private_IsCrossPlayEnabled(CMlScript _This) {
+	return _This.UserMgr.CrossPlay_V2_IsEnabled(MainUser::GetMainUserId()) == CUserV2Manager::ECrossPlayState::Enabled;
+}
+
+Boolean Private_IsLoading(K_PlayerName _PlayerName) {
+	return _PlayerName.LoadingAccountId != "";
+}
+
+Text Private_GetFirstPartyLogo(CMlScript _This, Boolean _IsFirstPartyDisplayName) {
+	if (!Platform::IsPC(_This.System) && Private_IsCrossPlayEnabled(_This)) {
+		if (_IsFirstPartyDisplayName) {
+			return Platform::GetFirstPartyLogo(_This.System);
+		} else {
+			return Platform::GetFirstPartyLogo(CSystemPlatform::ESystemPlatform::None);
+		}
+	}
+	return "";
+}
+
+K_Result Private_Redraw(CMlScript _This, K_State _State, K_PlayerName _PlayerName) {
+	declare K_Result Result = K_Result {
+		State = _State,
+		PlayerName = _PlayerName
+	};
+
+	declare Boolean SizeUpdated = False;
+	declare Integer AnimDuration = C_Anim_Null;
+	declare Boolean IsLoading = Private_IsLoading(Result.PlayerName);
+	LoadingSpinner::SetIsLoading(_This, Result.PlayerName.Controls.LoadingSpinner_Name, IsLoading);
+
+	if (
+		Result.PlayerName.Dirty.exists(C_Property_Name) ||
+		Result.PlayerName.Dirty.exists(C_Property_Size) ||
+		Result.PlayerName.Dirty.exists(C_Property_TextSize) ||
+		Result.PlayerName.Dirty.exists(C_Property_TextFont) ||
+		Result.PlayerName.Dirty.exists(C_Property_TextPrefix) ||
+		Result.PlayerName.Dirty.exists(C_Property_TextCompose)
+	) {
+		SizeUpdated = True;
+
+		// Check if there is something to display in the name part of the component
+		declare Boolean HasNamePart = TL::Trim(Result.PlayerName.Name) != "" || TL::Trim(Result.PlayerName.ClubTag) != "" || TL::StripFormatting(TL::Trim(Result.PlayerName.TextPrefix)) != "";
+
+		// Display the first party logo
+		if (IsLoading || !HasNamePart || Result.PlayerName.FirstPartyLogo == "") {
+			Result.PlayerName.Controls.Label_FirstPartyIcon.Visible = False;
+		} else {
+			Result.PlayerName.Controls.Label_FirstPartyIcon.Visible = True;
+			if (C_Debug_ForceSonyLogo) {
+				Result.PlayerName.Controls.Label_FirstPartyIcon.Value = Platform::C_Logo_SonyWhite;
+			} else {
+				Result.PlayerName.Controls.Label_FirstPartyIcon.Value = Result.PlayerName.FirstPartyLogo;
+			}
+			Result.PlayerName.Controls.Label_FirstPartyIcon.TextSizeReal = Result.PlayerName.TextSize;
+			Result.PlayerName.Controls.Label_FirstPartyIcon.Size = <
+				Result.PlayerName.Controls.Label_FirstPartyIcon.ComputeWidth(Result.PlayerName.FirstPartyLogo),
+				ML::Min(
+					Result.PlayerName.Size.Y,
+					Result.PlayerName.Controls.Label_FirstPartyIcon.ComputeHeight(Result.PlayerName.FirstPartyLogo)
+				)
+			>;
+			Result.PlayerName.Controls.Label_FirstPartyIcon.RelativePosition_V3.Y = Result.PlayerName.Size.Y * -0.5;
+			declare Real StepSize = (Result.PlayerName.TextSize - C_NameTextSizeMin) / Tools::C_FitLabelMaxSteps;
+			Tools::FitLabelValue(Result.PlayerName.Controls.Label_FirstPartyIcon, Result.PlayerName.TextSize, C_NameTextSizeMin, StepSize);
+		}
+		declare Real LogoWidth = ML::Min(
+			Result.PlayerName.Controls.Label_FirstPartyIcon.Size.X,
+			Result.PlayerName.Controls.Label_FirstPartyIcon.ComputeWidth(Result.PlayerName.FirstPartyLogo)
+		);
+
+		// Display the player club tag and name
+		if (IsLoading || !HasNamePart) {
+			Result.PlayerName.Controls.Label_Name.Visible = False;
+		} else {
+			Result.PlayerName.Controls.Label_Name.Visible = True;
+			Result.PlayerName.Controls.Label_Name.TextSizeReal = Result.PlayerName.TextSize;
+			Result.PlayerName.Controls.Label_Name.TextFont = Result.PlayerName.TextFont;
+			Result.PlayerName.Controls.Label_Name.TextPrefix = Result.PlayerName.TextPrefix;
+
+			if (Result.PlayerName.FirstPartyLogo == "") {
+				Result.PlayerName.Controls.Label_Name.Size = <Result.PlayerName.Size.X, Result.PlayerName.Size.Y>;
+			} else {
+				Result.PlayerName.Controls.Label_Name.Size = <
+					ML::Max(0., Result.PlayerName.Size.X - C_MarginBetweenNameAndLogo - LogoWidth),
+					Result.PlayerName.Size.Y
+				>;
+			}
+
+			if (!Result.PlayerName.DisplayClubTag || Result.PlayerName.ClubTag == "") {
+				if (C_Debug_EnableLongName) {
+					if (Result.PlayerName.TextCompose == "") {
+						Result.PlayerName.Controls.Label_Name.Value = C_Debug_LongName_Name;
+					} else {
+						Result.PlayerName.Controls.Label_Name.Value = TL::Compose(Result.PlayerName.TextCompose, C_Debug_LongName_Name);
+					}
+				} else if (Result.PlayerName.TextCompose != "") {
+					Result.PlayerName.Controls.Label_Name.Value = TL::Compose(Result.PlayerName.TextCompose, Result.PlayerName.Name);
+				} else {
+					Result.PlayerName.Controls.Label_Name.Value = Result.PlayerName.Name;
+				}
+				if (
+					C_EnableRecommandedWidthWarning &&
+					!Result.PlayerName.RecommandedWidthWarningDisplayed &&
+					Result.PlayerName.Size.X < C_MinimumRecommandedWidth_WithoutClubTag
+				) {
+					Result.PlayerName.RecommandedWidthWarningDisplayed = True;
+					log("WARNING "^Result.PlayerName.Controls.PlayerName_Component.ControlId^Result.PlayerName.Controls.PlayerName_Component.Id^" is too narrow to display the longest player names. A width of at least "^C_MinimumRecommandedWidth_WithoutClubTag^" is recommanded (currently: "^Result.PlayerName.Size.X^").");
+				}
+			} else {
+				if (C_Debug_EnableLongName) {
+					Result.PlayerName.Controls.Label_Name.Value = Tools::FormatClubTag(C_Debug_LongName_ClubTag)^" $<"^C_Debug_LongName_Name^"$>";
+				} else {
+					declare Text PlayerNameWithClubTag = Tools::FormatClubTag(Result.PlayerName.ClubTag)^" $<"^Result.PlayerName.Name^"$>";
+					if (Result.PlayerName.TextCompose == "") {
+						Result.PlayerName.Controls.Label_Name.Value = PlayerNameWithClubTag;
+					} else {
+						Result.PlayerName.Controls.Label_Name.Value = TL::Compose(Result.PlayerName.TextCompose, PlayerNameWithClubTag);
+					}
+				}
+				if (
+					C_EnableRecommandedWidthWarning &&
+					!Result.PlayerName.RecommandedWidthWarningDisplayed &&
+					Result.PlayerName.Size.X < C_MinimumRecommandedWidth_WithClubTag
+				) {
+					Result.PlayerName.RecommandedWidthWarningDisplayed = True;
+					log("WARNING "^Result.PlayerName.Controls.PlayerName_Component.ControlId^Result.PlayerName.Controls.PlayerName_Component.Id^" is too narrow to display the longest player names. A width of at least "^C_MinimumRecommandedWidth_WithClubTag^" is recommanded (currently: "^Result.PlayerName.Size.X^").");
+				}
+			}
+
+			Result.PlayerName.Controls.Label_Name.RelativePosition_V3.Y = Result.PlayerName.Size.Y * -0.5;
+			
+			declare Real StepSize = (Result.PlayerName.TextSize - C_NameTextSizeMin) / Tools::C_FitLabelMaxSteps;
+			Tools::FitLabelValue(Result.PlayerName.Controls.Label_Name, Result.PlayerName.TextSize, C_NameTextSizeMin, StepSize);
+		}
+		declare Boolean Translated = (Result.PlayerName.TextCompose != ""); // label needs to be translated only if we have a text compose
+		declare Real NameWidth = ML::Min(
+			Result.PlayerName.Controls.Label_Name.Size.X,
+			Result.PlayerName.Controls.Label_Name.ComputeWidth(Result.PlayerName.Controls.Label_Name.Value, Translated)
+		);
+
+		// Align the first party logo at the end of the player name
+		if (!IsLoading && Result.PlayerName.FirstPartyLogo != "") {
+			Result.PlayerName.Controls.Label_FirstPartyIcon.RelativePosition_V3.X = NameWidth + C_MarginBetweenNameAndLogo;
+		}
+
+		// Align the loading spinner
+		declare Real SpinnerWidth = ML::Min(
+			Result.PlayerName.Size.Y,
+			Result.PlayerName.Controls.Label_Name.ComputeHeight("@")
+		);
+		if (IsLoading) {
+			LoadingSpinner::SetSize(Result.PlayerName.Controls.LoadingSpinner_Name, <SpinnerWidth, SpinnerWidth>);
+			Result.PlayerName.Controls.LoadingSpinner_Name.RelativePosition_V3 = <SpinnerWidth * 0.5, Result.PlayerName.Size.Y * -0.5>;
+		}
+
+		// Send a width update event
+		if (IsLoading) {
+			Result.PlayerName.Width = SpinnerWidth;
+		} else if (Result.PlayerName.FirstPartyLogo == "") {
+			Result.PlayerName.Width = NameWidth;
+		} else {
+			Result.PlayerName.Width = NameWidth + C_MarginBetweenNameAndLogo + LogoWidth;
+		}
+		Result.State.DelayedPendingEvents.add(K_Event {
+			Type = C_EventType_WidthUpdate,
+			PlayerName = Result.PlayerName.Controls.PlayerName_Component
+		});
+	}
+
+	if (
+		SizeUpdated ||
+		Result.PlayerName.Dirty.exists(C_Property_HAlign) ||
+		Result.PlayerName.Dirty.exists(C_Property_VAlign)
+	) {
+		Tools::AlignFrame(
+			Result.PlayerName.Controls.Frame_Align,
+			<Result.PlayerName.Width, Result.PlayerName.Size.Y>,
+			Result.PlayerName.HAlign,
+			Result.PlayerName.VAlign
+		);
+	}
+
+	if (
+		Result.PlayerName.Dirty.exists(C_Property_TextColor) ||
+		Result.PlayerName.Dirty.exists(C_Property_Name)
+	) {
+		Result.PlayerName.Controls.Label_Name.TextColor = Result.PlayerName.TextColor;
+		Result.PlayerName.Controls.Label_FirstPartyIcon.TextColor = Result.PlayerName.TextColor;
+		LoadingSpinner::SetColor(Result.PlayerName.Controls.LoadingSpinner_Name, Result.PlayerName.TextColor);
+		Tools::FirstPartyLogoMatchLuminance(Result.PlayerName.Controls.Label_FirstPartyIcon);
+	}
+
+	if (Result.PlayerName.Dirty.exists(C_Property_Opacity)) {
+		if (Result.PlayerName.OpacityAnimDuration > 0) {
+			AnimDuration = ML::Max(C_Anim_Instant, Result.PlayerName.OpacityAnimDuration);
+		} else {
+			AnimDuration = C_Anim_Instant;
+		}
+		LoadingSpinner::SetOpacity(Result.PlayerName.Controls.LoadingSpinner_Name, Result.PlayerName.Opacity);
+	}
+
+	if (AnimDuration == C_Anim_Instant) {
+		_This.AnimMgr.Flush(Result.PlayerName.Controls.Label_Name);
+		_This.AnimMgr.Flush(Result.PlayerName.Controls.Label_FirstPartyIcon);
+		Result.PlayerName.Controls.Label_Name.Opacity = Result.PlayerName.Opacity;
+		Result.PlayerName.Controls.Label_FirstPartyIcon.Opacity = Result.PlayerName.Opacity;
+	} else if (AnimDuration > C_Anim_Instant) {
+		_This.AnimMgr.Flush(Result.PlayerName.Controls.Label_Name);
+		_This.AnimMgr.Flush(Result.PlayerName.Controls.Label_FirstPartyIcon);
+		_This.AnimMgr.Add(
+			Result.PlayerName.Controls.Label_Name,
+			"""<a opacity="{{{Result.PlayerName.Opacity}}}"/>""",
+			AnimDuration,
+			CAnimManager::EAnimManagerEasing::QuadOut
+		);
+		_This.AnimMgr.Add(
+			Result.PlayerName.Controls.Label_FirstPartyIcon,
+			"""<a opacity="{{{Result.PlayerName.Opacity}}}"/>""",
+			AnimDuration,
+			CAnimManager::EAnimManagerEasing::QuadOut
+		);
+	}
+
+	Result.PlayerName.Dirty = [];
+
+	return Result;
+}
+Void Redraw(CMlScript _This, CMlFrame _Frame_PlayerName) {
+	declare K_State MenuLibs_PlayerName_State for _This.Page = C_State_Null;
+	declare K_PlayerName MenuLibs_PlayerName_PlayerName for _Frame_PlayerName = C_PlayerName_Null;
+	declare K_Result Result = Private_Redraw(_This, MenuLibs_PlayerName_State, MenuLibs_PlayerName_PlayerName);
+	MenuLibs_PlayerName_State = Result.State;
+	MenuLibs_PlayerName_PlayerName = Result.PlayerName;
+}
+
+Text GetName(CMlScript _This, CMlFrame _Frame_PlayerName) {
+	declare K_PlayerName MenuLibs_PlayerName_PlayerName for _Frame_PlayerName = C_PlayerName_Null;
+	Private_AssertValidComponent(_Frame_PlayerName, MenuLibs_PlayerName_PlayerName);
+	
+	return MenuLibs_PlayerName_PlayerName.Controls.Label_Name.Value;
+}
+
+K_PlayerName Private_SetName(
+	CMlScript _This,
+	K_PlayerName _PlayerName,
+	Text _Name,
+	Text _ClubTag,
+	Boolean _IsFirstPartyDisplayName,
+	Boolean _DisplayFirstPartyLogo
+) {
+	declare K_PlayerName PlayerName = _PlayerName;
+
+	PlayerName.LoadingAccountId = "";
+	PlayerName.Name = _Name;
+	PlayerName.ClubTag = _ClubTag;
+	PlayerName.IsFirstPartyDisplayName = _IsFirstPartyDisplayName;
+	PlayerName.DisplayFirstPartyLogo = _DisplayFirstPartyLogo;
+	PlayerName.DisplayClubTag = (PlayerName.ClubTag != "");
+	if (PlayerName.DisplayFirstPartyLogo) {
+		PlayerName.FirstPartyLogo = Private_GetFirstPartyLogo(_This, PlayerName.IsFirstPartyDisplayName);
+	} else {
+		PlayerName.FirstPartyLogo = "";
+	}
+
+	if (!PlayerName.Dirty.exists(C_Property_Name)) {
+		PlayerName.Dirty.add(C_Property_Name);
+	}
+	return PlayerName;
+}
+Void SetName(
+	CMlScript _This,
+	CMlFrame _Frame_PlayerName,
+	Text _Name,
+	Text _ClubTag,
+	Boolean _IsFirstPartyDisplayName,
+	Boolean _DisplayFirstPartyLogo,
+	Boolean _Redraw
+) {
+	declare K_PlayerName MenuLibs_PlayerName_PlayerName for _Frame_PlayerName = C_PlayerName_Null;
+	Private_AssertValidComponent(_Frame_PlayerName, MenuLibs_PlayerName_PlayerName);
+	MenuLibs_PlayerName_PlayerName = Private_SetName(_This, MenuLibs_PlayerName_PlayerName, _Name, _ClubTag, _IsFirstPartyDisplayName, _DisplayFirstPartyLogo);
+	if (_Redraw) {
+		declare K_State MenuLibs_PlayerName_State for _This.Page = C_State_Null;
+		declare K_Result Result = Private_Redraw(_This, MenuLibs_PlayerName_State, MenuLibs_PlayerName_PlayerName);
+		MenuLibs_PlayerName_State = Result.State;
+		MenuLibs_PlayerName_PlayerName = Result.PlayerName;
+	}
+}
+Void SetName(
+	CMlScript _This,
+	CMlFrame _Frame_PlayerName,
+	Text _Name,
+	Text _ClubTag,
+	Boolean _IsFirstPartyDisplayName,
+	Boolean _DisplayFirstPartyLogo
+) {
+	SetName(_This, _Frame_PlayerName, _Name, _ClubTag, _IsFirstPartyDisplayName, _DisplayFirstPartyLogo, True);
+}
+Void SetUserInfo(CMlScript _This, CMlFrame _Frame_PlayerName, K_UserInfo _UserInfo, Boolean _Redraw) {
+	SetName(_This, _Frame_PlayerName, _UserInfo.Name, _UserInfo.ClubTag, _UserInfo.IsFirstPartyDisplayName, _UserInfo.DisplayFirstPartyLogo, _Redraw);
+}
+Void SetUserInfo(CMlScript _This, CMlFrame _Frame_PlayerName, K_UserInfo _UserInfo) {
+	SetUserInfo(_This, _Frame_PlayerName, _UserInfo, True);
+}
+Void SetUser(CMlScript _This, CMlFrame _Frame_PlayerName, CUser _User, Boolean _DisplayClubTag, Boolean _Redraw) {
+	SetUserInfo(_This, _Frame_PlayerName, GetUserInfo(_User, _DisplayClubTag), _Redraw);
+}
+Void SetUser(CMlScript _This, CMlFrame _Frame_PlayerName, CUser _User, Boolean _DisplayClubTag) {
+	SetUser(_This, _Frame_PlayerName, _User, _DisplayClubTag, True);
+}
+Void SetUser(CMlScript _This, CMlFrame _Frame_PlayerName, CUser _User) {
+	SetUser(_This, _Frame_PlayerName, _User, True);
+}
+
+Void CopyName(CMlScript _This, CMlFrame _Frame_PlayerNameFrom, CMlFrame _Frame_PlayerNameTo, Boolean _Redraw) {
+	declare K_PlayerName MenuLibs_PlayerName_PlayerName as MenuLibs_PlayerName_PlayerNameFrom for _Frame_PlayerNameFrom = C_PlayerName_Null;
+	declare K_PlayerName MenuLibs_PlayerName_PlayerName as MenuLibs_PlayerName_PlayerNameTo for _Frame_PlayerNameTo = C_PlayerName_Null;
+	Private_AssertValidComponent(_Frame_PlayerNameFrom, MenuLibs_PlayerName_PlayerNameFrom);
+	Private_AssertValidComponent(_Frame_PlayerNameTo, MenuLibs_PlayerName_PlayerNameTo);
+	MenuLibs_PlayerName_PlayerNameTo = Private_SetName(
+		_This,
+		MenuLibs_PlayerName_PlayerNameTo,
+		MenuLibs_PlayerName_PlayerNameFrom.Name,
+		MenuLibs_PlayerName_PlayerNameFrom.ClubTag,
+		MenuLibs_PlayerName_PlayerNameFrom.IsFirstPartyDisplayName,
+		MenuLibs_PlayerName_PlayerNameFrom.FirstPartyLogo != ""
+	);
+	if (_Redraw) {
+		declare K_State MenuLibs_PlayerName_State for _This.Page = C_State_Null;
+		declare K_Result Result = Private_Redraw(_This, MenuLibs_PlayerName_State, MenuLibs_PlayerName_PlayerNameTo);
+		MenuLibs_PlayerName_State = Result.State;
+		MenuLibs_PlayerName_PlayerNameTo = Result.PlayerName;
+	}
+}
+Void CopyName(CMlScript _This, CMlFrame _Frame_PlayerNameFrom, CMlFrame _Frame_PlayerNameTo) {
+	CopyName(_This, _Frame_PlayerNameFrom, _Frame_PlayerNameTo, True);
+}
+
+K_Result Private_SetAccountId(
+	CMlScript _This,
+	K_State _State,
+	K_PlayerName _PlayerName,
+	Text _AccountId,
+	Boolean _DisplayClubTag
+) {
+	declare K_Result Result = K_Result {
+		State = _State,
+		PlayerName = _PlayerName
+	};
+
+	if (_AccountId == C_Nadeo_Login) {
+		Result.PlayerName = Private_SetName(
+			_This,
+			Result.PlayerName,
+			C_Nadeo_Name,
+			C_Nadeo_ClubTag,
+			C_Nadeo_IsFirstPartyDisplayName,
+			C_Nadeo_DisplayFirstPartyLogo
+		);
+	} else {
+		declare K_NamesAndClubTagsEntry Entry = Result.State.NamesAndClubTags.Entries.get(_AccountId, C_NamesAndClubTagsEntry_Null);
+		// The account id is in the cache and the info has been retrieved
+		if (Entry.Status == C_Status_Complete) {
+			declare Boolean IsFirstPartyDisplayName = False;
+			declare Text Name = _This.UserMgr.FindDisplayName(_AccountId, IsFirstPartyDisplayName);
+			declare Text ClubTag = "";
+			if (_DisplayClubTag) {
+				ClubTag = Entry.ClubTag;
+			}
+			Result.PlayerName = Private_SetName(
+				_This,
+				Result.PlayerName,
+				Name,
+				ClubTag,
+				IsFirstPartyDisplayName,
+				True
+			);
+		} else {
+			// The account id is not in the cache or we need the club tag and did not requested it yet
+			if (
+				Entry.Status == C_Status_Null ||
+				(_DisplayClubTag && !Entry.HasRequestedClubTag)
+			) {
+				Result.State = Private_RequestNamesAndClubTags(Result.State, _AccountId, _DisplayClubTag);
+			}
+			Result.PlayerName.LoadingAccountId = _AccountId;
+			Result.PlayerName.Name = "";
+			Result.PlayerName.ClubTag = "";
+			Result.PlayerName.IsFirstPartyDisplayName = False;
+			Result.PlayerName.DisplayFirstPartyLogo = False;
+			Result.PlayerName.DisplayClubTag = _DisplayClubTag;
+			Result.PlayerName.FirstPartyLogo = "";
+		}
+	}
+
+	if (!Result.PlayerName.Dirty.exists(C_Property_Name)) {
+		Result.PlayerName.Dirty.add(C_Property_Name);
+	}
+	return Result;
+}
+Void SetAccountId(
+	CMlScript _This,
+	CMlFrame _Frame_PlayerName,
+	Text _AccountId,
+	Boolean _DisplayClubTag,
+	Boolean _Redraw
+) {
+	declare K_PlayerName MenuLibs_PlayerName_PlayerName for _Frame_PlayerName = C_PlayerName_Null;
+	Private_AssertValidComponent(_Frame_PlayerName, MenuLibs_PlayerName_PlayerName);
+	declare K_State MenuLibs_PlayerName_State for _This.Page = C_State_Null;
+	declare K_Result Result = Private_SetAccountId(
+		_This,
+		MenuLibs_PlayerName_State,
+		MenuLibs_PlayerName_PlayerName,
+		_AccountId,
+		_DisplayClubTag
+	);
+	MenuLibs_PlayerName_State = Result.State;
+	MenuLibs_PlayerName_PlayerName = Result.PlayerName;
+	if (_Redraw) {
+		declare K_Result Result = Private_Redraw(_This, MenuLibs_PlayerName_State, MenuLibs_PlayerName_PlayerName);
+		MenuLibs_PlayerName_State = Result.State;
+		MenuLibs_PlayerName_PlayerName = Result.PlayerName;
+	}
+}
+Void SetAccountId(CMlScript _This, CMlFrame _Frame_PlayerName, Text _AccountId, Boolean _DisplayClubTag) {
+	SetAccountId(_This, _Frame_PlayerName, _AccountId, _DisplayClubTag, True);
+}
+
+K_PlayerName Private_SetSize(K_PlayerName _PlayerName, Vec2 _Size) {
+	declare Vec2 NewSize = <ML::Max(0., _Size.X), ML::Max(0., _Size.Y)>;
+	if (NewSize == _PlayerName.Size) return _PlayerName;
+	declare K_PlayerName PlayerName = _PlayerName;
+	PlayerName.Size = NewSize;
+	PlayerName.RecommandedWidthWarningDisplayed = False;
+	if (!PlayerName.Dirty.exists(C_Property_Size)) {
+		PlayerName.Dirty.add(C_Property_Size);
+	}
+	return PlayerName;
+}
+Void SetSize(CMlScript _This, CMlFrame _Frame_PlayerName, Vec2 _Size, Boolean _Redraw) {
+	declare K_PlayerName MenuLibs_PlayerName_PlayerName for _Frame_PlayerName = C_PlayerName_Null;
+	Private_AssertValidComponent(_Frame_PlayerName, MenuLibs_PlayerName_PlayerName);
+	MenuLibs_PlayerName_PlayerName = Private_SetSize(MenuLibs_PlayerName_PlayerName, _Size);
+	if (_Redraw) {
+		declare K_State MenuLibs_PlayerName_State for _This.Page = C_State_Null;
+		declare K_Result Result = Private_Redraw(_This, MenuLibs_PlayerName_State, MenuLibs_PlayerName_PlayerName);
+		MenuLibs_PlayerName_State = Result.State;
+		MenuLibs_PlayerName_PlayerName = Result.PlayerName;
+	}
+}
+Void SetSize(CMlScript _This, CMlFrame _Frame_PlayerName, Vec2 _Size) {
+	SetSize(_This, _Frame_PlayerName, _Size, True);
+}
+
+K_PlayerName Private_SetTextSize(K_PlayerName _PlayerName, Real _TextSize) {
+	if (_TextSize == _PlayerName.TextSize) return _PlayerName;
+	declare K_PlayerName PlayerName = _PlayerName;
+	PlayerName.TextSize = ML::Max(C_NameTextSizeMin, _TextSize);
+	if (!PlayerName.Dirty.exists(C_Property_TextSize)) {
+		PlayerName.Dirty.add(C_Property_TextSize);
+	}
+	return PlayerName;
+}
+Void SetTextSize(CMlScript _This, CMlFrame _Frame_PlayerName, Real _TextSize, Boolean _Redraw) {
+	declare K_PlayerName MenuLibs_PlayerName_PlayerName for _Frame_PlayerName = C_PlayerName_Null;
+	Private_AssertValidComponent(_Frame_PlayerName, MenuLibs_PlayerName_PlayerName);
+	MenuLibs_PlayerName_PlayerName = Private_SetTextSize(MenuLibs_PlayerName_PlayerName, _TextSize);
+	if (_Redraw) {
+		declare K_State MenuLibs_PlayerName_State for _This.Page = C_State_Null;
+		declare K_Result Result = Private_Redraw(_This, MenuLibs_PlayerName_State, MenuLibs_PlayerName_PlayerName);
+		MenuLibs_PlayerName_State = Result.State;
+		MenuLibs_PlayerName_PlayerName = Result.PlayerName;
+	}
+}
+Void SetTextSize(CMlScript _This, CMlFrame _Frame_PlayerName, Real _TextSize) {
+	SetTextSize(_This, _Frame_PlayerName, _TextSize, True);
+}
+
+K_PlayerName Private_SetTextFont(K_PlayerName _PlayerName, Text _TextFont) {
+	if (_TextFont == _PlayerName.TextFont) return _PlayerName;
+	declare K_PlayerName PlayerName = _PlayerName;
+	PlayerName.TextFont = _TextFont;
+	if (!PlayerName.Dirty.exists(C_Property_TextFont)) {
+		PlayerName.Dirty.add(C_Property_TextFont);
+	}
+	return PlayerName;
+}
+Void SetTextFont(CMlScript _This, CMlFrame _Frame_PlayerName, Text _TextFont, Boolean _Redraw) {
+	declare K_PlayerName MenuLibs_PlayerName_PlayerName for _Frame_PlayerName = C_PlayerName_Null;
+	Private_AssertValidComponent(_Frame_PlayerName, MenuLibs_PlayerName_PlayerName);
+	MenuLibs_PlayerName_PlayerName = Private_SetTextFont(MenuLibs_PlayerName_PlayerName, _TextFont);
+	if (_Redraw) {
+		declare K_State MenuLibs_PlayerName_State for _This.Page = C_State_Null;
+		declare K_Result Result = Private_Redraw(_This, MenuLibs_PlayerName_State, MenuLibs_PlayerName_PlayerName);
+		MenuLibs_PlayerName_State = Result.State;
+		MenuLibs_PlayerName_PlayerName = Result.PlayerName;
+	}
+}
+Void SetTextFont(CMlScript _This, CMlFrame _Frame_PlayerName, Text _TextFont) {
+	SetTextFont(_This, _Frame_PlayerName, _TextFont, True);
+}
+
+K_PlayerName Private_SetTextPrefix(K_PlayerName _PlayerName, Text _TextPrefix) {
+	if (_TextPrefix == _PlayerName.TextPrefix) return _PlayerName;
+	declare K_PlayerName PlayerName = _PlayerName;
+	PlayerName.TextPrefix = _TextPrefix;
+	if (!PlayerName.Dirty.exists(C_Property_TextPrefix)) {
+		PlayerName.Dirty.add(C_Property_TextPrefix);
+	}
+	return PlayerName;
+}
+Void SetTextPrefix(CMlScript _This, CMlFrame _Frame_PlayerName, Text _TextPrefix, Boolean _Redraw) {
+	declare K_PlayerName MenuLibs_PlayerName_PlayerName for _Frame_PlayerName = C_PlayerName_Null;
+	Private_AssertValidComponent(_Frame_PlayerName, MenuLibs_PlayerName_PlayerName);
+	MenuLibs_PlayerName_PlayerName = Private_SetTextPrefix(MenuLibs_PlayerName_PlayerName, _TextPrefix);
+	if (_Redraw) {
+		declare K_State MenuLibs_PlayerName_State for _This.Page = C_State_Null;
+		declare K_Result Result = Private_Redraw(_This, MenuLibs_PlayerName_State, MenuLibs_PlayerName_PlayerName);
+		MenuLibs_PlayerName_State = Result.State;
+		MenuLibs_PlayerName_PlayerName = Result.PlayerName;
+	}
+}
+Void SetTextPrefix(CMlScript _This, CMlFrame _Frame_PlayerName, Text _TextPrefix) {
+	SetTextPrefix(_This, _Frame_PlayerName, _TextPrefix, True);
+}
+
+K_PlayerName Private_SetTextColor(K_PlayerName _PlayerName, Vec3 _TextColor) {
+	if (_TextColor == _PlayerName.TextColor) return _PlayerName;
+	declare K_PlayerName PlayerName = _PlayerName;
+	PlayerName.TextColor = _TextColor;
+	if (!PlayerName.Dirty.exists(C_Property_TextColor)) {
+		PlayerName.Dirty.add(C_Property_TextColor);
+	}
+	return PlayerName;
+}
+Void SetTextColor(CMlScript _This, CMlFrame _Frame_PlayerName, Vec3 _TextColor, Boolean _Redraw) {
+	declare K_PlayerName MenuLibs_PlayerName_PlayerName for _Frame_PlayerName = C_PlayerName_Null;
+	Private_AssertValidComponent(_Frame_PlayerName, MenuLibs_PlayerName_PlayerName);
+	MenuLibs_PlayerName_PlayerName = Private_SetTextColor(MenuLibs_PlayerName_PlayerName, _TextColor);
+	if (_Redraw) {
+		declare K_State MenuLibs_PlayerName_State for _This.Page = C_State_Null;
+		declare K_Result Result = Private_Redraw(_This, MenuLibs_PlayerName_State, MenuLibs_PlayerName_PlayerName);
+		MenuLibs_PlayerName_State = Result.State;
+		MenuLibs_PlayerName_PlayerName = Result.PlayerName;
+	}
+}
+Void SetTextColor(CMlScript _This, CMlFrame _Frame_PlayerName, Text _TextColor, Boolean _Redraw) {
+	SetTextColor(_This, _Frame_PlayerName, CL::HexToRgb(_TextColor), _Redraw);
+}
+Void SetTextColor(CMlScript _This, CMlFrame _Frame_PlayerName, Vec3 _TextColor) {
+	SetTextColor(_This, _Frame_PlayerName, _TextColor, True);
+}
+Void SetTextColor(CMlScript _This, CMlFrame _Frame_PlayerName, Text _TextColor) {
+	SetTextColor(_This, _Frame_PlayerName, CL::HexToRgb(_TextColor));
+}
+
+K_PlayerName Private_SetOpacity(K_PlayerName _PlayerName, Real _Opacity, Integer _AnimDuration) {
+	if (_Opacity == _PlayerName.Opacity) return _PlayerName;
+	declare K_PlayerName PlayerName = _PlayerName;
+	PlayerName.Opacity = _Opacity;
+	PlayerName.OpacityAnimDuration = _AnimDuration;
+	if (!PlayerName.Dirty.exists(C_Property_Opacity)) {
+		PlayerName.Dirty.add(C_Property_Opacity);
+	}
+	return PlayerName;
+}
+Void SetOpacity(CMlScript _This, CMlFrame _Frame_PlayerName, Real _Opacity, Integer _AnimDuration, Boolean _Redraw) {
+	declare K_PlayerName MenuLibs_PlayerName_PlayerName for _Frame_PlayerName = C_PlayerName_Null;
+	Private_AssertValidComponent(_Frame_PlayerName, MenuLibs_PlayerName_PlayerName);
+	MenuLibs_PlayerName_PlayerName = Private_SetOpacity(MenuLibs_PlayerName_PlayerName, _Opacity, _AnimDuration);
+	if (_Redraw) {
+		declare K_State MenuLibs_PlayerName_State for _This.Page = C_State_Null;
+		declare K_Result Result = Private_Redraw(_This, MenuLibs_PlayerName_State, MenuLibs_PlayerName_PlayerName);
+		MenuLibs_PlayerName_State = Result.State;
+		MenuLibs_PlayerName_PlayerName = Result.PlayerName;
+	}
+}
+Void SetOpacity(CMlScript _This, CMlFrame _Frame_PlayerName, Real _Opacity, Integer _AnimDuration) {
+	SetOpacity(_This, _Frame_PlayerName, _Opacity, _AnimDuration, True);
+}
+Void SetOpacity(CMlScript _This, CMlFrame _Frame_PlayerName, Real _Opacity) {
+	SetOpacity(_This, _Frame_PlayerName, _Opacity, 0, True);
+}
+
+K_PlayerName Private_SetHAlign(K_PlayerName _PlayerName, CMlControl::AlignHorizontal _HAlign) {
+	if (_HAlign == _PlayerName.HAlign) return _PlayerName;
+	declare K_PlayerName PlayerName = _PlayerName;
+	PlayerName.HAlign = _HAlign;
+	if (!PlayerName.Dirty.exists(C_Property_HAlign)) {
+		PlayerName.Dirty.add(C_Property_HAlign);
+	}
+	return PlayerName;
+}
+Void SetHAlign(CMlScript _This, CMlFrame _Frame_PlayerName, CMlControl::AlignHorizontal _HAlign, Boolean _Redraw) {
+	declare K_PlayerName MenuLibs_PlayerName_PlayerName for _Frame_PlayerName = C_PlayerName_Null;
+	Private_AssertValidComponent(_Frame_PlayerName, MenuLibs_PlayerName_PlayerName);
+	MenuLibs_PlayerName_PlayerName = Private_SetHAlign(MenuLibs_PlayerName_PlayerName, _HAlign);
+	if (_Redraw) {
+		declare K_State MenuLibs_PlayerName_State for _This.Page = C_State_Null;
+		declare K_Result Result = Private_Redraw(_This, MenuLibs_PlayerName_State, MenuLibs_PlayerName_PlayerName);
+		MenuLibs_PlayerName_State = Result.State;
+		MenuLibs_PlayerName_PlayerName = Result.PlayerName;
+	}
+}
+Void SetHAlign(CMlScript _This, CMlFrame _Frame_PlayerName, CMlControl::AlignHorizontal _HAlign) {
+	SetHAlign(_This, _Frame_PlayerName, _HAlign, True);
+}
+
+K_PlayerName Private_SetVAlign(K_PlayerName _PlayerName, CMlControl::AlignVertical _VAlign) {
+	if (_VAlign == _PlayerName.VAlign) return _PlayerName;
+	declare K_PlayerName PlayerName = _PlayerName;
+	PlayerName.VAlign = _VAlign;
+	if (!PlayerName.Dirty.exists(C_Property_VAlign)) {
+		PlayerName.Dirty.add(C_Property_VAlign);
+	}
+	return PlayerName;
+}
+Void SetVAlign(CMlScript _This, CMlFrame _Frame_PlayerName, CMlControl::AlignVertical _VAlign, Boolean _Redraw) {
+	declare K_PlayerName MenuLibs_PlayerName_PlayerName for _Frame_PlayerName = C_PlayerName_Null;
+	Private_AssertValidComponent(_Frame_PlayerName, MenuLibs_PlayerName_PlayerName);
+	MenuLibs_PlayerName_PlayerName = Private_SetVAlign(MenuLibs_PlayerName_PlayerName, _VAlign);
+	if (_Redraw) {
+		declare K_State MenuLibs_PlayerName_State for _This.Page = C_State_Null;
+		declare K_Result Result = Private_Redraw(_This, MenuLibs_PlayerName_State, MenuLibs_PlayerName_PlayerName);
+		MenuLibs_PlayerName_State = Result.State;
+		MenuLibs_PlayerName_PlayerName = Result.PlayerName;
+	}
+}
+Void SetVAlign(CMlScript _This, CMlFrame _Frame_PlayerName, CMlControl::AlignVertical _VAlign) {
+	SetVAlign(_This, _Frame_PlayerName, _VAlign, True);
+}
+
+K_PlayerName Private_SetTextCompose(K_PlayerName _PlayerName, Text _TextCompose) {
+	if (_TextCompose == _PlayerName.TextCompose) return _PlayerName;
+	declare K_PlayerName PlayerName = _PlayerName;
+	PlayerName.TextCompose = _TextCompose;
+	if (!PlayerName.Dirty.exists(C_Property_TextCompose)) {
+		PlayerName.Dirty.add(C_Property_TextCompose);
+	}
+	return PlayerName;
+}
+Void SetTextCompose(CMlScript _This, CMlFrame _Frame_PlayerName, Text _TextCompose, Boolean _Redraw) {
+	declare K_PlayerName MenuLibs_PlayerName_PlayerName for _Frame_PlayerName = C_PlayerName_Null;
+	Private_AssertValidComponent(_Frame_PlayerName, MenuLibs_PlayerName_PlayerName);
+	MenuLibs_PlayerName_PlayerName = Private_SetTextCompose(MenuLibs_PlayerName_PlayerName, _TextCompose);
+	if (_Redraw) {
+		declare K_State MenuLibs_PlayerName_State for _This.Page = C_State_Null;
+		declare K_Result Result = Private_Redraw(_This, MenuLibs_PlayerName_State, MenuLibs_PlayerName_PlayerName);
+		MenuLibs_PlayerName_State = Result.State;
+		MenuLibs_PlayerName_PlayerName = Result.PlayerName;
+	}
+}
+Void SetTextCompose(CMlScript _This, CMlFrame _Frame_PlayerName, Text _TextCompose) {
+	SetTextCompose(_This, _Frame_PlayerName, _TextCompose, True);
+}
+
+Void Private_InitializePlayerName(CMlScript _This, CMlFrame _Frame_PlayerName) {
+	assert(_Frame_PlayerName.DataAttributeExists("size"), "The PlayerName component '"^_Frame_PlayerName.ControlId^_Frame_PlayerName.Id^"' must have its 'data-size' attribute set");
+
+	declare K_PlayerName MenuLibs_PlayerName_PlayerName for _Frame_PlayerName = C_PlayerName_Null;
+	MenuLibs_PlayerName_PlayerName = C_PlayerName_Null;
+
+	MenuLibs_PlayerName_PlayerName.Controls = K_Controls {
+		PlayerName_Component = _Frame_PlayerName,
+		Frame_Align = (_Frame_PlayerName.GetFirstChild(C_Id_FrameAlign) as CMlFrame),
+		Label_Name = (_Frame_PlayerName.GetFirstChild(C_Id_LabelName) as CMlLabel),
+		Label_FirstPartyIcon = (_Frame_PlayerName.GetFirstChild(C_Id_LabelFirstPartyIcon) as CMlLabel),
+		LoadingSpinner_Name = (_Frame_PlayerName.GetFirstChild(C_Id_LoadingSpinnerName) as CMlFrame)
+	};
+
+	MenuLibs_PlayerName_PlayerName = Private_SetSize(MenuLibs_PlayerName_PlayerName, Tools::TextToVec2(_Frame_PlayerName.DataAttributeGet("size")));
+	if (_Frame_PlayerName.DataAttributeExists("textsize")) {
+		MenuLibs_PlayerName_PlayerName = Private_SetTextSize(MenuLibs_PlayerName_PlayerName, TL::ToReal(_Frame_PlayerName.DataAttributeGet("textsize")));
+	}
+	if (_Frame_PlayerName.DataAttributeExists("textfont")) {
+		MenuLibs_PlayerName_PlayerName = Private_SetTextFont(MenuLibs_PlayerName_PlayerName, _Frame_PlayerName.DataAttributeGet("textfont"));
+	}
+	if (_Frame_PlayerName.DataAttributeExists("textprefix")) {
+		MenuLibs_PlayerName_PlayerName = Private_SetTextPrefix(MenuLibs_PlayerName_PlayerName, _Frame_PlayerName.DataAttributeGet("textprefix"));
+	}
+	if (_Frame_PlayerName.DataAttributeExists("textcolor")) {
+		MenuLibs_PlayerName_PlayerName = Private_SetTextColor(MenuLibs_PlayerName_PlayerName, CL::HexToRgb(_Frame_PlayerName.DataAttributeGet("textcolor")));
+	}
+	if (_Frame_PlayerName.DataAttributeExists("opacity")) {
+		MenuLibs_PlayerName_PlayerName = Private_SetOpacity(MenuLibs_PlayerName_PlayerName, TL::ToReal(_Frame_PlayerName.DataAttributeGet("opacity")), 0);
+	}
+	if (_Frame_PlayerName.DataAttributeExists("halign")) {
+		MenuLibs_PlayerName_PlayerName = Private_SetHAlign(MenuLibs_PlayerName_PlayerName, Tools::TextToHAlign2(_Frame_PlayerName.DataAttributeGet("halign")));
+	}
+	if (_Frame_PlayerName.DataAttributeExists("valign")) {
+		MenuLibs_PlayerName_PlayerName = Private_SetVAlign(MenuLibs_PlayerName_PlayerName, Tools::TextToVAlign2(_Frame_PlayerName.DataAttributeGet("valign")));
+	}
+	if (_Frame_PlayerName.DataAttributeExists("textcompose")) {
+		MenuLibs_PlayerName_PlayerName = Private_SetTextCompose(MenuLibs_PlayerName_PlayerName, _Frame_PlayerName.DataAttributeGet("textcompose"));
+	}
+
+	MenuLibs_PlayerName_PlayerName.IsInitialized = True;
+
+	declare K_State MenuLibs_PlayerName_State for _This.Page = C_State_Null;
+	declare K_Result Result = Private_Redraw(_This, MenuLibs_PlayerName_State, MenuLibs_PlayerName_PlayerName);
+	MenuLibs_PlayerName_State = Result.State;
+	MenuLibs_PlayerName_PlayerName = Result.PlayerName;
+}
+
+Void Private_InitializePlayerNames(CMlScript _This) {
+	_This.Page.GetClassChildren(C_Class_PlayerName, _This.Page.MainFrame, True);
+	foreach (Control in _This.Page.GetClassChildren_Result) {
+		declare CMlFrame Frame_PlayerName = (Control as CMlFrame).Parent;
+		Private_InitializePlayerName(_This, Frame_PlayerName);
+	}
+}
+
+K_Event[] GetPendingEvents(CMlScript _This) {
+	declare K_State MenuLibs_PlayerName_State for _This.Page = C_State_Null;
+	return MenuLibs_PlayerName_State.PendingEvents;
+}
+
+Boolean IsLoading(CMlFrame _Frame_PlayerName) {
+	declare K_PlayerName MenuLibs_PlayerName_PlayerName for _Frame_PlayerName = C_PlayerName_Null;
+	Private_AssertValidComponent(_Frame_PlayerName, MenuLibs_PlayerName_PlayerName);
+	return Private_IsLoading(MenuLibs_PlayerName_PlayerName);
+}
+
+Boolean IsPlayerName(CMlControl _Control) {
+	declare K_PlayerName MenuLibs_PlayerName_PlayerName for _Control = C_PlayerName_Null;
+	return MenuLibs_PlayerName_PlayerName.IsInitialized;
+}
+
+Real GetWidth(CMlFrame _Frame_PlayerName) {
+	declare K_PlayerName MenuLibs_PlayerName_PlayerName for _Frame_PlayerName = C_PlayerName_Null;
+	Private_AssertValidComponent(_Frame_PlayerName, MenuLibs_PlayerName_PlayerName);
+	return MenuLibs_PlayerName_PlayerName.Width;
+}
+
+Void TTS_Focus(CMlFrame _Frame_PlayerName) {
+	declare K_PlayerName MenuLibs_PlayerName_PlayerName for _Frame_PlayerName = C_PlayerName_Null;
+	Private_AssertValidComponent(_Frame_PlayerName, MenuLibs_PlayerName_PlayerName);
+	MenuLibs_PlayerName_PlayerName.Controls.Label_Name.TTS_Focus();
+}
+
+Void TTS_Unfocus(CMlFrame _Frame_PlayerName) {
+	declare K_PlayerName MenuLibs_PlayerName_PlayerName for _Frame_PlayerName = C_PlayerName_Null;
+	Private_AssertValidComponent(_Frame_PlayerName, MenuLibs_PlayerName_PlayerName);
+	MenuLibs_PlayerName_PlayerName.Controls.Label_Name.TTS_Unfocus();
+}
+
+Void MainInit(CMlScript _This) {
+	declare K_State MenuLibs_PlayerName_State for _This.Page = C_State_Null;
+	MenuLibs_PlayerName_State = C_State_Null;
+	Private_InitializePlayerNames(_This);
+}
+
+Void MainLoop(CMlScript _This) {
+	declare K_State MenuLibs_PlayerName_State for _This.Page = C_State_Null;
+
+	MenuLibs_PlayerName_State.PendingEvents = MenuLibs_PlayerName_State.DelayedPendingEvents;
+	MenuLibs_PlayerName_State.DelayedPendingEvents = [];
+
+	// Get the players names and club tags
+	if (
+		MenuLibs_PlayerName_State.NamesAndClubTags.HasPending &&
+		!MenuLibs_PlayerName_State.NamesAndClubTags.IsRequesting &&
+		Now >= MenuLibs_PlayerName_State.NamesAndClubTags.CooldownEndTime
+	) {
+		declare Text[] AccountIds_Names;
+		declare Text[] AccountIds_ClubTags;
+		foreach (AccountId => Entry in MenuLibs_PlayerName_State.NamesAndClubTags.Entries) {
+			if (Entry.Status == C_Status_Pending) {
+				if (AccountId != "") {
+					if (_This.UserMgr.FindDisplayName(AccountId) == "") {
+						AccountIds_Names.add(AccountId);
+					}
+					if (Entry.ClubTag == "" && Entry.HasRequestedClubTag) {
+						AccountIds_ClubTags.add(AccountId);
+					}
+				}
+				MenuLibs_PlayerName_State.NamesAndClubTags.Entries[AccountId].Status = C_Status_Requesting;
+			}
+		}
+
+		if (AccountIds_Names.count > 0) {
+			MenuLibs_PlayerName_State.NamesAndClubTags.Task_RetrieveDisplayName = Task::DestroyAndCreate(
+				MenuLibs_PlayerName_State.NamesAndClubTags.Task_RetrieveDisplayName,
+				_This.UserMgr,
+				_This.UserMgr.RetrieveDisplayName(MainUser::GetMainUserId(), AccountIds_Names)
+			);
+		}
+		if (AccountIds_ClubTags.count > 0) {
+			MenuLibs_PlayerName_State.NamesAndClubTags.Task_GetClubTagList = Task::DestroyAndCreate(
+				MenuLibs_PlayerName_State.NamesAndClubTags.Task_GetClubTagList,
+				_This.UserMgr,
+				_This.UserMgr.Tag_GetClubTagList(MainUser::GetMainUserId(), AccountIds_ClubTags)
+			);
+		}
+
+		MenuLibs_PlayerName_State.NamesAndClubTags.HasPending = False;
+		MenuLibs_PlayerName_State.NamesAndClubTags.IsRequesting = True;
+		MenuLibs_PlayerName_State.NamesAndClubTags.IsSuccess = True;
+	}
+
+	if (MenuLibs_PlayerName_State.NamesAndClubTags.IsRequesting) {
+		if (Task::IsInitialized(MenuLibs_PlayerName_State.NamesAndClubTags.Task_RetrieveDisplayName)) {
+			MenuLibs_PlayerName_State.NamesAndClubTags.Task_RetrieveDisplayName = Task::Update(MenuLibs_PlayerName_State.NamesAndClubTags.Task_RetrieveDisplayName);
+			if (!Task::IsRunning(MenuLibs_PlayerName_State.NamesAndClubTags.Task_RetrieveDisplayName)) {
+				if (!Task::IsSuccess(MenuLibs_PlayerName_State.NamesAndClubTags.Task_RetrieveDisplayName)) {
+					MenuLibs_PlayerName_State.NamesAndClubTags.IsSuccess = False;
+				}
+				MenuLibs_PlayerName_State.NamesAndClubTags.Task_RetrieveDisplayName = Task::Destroy(MenuLibs_PlayerName_State.NamesAndClubTags.Task_RetrieveDisplayName);
+			}
+		}
+
+		if (Task::IsInitialized(MenuLibs_PlayerName_State.NamesAndClubTags.Task_GetClubTagList)) {
+			MenuLibs_PlayerName_State.NamesAndClubTags.Task_GetClubTagList = Task::Update(MenuLibs_PlayerName_State.NamesAndClubTags.Task_GetClubTagList);
+			if (!Task::IsRunning(MenuLibs_PlayerName_State.NamesAndClubTags.Task_GetClubTagList)) {
+				declare CTaskResult_ClubTagList SourceTask = Task::GetSourceTask_ClubTagList(MenuLibs_PlayerName_State.NamesAndClubTags.Task_GetClubTagList);
+				if (Task::IsSuccess(MenuLibs_PlayerName_State.NamesAndClubTags.Task_GetClubTagList) && SourceTask != Null) {
+					foreach (AccountId => Entry in MenuLibs_PlayerName_State.NamesAndClubTags.Entries) {
+						if (Entry.Status == C_Status_Requesting) {
+							MenuLibs_PlayerName_State.NamesAndClubTags.Entries[AccountId].ClubTag = SourceTask.GetClubTag(AccountId);
+						}
+					}
+				} else {
+					MenuLibs_PlayerName_State.NamesAndClubTags.IsSuccess = False;
+				}
+				MenuLibs_PlayerName_State.NamesAndClubTags.Task_GetClubTagList = Task::Destroy(MenuLibs_PlayerName_State.NamesAndClubTags.Task_GetClubTagList);
+			}
+		}
+
+		if (
+			!Task::IsInitialized(MenuLibs_PlayerName_State.NamesAndClubTags.Task_RetrieveDisplayName) &&
+			!Task::IsInitialized(MenuLibs_PlayerName_State.NamesAndClubTags.Task_GetClubTagList)
+		) {
+			MenuLibs_PlayerName_State.NamesAndClubTags.IsRequesting = False;
+			MenuLibs_PlayerName_State.NamesAndClubTags.CooldownEndTime = Now + C_NamesAndClubTagsCooldownDuration;
+
+			// If the request failed remove the entries with a `C_Status_Requesting` status
+			// We'll wait for another name and club tag update to retry
+			// Otherwise update the status to `C_Status_Complete`
+			declare Text[] AccountIdsToRemove;
+			foreach (AccountId => Entry in MenuLibs_PlayerName_State.NamesAndClubTags.Entries) {
+				if (Entry.Status == C_Status_Requesting) {
+					if (MenuLibs_PlayerName_State.NamesAndClubTags.IsSuccess) {
+						MenuLibs_PlayerName_State.NamesAndClubTags.Entries[AccountId].Status = C_Status_Complete;
+					} else {
+						AccountIdsToRemove.add(AccountId);
+					}
+				}
+			}
+			foreach (AccountId in AccountIdsToRemove) {
+				MenuLibs_PlayerName_State.NamesAndClubTags.Entries.removekey(AccountId);
+			}
+
+			// Update the components
+			if (MenuLibs_PlayerName_State.NamesAndClubTags.IsSuccess) {
+				_This.Page.GetClassChildren(C_Class_PlayerName, _This.Page.MainFrame, True);
+				foreach (Control in _This.Page.GetClassChildren_Result) {
+					declare CMlFrame Frame_PlayerName = (Control as CMlFrame).Parent;
+					declare K_PlayerName MenuLibs_PlayerName_PlayerName for Frame_PlayerName = C_PlayerName_Null;
+					if (MenuLibs_PlayerName_PlayerName.LoadingAccountId != "") {
+						declare K_NamesAndClubTagsEntry Entry = MenuLibs_PlayerName_State.NamesAndClubTags.Entries.get(MenuLibs_PlayerName_PlayerName.LoadingAccountId, C_NamesAndClubTagsEntry_Null);
+						if (Entry.Status == C_Status_Complete) {
+							declare Boolean IsFirstPartyDisplayName = False;
+							declare Text Name = _This.UserMgr.FindDisplayName(MenuLibs_PlayerName_PlayerName.LoadingAccountId, IsFirstPartyDisplayName);
+							declare Text ClubTag = "";
+							if (MenuLibs_PlayerName_PlayerName.DisplayClubTag) {
+								ClubTag = Entry.ClubTag;
+							}
+							MenuLibs_PlayerName_PlayerName = Private_SetName(
+								_This,
+								MenuLibs_PlayerName_PlayerName,
+								Name,
+								ClubTag,
+								IsFirstPartyDisplayName,
+								True
+							);
+							declare K_Result Result = Private_Redraw(_This, MenuLibs_PlayerName_State, MenuLibs_PlayerName_PlayerName);
+							MenuLibs_PlayerName_State = Result.State;
+							MenuLibs_PlayerName_PlayerName = Result.PlayerName;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+/// Get the component
+Text ComponentV2() {
+	return MV::ComponentV2(
+		C_Name,
+		GetManialink(),
+		"""
+#Include "Libs/Nadeo/MenuLibs/Common/Menu/Components/PlayerName.Script.txt" as {{{Q}}}
+		""",
+		"""
+***MainInit***
+***
+{{{P}}}MainInit(This);
+***
+
+***MainLoop***
+***
+{{{P}}}MainLoop(This);
+***
+		""",
+		[
+			LoadingSpinner::ComponentV2()
+		],
+		[]
+	);
+}

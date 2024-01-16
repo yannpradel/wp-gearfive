@@ -1,0 +1,130 @@
+/**
+ *  Base mania app for Race modes
+ */
+#Extends "ManiaApps/Nadeo/ModeLibs/Common/AppBase.Script.txt"
+
+#Const C_RaceBase_Version    "2023-01-20"
+#Const C_RaceBase_ScriptName "ManiaApps/Nadeo/TMxSM/Race/RaceBase.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Libraries
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/Chrono_Client.Script.txt" as UIModules_Race_Chrono
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/RespawnHelper_Client.Script.txt" as UIModules_Race_RespawnHelper
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/Checkpoint_Client.Script.txt" as UIModules_Race_Checkpoint
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/LapsCounter_Client.Script.txt" as UIModules_Race_LapsCounter
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/TimeGap_Client.Script.txt" as UIModules_Race_TimeGap
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/ScoresTable_Client.Script.txt" as UIModules_Race_ScoresTable
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/ScoresTable_Visibility.Script.txt" as ScoresTable_Visibility
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/DisplayMessage_Client.Script.txt" as UIModules_Race_DisplayMessage
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/Countdown_Client.Script.txt" as UIModules_Race_Countdown
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/SpectatorBase_Client.Script.txt" as UIModules_Race_SpectatorBase
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/Record_Client.Script.txt" as UIModules_Race_Record
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/PauseMenuOnline_Client.Script.txt" as UIModules_Race_PauseMenu_Online
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/PauseMenuSplitScreen_Client.Script.txt" as UIModules_Race_PauseMenu_SplitScreen
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/BigMessage_Client.Script.txt" as UIModules_Race_BigMessage
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/BlockHelper_Client.Script.txt" as UIModules_Race_BlockHelper
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/WarmUp_Client.Script.txt" as UIModules_Race_WarmUp
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/Sign16x9Small_Client.Script.txt" as UIModules_Race_Sign16x9Small
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/VoiceChat_Client.Script.txt" as UIModules_VoiceChat
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/PrestigeEarned_Client.Script.txt" as UIModules_PrestigeEarned
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/SquadMembers_Client.Script.txt" as UIModules_SquadMembers
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/LoadingScreen_Client.Script.txt" as UIModules_Race_LoadingScreen
+#Include "ManiaApps/Nadeo/TMxSM/Race/UIModules/Vote_Client.Script.txt" as UIModules_Vote
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Constant
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+#Const C_RaceBaseLayer_Profile "RaceBaseLayer_Profile"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Extends
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+***LogVersions***
+***
+Log::RegisterScript(C_RaceBase_ScriptName, C_RaceBase_Version);
+Log::RegisterScript(UIModules_Race_Chrono::ScriptName, UIModules_Race_Chrono::Version);
+Log::RegisterScript(UIModules_Race_RespawnHelper::ScriptName, UIModules_Race_RespawnHelper::Version);
+Log::RegisterScript(UIModules_Race_Checkpoint::ScriptName, UIModules_Race_Checkpoint::Version);
+Log::RegisterScript(UIModules_Race_LapsCounter::ScriptName, UIModules_Race_LapsCounter::Version);
+Log::RegisterScript(UIModules_Race_TimeGap::ScriptName, UIModules_Race_TimeGap::Version);
+Log::RegisterScript(UIModules_Race_ScoresTable::ScriptName, UIModules_Race_ScoresTable::Version);
+Log::RegisterScript(UIModules_Race_DisplayMessage::ScriptName, UIModules_Race_DisplayMessage::Version);
+Log::RegisterScript(UIModules_Race_Countdown::ScriptName, UIModules_Race_Countdown::Version);
+Log::RegisterScript(UIModules_Race_SpectatorBase::ScriptName, UIModules_Race_SpectatorBase::Version);
+Log::RegisterScript(UIModules_Race_Record::ScriptName, UIModules_Race_Record::Version);
+Log::RegisterScript(UIModules_Race_PauseMenu_Online::ScriptName, UIModules_Race_PauseMenu_Online::Version);
+Log::RegisterScript(UIModules_Race_PauseMenu_SplitScreen::ScriptName, UIModules_Race_PauseMenu_SplitScreen::Version);
+Log::RegisterScript(UIModules_Race_BigMessage::ScriptName, UIModules_Race_BigMessage::Version);
+Log::RegisterScript(UIModules_Race_BlockHelper::ScriptName, UIModules_Race_BlockHelper::Version);
+Log::RegisterScript(UIModules_Race_WarmUp::ScriptName, UIModules_Race_WarmUp::Version);
+Log::RegisterScript(UIModules_Race_Sign16x9Small::ScriptName, UIModules_Race_Sign16x9Small::Version);
+Log::RegisterScript(UIModules_VoiceChat::ScriptName, UIModules_VoiceChat::Version);
+Log::RegisterScript(UIModules_PrestigeEarned::ScriptName, UIModules_PrestigeEarned::Version);
+Log::RegisterScript(UIModules_SquadMembers::ScriptName, UIModules_SquadMembers::Version);
+Log::RegisterScript(UIModules_Race_LoadingScreen::ScriptName, UIModules_Race_LoadingScreen::Version);
+Log::RegisterScript(UIModules_Vote::ScriptName, UIModules_Vote::Version);
+***
+
+***LoadLibraries***
+***
+UIModules_Race_Record::Load();
+***
+
+***UnloadLibraries***
+***
+UIModules_Race_Record::Unload();
+***
+
+***InitApp***
+***
+declare Boolean SplitScreenEnable = (SplitScreenCount > 1);
+***
+
+***StartApp***
+***
+UIModules::CreateModule(UIModules_Race_ScoresTable::GetId(), UIModules_Race_ScoresTable::GetML(), UIModules_Race_ScoresTable::GetLayerType(), SplitScreenEnable, UIModules::C_SplitScreen_Everyone);
+UIModules::CreateModule(UIModules_Race_Chrono::GetId(), UIModules_Race_Chrono::GetML(), UIModules_Race_Chrono::GetLayerType(), SplitScreenEnable, UIModules::C_SplitScreen_Everyone);
+UIModules::CreateModule(UIModules_Race_Checkpoint::GetId(), UIModules_Race_Checkpoint::GetML(), UIModules_Race_Checkpoint::GetLayerType(), SplitScreenEnable, UIModules::C_SplitScreen_Everyone);
+UIModules::CreateModule(UIModules_Race_RespawnHelper::GetId(), UIModules_Race_RespawnHelper::GetML(), UIModules_Race_RespawnHelper::GetLayerType(), SplitScreenEnable, UIModules::C_SplitScreen_Everyone);
+UIModules::CreateModule(UIModules_Race_TimeGap::GetId(), UIModules_Race_TimeGap::GetML(), UIModules_Race_TimeGap::GetLayerType(), SplitScreenEnable, UIModules::C_SplitScreen_Everyone);
+UIModules::CreateModule(UIModules_Race_DisplayMessage::GetId(), UIModules_Race_DisplayMessage::GetML(), UIModules_Race_DisplayMessage::GetLayerType(), SplitScreenEnable, UIModules::C_SplitScreen_Everyone);
+UIModules::CreateModule(UIModules_Race_Countdown::GetId(), UIModules_Race_Countdown::GetML(), UIModules_Race_Countdown::GetLayerType(), SplitScreenEnable, UIModules::C_SplitScreen_Everyone);
+UIModules::CreateModule(UIModules_Race_Record::GetId(), UIModules_Race_Record::GetML(), UIModules_Race_Record::GetLayerType(), SplitScreenEnable, UIModules::C_SplitScreen_Everyone);
+UIModules::CreateModule(UIModules_Race_LapsCounter::GetId(), UIModules_Race_LapsCounter::GetML(), UIModules_Race_LapsCounter::GetLayerType(), SplitScreenEnable, UIModules::C_SplitScreen_Everyone);
+UIModules::CreateModule(UIModules_Race_BigMessage::GetId(), UIModules_Race_BigMessage::GetML(), UIModules_Race_BigMessage::GetLayerType(), SplitScreenEnable, UIModules::C_SplitScreen_Everyone);
+UIModules::CreateModule(UIModules_Race_BlockHelper::GetId(), UIModules_Race_BlockHelper::GetML(), UIModules_Race_BlockHelper::GetLayerType());
+UIModules::CreateModule(UIModules_Race_WarmUp::GetId(), UIModules_Race_WarmUp::GetML(), UIModules_Race_WarmUp::GetLayerType(), SplitScreenEnable, UIModules::C_SplitScreen_Everyone);
+UIModules::CreateModule(UIModules_Race_Sign16x9Small::GetId(), UIModules_Race_Sign16x9Small::GetML(), UIModules_Race_Sign16x9Small::GetLayerType(), UIModules_Race_Sign16x9Small::C_AttachId);
+UIModules::CreateModule(UIModules_Race_SpectatorBase::GetId(), UIModules_Race_SpectatorBase::GetML(), UIModules_Race_SpectatorBase::GetLayerType());
+UIModules::CreateModule(UIModules_VoiceChat::GetId(), UIModules_VoiceChat::GetML(), UIModules_VoiceChat::GetLayerType(), SplitScreenEnable, UIModules::C_SplitScreen_Everyone);
+UIModules::CreateModule(UIModules_PrestigeEarned::GetId(), UIModules_PrestigeEarned::GetML(), UIModules_PrestigeEarned::GetLayerType(), SplitScreenEnable, UIModules::C_SplitScreen_Common);
+UIModules::CreateModule(UIModules_SquadMembers::GetId(), UIModules_SquadMembers::GetML(), UIModules_SquadMembers::GetLayerType(), SplitScreenEnable, UIModules::C_SplitScreen_Common);
+UIModules::CreateModule(UIModules_Race_LoadingScreen::GetId(), UIModules_Race_LoadingScreen::GetML(), UIModules_Race_LoadingScreen::GetLayerType());
+if (UIModules_Vote::CustomUIIsAvailable(System)) {
+	UIModules::CreateModule(UIModules_Vote::GetId(), UIModules_Vote::GetML(), UIModules_Vote::GetLayerType(), SplitScreenEnable, UIModules::C_SplitScreen_Everyone);
+}
+
+if (SplitScreenEnable) {
+	UIModules::CreateModule(UIModules_Race_PauseMenu_SplitScreen::C_Id, UIModules_Race_PauseMenu_SplitScreen::GetML(), UIModules_Race_PauseMenu_SplitScreen::C_Type, SplitScreenEnable, UIModules::C_SplitScreen_Common);
+	UIModules::CreateModule(UIModules_Race_ScoresTable::GetSplitScreenId(), UIModules_Race_ScoresTable::GetML(), UIModules_Race_ScoresTable::GetLayerType(), SplitScreenEnable, UIModules::C_SplitScreen_Common);
+} else {
+	UIModules::CreateModule(UIModules_Race_PauseMenu_Online::C_Id, UIModules_Race_PauseMenu_Online::GetML(), UIModules_Race_PauseMenu_Online::C_Type);
+}
+
+Layers::Create(C_RaceBaseLayer_Profile, UIModules_Race_ScoresTable::GetProfileML());
+ScoresTable_Visibility::Start(SplitScreenEnable);
+***
+
+***Yield***
+***
+UIModules_Race_Record::Yield();
+UIModules_Race_BlockHelper::Yield();
+UIModules_Race_Checkpoint::Yield();
+UIModules_Race_PauseMenu_Online::Yield();
+***
+
+***EndApp***
+***
+Layers::Destroy(C_RaceBaseLayer_Profile);
+***

@@ -1,0 +1,45 @@
+/** 
+ *	Overlay: ControllerInfo
+ */
+#Const Version		"2022-11-02"
+#Const ScriptName	"Libs/Nadeo/TMNext/TrackMania/Menu/Overlays/ControllerInfo_ML.Script.txt"
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+// Functions
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+Void Private_Update() {
+	declare Integer TMNext_ControllerInfo_ButtonsUpdate for System = 0;
+	TMNext_ControllerInfo_ButtonsUpdate += 1;
+}
+
+Void SetButtons(Text[Text] _Buttons) {
+	declare Text[Text] TMNext_ControllerInfo_Buttons for System = [];
+	declare Boolean IsUpdateNeeded = _Buttons.count != TMNext_ControllerInfo_Buttons.count;
+
+	if (!IsUpdateNeeded) {
+		foreach (Action => Description in _Buttons) {
+			if (!TMNext_ControllerInfo_Buttons.existskey(Action) || TMNext_ControllerInfo_Buttons[Action] != Description) {
+				IsUpdateNeeded = True;
+				break;
+			}
+		}
+	} 
+	
+	if (IsUpdateNeeded) {
+		TMNext_ControllerInfo_Buttons = _Buttons;
+		Private_Update();
+	}
+}
+
+Void SetButton(Text _Action, Text _Description) {
+	declare Text[Text] TMNext_ControllerInfo_Buttons for System = [];
+	if (!TMNext_ControllerInfo_Buttons.existskey(_Action) || TMNext_ControllerInfo_Buttons[_Action] != _Description) {
+		TMNext_ControllerInfo_Buttons[_Action] = _Description;
+		Private_Update();
+	}
+}
+
+Text[Text] GetButtons() {
+	declare Text[Text] TMNext_ControllerInfo_Buttons for System = [];
+	return TMNext_ControllerInfo_Buttons;
+}
